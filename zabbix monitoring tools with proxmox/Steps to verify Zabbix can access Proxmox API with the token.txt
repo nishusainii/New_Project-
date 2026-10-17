@@ -1,0 +1,197 @@
+Before configuring Zabbix, it's a good idea to verify that the API token works directly from the Zabbix server. This helps isolate token/permission issues from Zabbix configuration problems.
+
+Step 1: Verify Network Connectivity
+
+From the Zabbix server:
+
+nc -vz PROXMOX_IP 8006
+
+
+Example:
+
+nc -vz 10.31.212.100 8006
+
+
+Expected:
+
+Connection to 10.31.212.100 8006 port [tcp/*] succeeded!
+
+
+If this fails:
+
+Check firewall rules
+Check Proxmox firewall
+Check routing/VPN connectivity
+Step 2: Verify HTTPS Access
+
+From the Zabbix server:
+
+curl -k https://PROXMOX_IP:8006/api2/json/version
+
+
+Example:
+
+curl -k https://10.31.212.100:8006/api2/json/version
+
+
+Expected:
+
+{
+  "data": {
+    "version": "8.x"
+  }
+}
+
+
+This confirms the API endpoint is reachable. The Proxmox API is available over HTTPS on port 8006.
+
+Step 3: Test the API Token
+
+Use the token exactly as configured in Zabbix.
+
+Token Format
+user@realm!tokenid
+
+
+Example:
+
+zabbix-monitor@pve!zabbix
+
+
+The API uses the Authorization: PVEAPIToken= header for token authentication.
+
+Command
+curl -k \
+-H "Authorization: PVEAPIToken=zabbix-monitor@pve!zabbix=TOKEN_SECRET" \
+https://PROXMOX_IP:8006/api2/json/cluster/status
+
+
+Example:
+
+curl -k \
+-H "Authorization: PVEAPIToken=zabbix-monitor@pve!zabbix=3f8d9a12..." \
+https://10.31.212.100:8006/api2/json/cluster/status
+
+Step 4: Verify Cluster Data
+
+Expected output:
+
+{
+  "data": [
+    {
+      "type": "cluster"
+    },
+    {
+      "type": "node"
+    }
+  ]
+}
+
+
+A successful response indicates:
+
+✅ Token is valid
+ ✅ Token secret is correct
+ ✅ API reachable
+ ✅ Permissions sufficient for cluster queries
+
+The Proxmox API documentation includes examples of using API tokens and querying cluster information through the REST API.
+
+Step 5: Test VM Discovery Permissions
+
+This is important because the Zabbix template discovers VMs and containers.
+
+curl -k \
+-H "Authorization: PVEAPIToken=zabbix-monitor@pve!zabbix=TOKEN_SECRET" \
+https://PROXMOX_IP:8006/api2/json/cluster/resources
+
+
+Expected:
+
+{
+  "data": [
+    {
+      "type": "qemu"
+    },
+    {
+      "type": "lxc"
+    }
+  ]
+}
+
+
+If this works, Zabbix should be able to discover VMs and containers.
+
+Step 6: Check for Permission Errors
+401 Unauthorized
+
+Example:
+
+{
+  "errors": {
+    "auth": "permission denied"
+  }
+}
+
+
+Usually means:
+
+Wrong token secret
+Wrong token ID
+Token removed
+403 Forbidden
+
+Usually means:
+
+Missing PVEAuditor role
+ACL not applied
+Privilege separation enabled without token permissions
+
+API token permissions and privilege separation affect what the token can access.
+
+Step 7: Verify from Zabbix UI
+
+After adding macros:
+
+{$PVE.URL.HOST}
+{$PVE.URL.PORT}
+{$PVE.TOKEN.ID}
+{$PVE.TOKEN.SECRET}
+
+
+Check:
+
+Data Collection
+ └── Hosts
+      └── Proxmox-Cluster
+           └── Items
+
+
+Look for:
+
+Proxmox: Cluster Health
+Proxmox: Node Discovery
+Proxmox: VM Discovery
+
+
+The status should become:
+
+Supported
+
+
+not:
+
+Not supported
+
+Quick One-Liner Test
+
+Replace the values and run directly from your Zabbix server:
+
+curl -sk \
+-H "Authorization: PVEAPIToken=zabbix-monitor@pve!zabbix=YOUR_SECRET" \
+https://10.31.212.100:8006/api2/json/cluster/status | jq .
+
+
+If you receive JSON cluster information, your token is working and Zabbix should be able to use it.
+
+For your environment, I would test /cluster/status and /cluster/resources first. If both return data successfully, the official Zabbix Proxmox template should discover nodes, VMs, LXCs, and storage correctly.

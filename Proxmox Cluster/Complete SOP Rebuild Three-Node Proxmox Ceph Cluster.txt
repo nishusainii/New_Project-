@@ -1,0 +1,995 @@
+
+
+This document records the complete CLI process you performed on `prox22`, `prox23`, and `prox24`, from removing the previous Ceph OSDs through creating the new 12-OSD cluster and resolving the stale PG issue.
+
+> **Destructive procedure:** The OSD removal, purge, zap, and pool deletion commands permanently destroy Ceph data. This procedure was appropriate because your environment was being rebuilt as fresh test storage.
+
+---
+
+# 1. Final architecture
+
+Proxmox cluster : cisai-pve  
+
+Nodes : prox22, prox23, prox24  
+
+Ceph network : 10.31.122.0/24  
+
+Replication : size 3  
+
+Minimum copies : min_size 2  
+
+CRUSH rule : replicated_rule  
+
+Failure domain : host  
+
+RBD pool : ceph  
+
+Storage ID : ceph
+
+## Ceph network addresses
+
+prox22 nic2 : 10.31.122.22/24  
+
+prox23 nic2 : 10.31.122.23/24  
+
+prox24 nic2 : 10.31.122.24/24
+
+## New OSD distribution
+
+prox22:  
+
+osd.0  
+
+osd.3  
+
+osd.6  
+
+osd.9  
+
+  
+
+prox23:  
+
+osd.1  
+
+osd.4  
+
+osd.7  
+
+osd.10  
+
+  
+
+prox24:  
+
+osd.2  
+
+osd.5  
+
+osd.8  
+
+osd.11
+
+## Physical OSD disks used
+
+/dev/sda  
+
+/dev/sdb  
+
+/dev/sdc  
+
+/dev/sdd
+
+Four disks per node, for a total of 12 OSDs.
+
+---
+
+# 2. Verified the Proxmox cluster
+
+The cluster status was checked with:
+
+pvecm status  
+
+pvecm nodes
+
+Confirmed result:
+
+Cluster name : cisai-pve  
+
+Nodes : 3  
+
+Quorate : Yes  
+
+Quorum : 2
+
+Cluster nodes:
+
+prox22  
+
+prox23  
+
+prox24
+
+---
+
+# 3. Identified the Proxmox OS disk
+
+This check was performed on every node:
+
+hostname  
+
+  
+
+findmnt -no SOURCE /  
+
+findmnt -no SOURCE /boot/efi  
+
+  
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN  
+
+  
+
+pvs  
+
+vgs  
+
+lvs
+
+Confirmed OS layout on all three nodes:
+
+Root filesystem : /dev/mapper/pve-root  
+
+EFI filesystem : /dev/sdm2  
+
+OS disk : /dev/sdm  
+
+Proxmox PV : /dev/sdm3  
+
+Proxmox VG : pve
+
+The Ceph disks were separate from `/dev/sdm`.
+
+---
+
+# 4. Recorded the old Ceph OSD mappings
+
+The old Ceph mappings were inspected using:
+
+ceph-volume lvm list
+
+The disk, OSD ID, OSD FSID, LVM VG, and BlueStore block LV were recorded before cleanup.
+
+A compact mapping command was also used:
+
+ceph-volume lvm list |  
+
+awk '  
+
+/^====== osd./ {  
+
+gsub(/=/, "", $0)  
+
+osd=$1  
+
+}  
+
+/^[[:space:]]+osd fsid/ {  
+
+fsid=$3  
+
+}  
+
+/^[[:space:]]+devices/ {  
+
+print $2, osd, fsid  
+
+}'
+
+---
+
+# 5. Backed up disk and Ceph inventory
+
+Before destructive changes, a timestamped inventory backup was created:
+
+BACKUP_DIR="/root/ceph-before-zap-$(hostname -s)-$(date +%F-%H%M%S)"  
+
+mkdir -p "$BACKUP_DIR"  
+
+  
+
+hostname > "$BACKUP_DIR/hostname.txt"  
+
+  
+
+ceph-volume lvm list </span>  
+
+> "$BACKUP_DIR/ceph-volume-lvm-list.txt"  
+
+  
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN </span>  
+
+> "$BACKUP_DIR/lsblk.txt"  
+
+  
+
+pvs -o+pv_uuid </span>  
+
+> "$BACKUP_DIR/pvs.txt"  
+
+  
+
+vgs -o+vg_uuid </span>  
+
+> "$BACKUP_DIR/vgs.txt"  
+
+  
+
+lvs -a -o+devices,lv_tags </span>  
+
+> "$BACKUP_DIR/lvs.txt"  
+
+  
+
+ceph -s </span>  
+
+> "$BACKUP_DIR/ceph-status.txt" 2>&1 || true  
+
+  
+
+ceph osd tree </span>  
+
+> "$BACKUP_DIR/ceph-osd-tree.txt" 2>&1 || true  
+
+  
+
+echo "Inventory saved in: $BACKUP_DIR"
+
+This preserved configuration and identification information, not the actual Ceph data.
+
+---
+
+# 6. Stopped old OSD services
+
+Local OSD IDs were detected automatically:
+
+mapfile -t OSD_IDS < <(  
+
+ceph-volume lvm list |  
+
+sed -n 's/^====== osd.[0−9]\+[0-9]\+.*$/\1/p'  
+
+)  
+
+  
+
+printf 'osd.%s\n' "${OSD_IDS[@]}"  
+
+echo "Total OSDs: ${#OSD_IDS[@]}"
+
+The OSD services were stopped:
+
+for id in "${OSD_IDS[@]}"; do  
+
+echo "Stopping osd.${id}"  
+
+systemctl stop "ceph-osd@${id}.service"  
+
+systemctl disable "ceph-osd@${id}.service" 2>/dev/null || true  
+
+done
+
+Validation:
+
+for id in "${OSD_IDS[@]}"; do  
+
+printf "osd.%-3s : " "$id"  
+
+systemctl is-active "ceph-osd@${id}.service" 2>/dev/null || true  
+
+done  
+
+  
+
+pgrep -a ceph-osd ||  
+
+echo "No ceph-osd processes are running"
+
+Required result:
+
+inactive  
+
+No ceph-osd processes are running  
+
+---
+
+# 7. Removed old Ceph data from the disks
+
+The target disk list was explicitly defined to protect `/dev/sdm`:
+
+TARGET_DISKS=(  
+
+/dev/sda /dev/sdb /dev/sdc /dev/sdd  
+
+/dev/sde /dev/sdf /dev/sdg /dev/sdh  
+
+/dev/sdi /dev/sdj /dev/sdk /dev/sdl  
+
+)
+
+The old Ceph LVs, VGs, PV labels, and BlueStore signatures were removed:
+
+for disk in "${TARGET_DISKS[@]}"; do  
+
+echo  
+
+echo "===== Zapping $disk ====="  
+
+ceph-volume lvm zap "$disk" --destroy  
+
+done
+
+Each successful operation reported:
+
+Zapping successful for: <Raw Device: /dev/sdX>
+
+The block-device and LVM caches were refreshed:
+
+udevadm settle  
+
+partprobe || true  
+
+pvscan --cache
+
+---
+
+# 8. Validated disk cleanup
+
+LVM was checked:
+
+pvs  
+
+vgs  
+
+lvs
+
+Expected result:
+
+PV VG  
+
+/dev/sdm3 pve
+
+There were no remaining:
+
+ceph-* volume groups  
+
+osd-block-* logical volumes  
+
+Ceph LVM physical volumes
+
+Raw disks were checked:
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN </span>  
+
+/dev/sd{a..m}
+
+Residual signatures were checked without changing anything:
+
+for disk in /dev/sd{a..l}; do  
+
+echo  
+
+echo "===== $disk ====="  
+
+wipefs --no-act "$disk"  
+
+done
+
+Ceph LVM metadata was checked:
+
+ceph-volume lvm list
+
+Expected:
+
+No valid Ceph lvm devices found
+
+---
+
+# 9. Diagnosed the failed prox22 monitor
+
+`mon.prox22` failed with:
+
+Cannot assign requested address  
+
+unable to bind monitor to 10.31.122.22
+
+Network inspection showed:
+
+ip -br address  
+
+ip route
+
+The problem was that `nic2` had no IPv4 address, while Ceph expected:
+
+10.31.122.22
+
+The configuration initially contained:
+
+iface nic2 inet manual  
+
+`
+
+---
+
+# 10. Backed up the prox22 network configuration
+
+BACKUP_DIR="/root/network-backup-$(date +%F-%H%M%S)"  
+
+mkdir -p "$BACKUP_DIR"  
+
+  
+
+cp -a /etc/network/interfaces "$BACKUP_DIR/interfaces"  
+
+cp -a /etc/network/interfaces.d "$BACKUP_DIR/" 2>/dev/null || true  
+
+cp -a /etc/pve/ceph.conf "$BACKUP_DIR/ceph.conf" 2>/dev/null || true  
+
+cp -a /etc/ceph/ceph.conf "$BACKUP_DIR/ceph-local.conf" 2>/dev/null || true  
+
+  
+
+ip -br address > "$BACKUP_DIR/ip-address.txt"  
+
+ip route > "$BACKUP_DIR/ip-route.txt"  
+
+ethtool nic2 > "$BACKUP_DIR/ethtool-nic2.txt" 2>&1 || true  
+
+  
+
+echo "Backup saved in: $BACKUP_DIR"
+
+---
+
+# 11. Permanently configured prox22 Ceph networking
+
+The persistent configuration in `/etc/network/interfaces` was changed to:
+
+auto nic2  
+
+iface nic2 inet static  
+
+address 10.31.122.22/24
+
+The configuration was applied, and the interface was verified:
+
+ip -br address show nic2  
+
+ip -4 address show dev nic2  
+
+ip route show dev nic2
+
+Confirmed result:
+
+nic2 UP 10.31.122.22/24  
+
+10.31.122.0/24 dev nic2 scope link src 10.31.122.22
+
+Routing to the two peer nodes was checked:
+
+ip route get 10.31.122.23  
+
+ip route get 10.31.122.24
+
+Confirmed:
+
+10.31.122.23 dev nic2 src 10.31.122.22  
+
+10.31.122.24 dev nic2 src 10.31.122.22
+
+No gateway was added to `nic2`. The default gateway remained on `vmbr0`.
+
+---
+
+# 12. Restarted the prox22 monitor
+
+systemctl reset-failed [ceph-mon@prox22.service](mailto:ceph-mon@prox22.service)  
+
+systemctl enable [ceph-mon@prox22.service](mailto:ceph-mon@prox22.service)  
+
+systemctl restart [ceph-mon@prox22.service](mailto:ceph-mon@prox22.service)
+
+Validation:
+
+systemctl is-enabled [ceph-mon@prox22.service](mailto:ceph-mon@prox22.service)  
+
+systemctl is-active [ceph-mon@prox22.service](mailto:ceph-mon@prox22.service)
+
+Confirmed:
+
+enabled  
+
+active
+
+Full MON quorum was checked:
+
+ceph mon stat  
+
+ceph -s
+
+Confirmed:
+
+quorum prox24,prox22,prox23
+
+---
+
+# 13. Removed obsolete OSD records
+
+Old OSD records remained in the Ceph cluster map after the physical disks were wiped.
+
+The OSD list was inspected:
+
+ceph osd ls  
+
+ceph osd tree
+
+OSDs that were still shown as up were first stopped and marked down/out:
+
+ceph osd out <OSD-ID>  
+
+ceph osd down <OSD-ID>  
+
+  
+
+systemctl stop ceph-osd@<OSD-ID>.service  
+
+systemctl disable ceph-osd@<OSD-ID>.service 2>/dev/null || true
+
+The obsolete records were purged:
+
+ceph osd purge <OSD-ID> --yes-i-really-mean-it
+
+This process was repeated until the old OSD records were removed.
+
+---
+
+# 14. Verified four clean disks on every node
+
+From `prox24`, the four intended OSD disks were checked remotely:
+
+for node in prox22 prox23 prox24; do  
+
+echo  
+
+echo "========== $node =========="  
+
+  
+
+ssh root@"$node" '  
+
+echo "Host: $(hostname)"  
+
+echo "Root: $(findmnt -no SOURCE /)"  
+
+echo "EFI: $(findmnt -no SOURCE /boot/efi)"  
+
+  
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL </span>  
+
+/dev/sda /dev/sdb /dev/sdc /dev/sdd  
+
+  
+
+for disk in /dev/sda /dev/sdb /dev/sdc /dev/sdd; do  
+
+echo "----- $disk signatures -----"  
+
+wipefs --no-act "$disk"  
+
+done  
+
+'  
+
+done
+
+All 12 selected disks showed:
+
+Size : 18.2 TB  
+
+FSTYPE : blank  
+
+Mount points: blank  
+
+Signatures : none  
+
+`
+
+---
+
+# 15. Created four OSDs on each node
+
+OSDs were created sequentially, not in parallel.
+
+## On prox22
+
+pveceph osd create /dev/sda  
+
+pveceph osd create /dev/sdb  
+
+pveceph osd create /dev/sdc  
+
+pveceph osd create /dev/sdd
+
+## On prox23
+
+pveceph osd create /dev/sda  
+
+pveceph osd create /dev/sdb  
+
+pveceph osd create /dev/sdc  
+
+pveceph osd create /dev/sdd
+
+## On prox24
+
+pveceph osd create /dev/sda  
+
+pveceph osd create /dev/sdb  
+
+pveceph osd create /dev/sdc  
+
+pveceph osd create /dev/sdd
+
+OSD creation was validated using:
+
+ceph-volume lvm list  
+
+ceph osd tree  
+
+ceph osd stat  
+
+ceph -s
+
+---
+
+# 16. Confirmed the new OSD numbering
+
+The final OSD allocation was:
+
+prox22 : osd.0, osd.3, osd.6, osd.9  
+
+prox23 : osd.1, osd.4, osd.7, osd.10  
+
+prox24 : osd.2, osd.5, osd.8, osd.11
+
+OSD IDs were allocated cluster-wide by Ceph. They do not need to be sequential per host or match disk letters.
+
+---
+
+# 17. Diagnosed unknown PGs
+
+Initially, the new OSDs showed:
+
+12 OSDs up  
+
+12 OSDs in  
+
+33 PGs unknown  
+
+UP []  
+
+ACTING []
+
+Pool and CRUSH configuration were checked:
+
+ceph osd pool ls detail  
+
+ceph osd crush rule ls  
+
+ceph osd crush rule dump  
+
+ceph osd dump | grep '^flags'  
+
+ceph pg stat  
+
+ceph pg dump pgs_brief
+
+The CRUSH rule was correct:
+
+Rule name : replicated_rule  
+
+Root : default  
+
+Failure domain : host
+
+The pool settings were also correct:
+
+size 3  
+
+min_size 2
+
+CRUSH mapping tests returned valid OSD sets:
+
+ceph osd map vm-rbd test-object  
+
+ceph osd map .mgr test-object
+
+However, operations remained:
+
+queued for pg
+
+The previous pools contained stale PG state from the destroyed OSD deployment.
+
+---
+
+# 18. Stopped Proxmox storage monitoring temporarily
+
+Before pool recreation:
+
+for node in prox22 prox23 prox24; do  
+
+ssh root@"$node" 'systemctl stop pvestatd'  
+
+done
+
+---
+
+# 19. Enabled pool deletion temporarily
+
+ceph config set mon mon_allow_pool_delete true  
+
+ceph config get mon mon_allow_pool_delete
+
+Confirmed:
+
+true
+
+---
+
+# 20. Removed stale pools
+
+The stale RBD pool was removed:
+
+ceph osd pool delete vm-rbd vm-rbd </span>  
+
+--yes-i-really-really-mean-it
+
+The stale manager pool was removed:
+
+ceph osd pool delete .mgr .mgr </span>  
+
+--yes-i-really-really-mean-it
+
+The manager automatically recreated `.mgr`.
+
+Validation:
+
+ceph osd pool ls  
+
+ceph pg stat
+
+Result:
+
+.mgr  
+
+1 PG active+clean
+
+The automatically recreated `.mgr` pool was verified:
+
+ceph osd pool ls detail  
+
+ceph osd pool get .mgr size  
+
+ceph osd pool get .mgr min_size  
+
+ceph osd pool get .mgr crush_rule  
+
+Confirmed:
+
+size : 3  
+
+min_size : 2  
+
+crush_rule : replicated_rule  
+
+application: mgr  
+
+``
+
+---
+
+# 21. Created the new RBD pool named `ceph`
+
+ceph osd pool create ceph 32 32 replicated replicated_rule
+
+Replication was configured:
+
+ceph osd pool set ceph size 3  
+
+ceph osd pool set ceph min_size 2
+
+RBD was enabled:
+
+ceph osd pool application enable ceph rbd  
+
+rbd pool init ceph
+
+Validation:
+
+ceph osd pool ls detail  
+
+ceph osd map ceph test-object  
+
+ceph pg stat
+
+The mapping test returned:
+
+up [1,6,2]  
+
+acting [1,6,2]
+
+This confirmed that replicas were selected across the three hosts.
+
+The PG state became:
+
+33 active+clean
+
+---
+
+# 22. Added Proxmox RBD storage
+
+The Proxmox storage entry was configured as:
+
+rbd: ceph  
+
+content rootdir,images  
+
+pool ceph
+
+It was verified with:
+
+sed -n '/^rbd: ceph$/,/^[^[:space:]]/p' /etc/pve/storage.cfg
+
+Your Proxmox version does not support:
+
+pvesm config ceph
+
+Therefore, use these commands instead:
+
+pvesm status  
+
+pvesm list ceph  
+
+grep -A10 -B2 '^rbd: ceph' /etc/pve/storage.cfg  
+
+---
+
+# 23. Restarted Proxmox storage monitoring
+
+for node in prox22 prox23 prox24; do  
+
+echo "Starting pvestatd on $node"  
+
+ssh root@"$node" 'systemctl start pvestatd'  
+
+done
+
+Validation:
+
+for node in prox22 prox23 prox24; do  
+
+printf "%s pvestatd: " "$node"  
+
+ssh root@"$node" 'systemctl is-active pvestatd'  
+
+done
+
+All nodes should report:
+
+active
+
+---
+
+# 24. Disabled pool deletion again
+
+After pool creation, deletion protection was restored:
+
+ceph config set mon mon_allow_pool_delete false  
+
+ceph config get mon mon_allow_pool_delete
+
+Expected:
+
+false
+
+---
+
+# 25. Final Ceph validation
+
+The final validation commands were:
+
+ceph -s  
+
+ceph health detail  
+
+ceph mon stat  
+
+ceph mgr stat  
+
+ceph osd stat  
+
+ceph osd tree  
+
+ceph pg stat  
+
+ceph osd pool ls detail  
+
+pvesm status
+
+Final confirmed state:
+
+Cluster FSID : bcddd50d-c91b-4f6c-b255-19c78e15564f  
+
+Health : HEALTH_OK  
+
+MONs : 3 in quorum  
+
+MON leader : prox24  
+
+Active MGR : prox23  
+
+Standby MGRs : prox24, prox22  
+
+OSDs : 12 up, 12 in  
+
+OSDs per node : 4  
+
+Pools : 2  
+
+PGs : 33 active+clean  
+
+RBD pool : ceph  
+
+Raw capacity : 218 TiB  
+
+Replication : size 3  
+
+Minimum replicas : min_size 2  
+
+CRUSH rule : replicated_rule  
+
+Failure domain : host
+
+---
+
+# 26. Final completion summary
+
+Proxmox quorum validation : PASS  
+
+Ceph monitor quorum : PASS  
+
+prox22 Ceph network repair : PASS  
+
+Old OSD services stopped : PASS  
+
+Old Ceph disks cleaned : PASS  
+
+Obsolete OSD records removed : PASS  
+
+12 new OSDs created : PASS  
+
+OSD distribution balanced : PASS  
+
+Old stale pools removed : PASS  
+
+New RBD pool created : PASS  
+
+PG state : 33 active+clean  
+
+Proxmox RBD configuration : PASS  
+
+Final Ceph health : HEALTH_OK
+
+Your three-node Proxmox Ceph cluster rebuild is complete and the `ceph` RBD storage is ready for VM images and LXC root disks.

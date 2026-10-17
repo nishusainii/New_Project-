@@ -1,0 +1,337 @@
+For your environment (Proxmox cluster + Linux servers + Squid proxy + multi-WAN network), I would recommend a layered Zabbix architecture that combines the official Proxmox API integration with Zabbix agents on critical hosts. The official Zabbix Proxmox integration supports monitoring Proxmox VE through the API, including nodes, VMs, containers, storage, and cluster resources.
+
+Recommended Architecture
+                        +----------------------+
+                        |    Zabbix Server     |
+                        |  Web + DB + Engine   |
+                        +----------+-----------+
+                                   |
+                 ==================================
+                 |                                |
+                 | HTTPS/API                      |
+                 | Agent                          |
+                 v                                v
+
+        +------------------+         +------------------+
+        | Proxmox Cluster  |         | Infrastructure   |
+        | Monitoring Host  |         | Monitoring       |
+        +------------------+         +------------------+
+
+                 |
+      ==========================
+      |            |           |
+      v            v           v
+
+ +---------+  +---------+  +---------+
+ | PVE-01  |  | PVE-02  |  | PVE-03  |
+ +---------+  +---------+  +---------+
+      |            |            |
+      +------------+------------+
+                   |
+           Cluster Services
+           Quorum / HA / Ceph
+
+      |            |            |
+      v            v            v
+
+    VMs          LXCs        Storage
+
+Layer 1: Zabbix Server
+
+Deploy a dedicated VM:
+
+Suggested VM Size
+Environment Size	vCPU	RAM	StorageSmall (<100 hosts)	4	8 GB	100 GB SSD
+Medium (<300 hosts)	8	16 GB	250 GB SSD
+Large	16+	32+ GB	500 GB+ SSD
+
+For your infrastructure:
+
+8 vCPU
+16 GB RAM
+200 GB SSD
+Ubuntu 24.04 LTS
+PostgreSQL Database
+
+Layer 2: Proxmox Monitoring
+
+The official "Proxmox VE by HTTP" template works through the Proxmox API and discovers:
+
+Cluster resources
+Nodes
+VM instances
+LXC containers
+Storage resources
+Network interfaces
+
+It requires a Proxmox API token and appropriate read permissions.
+
+Create Monitoring User
+zabbix-monitor@pve
+Role: PVEAuditor
+
+Create API Token
+zabbix-monitor@pve!zabbix
+
+
+Configure the token in Zabbix host macros as described by the official integration.
+
+Layer 3: Zabbix Agent on Proxmox Nodes
+
+Install the Zabbix agent on:
+
+PVE-01
+PVE-02
+PVE-03
+
+
+Monitor:
+
+CPU
+Load average
+CPU utilization
+iowait
+Memory
+Used RAM
+Cached memory
+Swap
+Disk
+Filesystem usage
+ZFS pools
+SMART health
+Network
+Interface throughput
+Errors
+Drops
+Services
+pveproxy
+pvedaemon
+pvestatd
+corosync
+
+Layer 4: Cluster Monitoring
+
+Important cluster metrics:
+
+Cluster Health
+Cluster Status
+Quorum Status
+Node Count
+Vote Count
+
+Corosync
+Corosync running
+Corosync latency
+Packet loss
+
+HA
+HA Manager
+HA Resources
+Failover events
+
+Layer 5: Storage Monitoring
+
+For enterprise deployments this is critical.
+
+ZFS
+
+Monitor:
+
+Pool capacity
+Pool health
+Read/write latency
+ARC size
+
+Local-LVM
+Thin pool usage
+Volume usage
+
+Ceph (if used)
+OSD status
+PG health
+Ceph cluster health
+IOPS
+
+Layer 6: VM Monitoring
+
+The Proxmox template automatically discovers VMs and containers.
+
+Monitor:
+
+VM Power State
+CPU %
+Memory %
+Network usage
+Disk IO
+Agent status
+
+
+Trigger examples:
+
+VM stopped
+High CPU >90%
+Memory >85%
+Guest agent unavailable
+
+Layer 7: Infrastructure Monitoring
+
+Since you already manage networking infrastructure, add:
+
+Squid Proxy Servers
+
+With Zabbix Agent:
+
+squid.service status
+Authentication failures
+Request rate
+Disk cache usage
+
+VPN Servers
+
+Monitor:
+
+openfortivpn process
+VPN connectivity
+Tunnel interface status
+
+DNS
+Bind
+Unbound
+DNS response time
+
+DHCP
+Lease utilization
+Service status
+
+Layer 8: Multi-WAN Monitoring
+
+This is especially useful for your environment.
+
+Monitor every ISP interface:
+
+kv1
+kv2
+kv3
+kv4
+kv5
+kv6
+kv7
+kv8
+kv9
+
+
+Metrics:
+
+Bandwidth
+Packet loss
+Errors
+Interface down
+Latency
+
+
+Use ICMP checks:
+
+8.8.8.8
+1.1.1.1
+ISP Gateway
+
+
+Triggers:
+
+WAN Down
+High Latency
+Packet Loss >10%
+Bandwidth >80%
+
+Layer 9: Alerting
+
+Create severity levels:
+
+Information
+Backup completed
+VM started
+
+Warning
+Disk >80%
+RAM >80%
+
+High
+Node offline
+Service failed
+
+Disaster
+Cluster quorum lost
+Storage unavailable
+Entire node failure
+
+
+Notification channels:
+
+Email
+Telegram
+Microsoft Teams
+Webhook
+
+Layer 10: Dashboards
+
+Create separate dashboards:
+
+Proxmox Overview
+Cluster Status
+Node Health
+Storage Utilization
+Active Alerts
+
+VM Dashboard
+Running VMs
+Stopped VMs
+CPU Top 10
+Memory Top 10
+
+Network Dashboard
+WAN Bandwidth
+Latency
+Packet Loss
+
+Squid Dashboard
+Active Connections
+Authentication Failures
+Request Rate
+Cache Usage
+
+High Availability Design
+
+For production:
+
+Zabbix Server VM
+      |
+PostgreSQL DB
+      |
+Daily Backup
+      |
+Proxmox Backup Server
+
+
+If you have a 3-node Proxmox cluster, place the Zabbix VM on shared storage or protect it with HA so monitoring stays available during node failures.
+
+Final Recommendation
+
+For your environment, a practical design is:
+
+Proxmox Cluster (3 Nodes)
+       |
+       +--> Zabbix API Monitoring
+       +--> Zabbix Agent Monitoring
+       |
+Squid Proxy Servers
+       |
+VPN Infrastructure
+       |
+Multi-WAN Links
+       |
+Central Zabbix Dashboard
+       |
+Telegram + Email Alerts
+
+
+This gives you a single pane of glass for Proxmox, storage, networking, Squid, VPN services, and WAN health while preserving detailed historical performance data. The official Proxmox HTTP template provides automatic discovery of cluster components, VMs, containers, and storage resources through the Proxmox API.

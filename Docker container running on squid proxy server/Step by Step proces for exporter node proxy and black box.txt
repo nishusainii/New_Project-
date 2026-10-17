@@ -1,0 +1,235 @@
+First, the legacy node exporter must be removed to prevent port conflicts with the Dockerized version. Then, Squid Cache Manager configuration needs verifi...
+  Here is the complete, production-tested, step-by-step runbook to perform on your servers with zero downtime.
+  ──────
+  ## Phase 1: On the Production Squid Server (10.31.1.159)
+
+  ### Step 1: Stop and Disable the Native node_exporter
+
+  Free up port 9100 so Docker can manage it:
+
+    # 1. Stop and disable the native systemd service
+    sudo systemctl stop prometheus-node-exporter
+    sudo systemctl disable prometheus-node-exporter
+    
+    # 2. (Optional) Remove the old package completely
+    sudo apt remove -y prometheus-node-exporter
+    
+    # 3. Confirm port 9100 is completely released (should output nothing)
+    ss -tulpn | grep 9100
+  ──────
+  ### Step 2: Confirm Squid Cache Manager Access
+
+  Confirm that Squid answers Cache Manager queries on loopback with 200 OK:
+
+    squidclient -h 127.0.0.1 -p 3128 mgr:info | head -n 5
+
+  Expected output: HTTP/1.1 200 OK followed by Squid cache statistics.
+  ──────
+  ### Step 3: Set Up the Docker Directory & Configuration
+
+  Create the deployment folder and configuration files on the Squid server:
+
+    mkdir -p /home/nishusaini/squid_docker_deployment
+    cd /home/nishusaini/squid_docker_deployment
+
+  #### A. Create blackbox.yml
+
+    cat << 'EOF' > blackbox.yml
+    modules:
+      http_2xx:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: []
+          method: GET
+    
+      squid_http_proxy:
+        prober: http
+        timeout: 5s
+        http:
+          valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+          valid_status_codes: [200, 204, 301, 302]
+          method: GET
+          proxy_url: "http://127.0.0.1:3128"
+    
+      tcp_connect:
+        prober: tcp
+        timeout: 5s
+    EOF
+
+  #### B. Create docker-compose.yml
+
+    cat << 'EOF' > docker-compose.yml
+    services:
+      node-exporter:
+        image: prom/node-exporter:v1.8.2
+        container_name: node-exporter
+        restart: unless-stopped
+        network_mode: host
+        pid: host
+        volumes:
+          - /proc:/host/proc:ro
+          - /sys:/host/sys:ro
+          - /:/rootfs:ro
+        command:
+          - '--path.procfs=/host/proc'
+          - '--path.sysfs=/host/sys'
+          - '--path.rootfs=/rootfs'
+          - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+          - '--web.listen-address=:9100'
+        mem_limit: 128m
+        deploy:
+          resources:
+            limits:
+              cpus: '0.25'
+              memory: 128M
+    
+      squid-exporter:
+        image: boynux/squid-exporter:v1.13.0
+        container_name: squid-exporter
+        restart: unless-stopped
+        network_mode: host
+        environment:
+          - SQUID_HOSTNAME=127.0.0.1
+          - SQUID_PORT=3128
+          - SQUID_EXPORTER_LISTEN=:9301
+        mem_limit: 128m
+        deploy:
+          resources:
+            limits:
+              cpus: '0.20'
+              memory: 128M
+    
+      blackbox-exporter:
+        image: prom/blackbox-exporter:v0.25.0
+        container_name: blackbox-exporter
+        restart: unless-stopped
+        network_mode: host
+        cap_add:
+          - NET_RAW
+        volumes:
+          - ./blackbox.yml:/etc/blackbox_exporter/config.yml:ro
+        command:
+          - '--config.file=/etc/blackbox_exporter/config.yml'
+          - '--web.listen-address=:9115'
+        mem_limit: 128m
+        deploy:
+          resources:
+            limits:
+              cpus: '0.20'
+              memory: 128M
+    EOF
+  ──────
+  ### Step 4: Launch and Verify Containers
+
+    # 1. Start all 3 exporter containers in the background
+    docker compose up -d
+    
+    # 2. Verify all containers are Up
+    docker compose ps
+
+  #### Run Health Checks on All 3 Exporters:
+
+    # Check 1: Node Exporter (Host Metrics)
+    curl -s http://127.0.0.1:9100/metrics | head -n 5
+    
+    # Check 2: Squid Exporter (Squid Proxy Metrics)
+    curl -s http://127.0.0.1:9301/metrics | grep -E "squid_up|squid_client_http_requests"
+    
+    # Check 3: Blackbox Exporter (TCP check on Squid port 3128)
+    curl -s "http://127.0.0.1:9115/probe?target=127.0.0.1:3128&module=tcp_connect" | grep probe_success
+
+  (All checks should return active metrics, and probe_success will be 1).
+  ──────
+  ### Step 5: Firewall Security (Squid Server)
+
+  Allow only your remote Prometheus server to scrape the exporter ports:
+
+    PROMETHEUS_IP="<IP_OF_YOUR_REMOTE_PROMETHEUS_SERVER>"
+    
+    sudo ufw allow from $PROMETHEUS_IP to any port 9100 proto tcp comment "Node Exporter"
+    sudo ufw allow from $PROMETHEUS_IP to any port 9301 proto tcp comment "Squid Exporter"
+    sudo ufw allow from $PROMETHEUS_IP to any port 9115 proto tcp comment "Blackbox Exporter"
+  ──────
+  ## Phase 2: On the Remote Prometheus & Grafana Server
+
+  ### Step 6: Configure Prometheus Scrape Jobs
+
+  On your remote monitoring server, edit /etc/prometheus/prometheus.yml and add these jobs under scrape_configs::
+
+    scrape_configs:
+      # 1. Host OS & Hardware Metrics
+      - job_name: 'squid-node-exporter'
+        scrape_interval: 15s
+        static_configs:
+          - targets: ['10.31.1.159:9100']
+            labels:
+              instance: 'squid-prod'
+    
+      # 2. Squid Cache Manager Metrics
+      - job_name: 'squid-exporter'
+        scrape_interval: 15s
+        static_configs:
+          - targets: ['10.31.1.159:9301']
+            labels:
+              instance: 'squid-prod'
+    
+      # 3. Blackbox: TCP Port Health (Checks port 3128)
+      - job_name: 'squid-blackbox-tcp'
+        metrics_path: /probe
+        params:
+          module: [tcp_connect]
+        static_configs:
+          - targets:
+              - '10.31.1.159:3128'
+            labels:
+              check: 'squid-port-health'
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: '10.31.1.159:9115'
+    
+      # 4. Blackbox: End-to-End Browsing Test through Squid
+      - job_name: 'squid-blackbox-proxy'
+        scrape_interval: 30s
+        metrics_path: /probe
+        params:
+          module: [squid_http_proxy]
+        static_configs:
+          - targets:
+              - 'http://connectivitycheck.gstatic.com/generate_204'
+        relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: '10.31.1.159:9115'
+
+  #### Reload Prometheus without downtime:
+
+    curl -X POST http://localhost:9090/-/reload
+    # or
+    sudo systemctl reload prometheus
+  ──────
+  ### Step 7: Import Grafana Dashboards
+
+  In your remote Grafana UI, navigate to Dashboards → New → Import and paste each ID:
+
+   Exporter                 | Dashboard ID            | Dashboard Name             | What You See
+  --------------------------|-------------------------|----------------------------|--------------------------------------------------------------------------
+   Squid Exporter           | 12501 (or 2304)         | Squid Exporter             | Request rate, active client count, cache hit %, open file descriptors
+   Node Exporter            | 1860                    | Node Exporter Full         | Server CPU load, RAM usage, disk I/O, network bandwidth
+   Blackbox Exporter        | 7587                    | Blackbox Exporter Overview | Squid port status (Up/Down), connection latency, synthetic probe success
+
+  Select your Prometheus data source from the dropdown during import.
+  ──────
+  ## Rollback Plan (If Needed)
+
+  If you ever need to stop the Docker exporters, run:
+
+    cd /home/nishusaini/squid_docker_deployment && docker compose down

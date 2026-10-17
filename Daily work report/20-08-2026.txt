@@ -1,0 +1,41 @@
+Nishu Saini,
+Date: 19/08/2026
+Login: 09:15AM
+Logout:  PM
+
+
+
+
+
+Today's Work Summary
+
+Date: 20-Aug-2026
+
+Analyzed the existing Squid Proxy and nftables configuration to understand the current VPN routing and NAT setup.
+
+Verified network connectivity between client systems and the Squid proxy server (10.31.212.14) using routing and ping tests.
+
+Investigated the FortiClient SSL VPN routing requirement for the remote gateway:
+
+182.19.154.189:4433
+Ensured VPN traffic can be routed through the Squid proxy server.
+
+Reviewed and corrected nftables NAT and forwarding rules, including validation of source IP restrictions and VPN destination configuration.
+
+Designed and updated a production-focused nftables script to:
+
+Enable IP forwarding.
+Route FortiClient VPN traffic through the Squid server.
+Restrict access to designated client IPs:
+10.31.0.87
+10.31.0.140
+10.31.1.59
+10.31.1.124
+10.31.1.183
+Apply NAT only for VPN traffic destined to 182.19.154.189:4433.
+
+Tested and validated client-side routing methods, including adding and reverting static routes and default gateway configurations.
+
+Evaluated network design considerations and recommended a selective VPN routing approach instead of making the Squid server the default gateway for the entire network.
+
+Outcome: Successfully prepared a controlled FortiClient VPN routing solution through the Squid proxy server with IP-based restrictions and nftables NAT forwarding.

@@ -1,0 +1,152 @@
+cat proxy_health1.sh 
+w#!/usr/bin/env bash
+
+# ================================================================
+# SQUID MULTI-WAN HEALTH REPORT
+#
+# The same script must exist at:
+#
+# Client:
+#   /home/nishu/proxy_health1.sh
+#
+# Proxy server:
+#   /home/nishu/proxy_health1.sh
+#
+# Client execution:
+#   /home/nishu/proxy_health1.sh
+#
+# The client connects to the proxy server through SSH.
+# The monitoring commands execute on the proxy server.
+# ================================================================
+
+set -u
+export LC_ALL=C
+
+# ================================================================
+# SSH CONFIGURATION
+# ================================================================
+
+PROXY_SERVER="10.31.1.159"
+SSH_USER="nishu"
+REMOTE_SCRIPT="/home/nishu/proxy_health1.sh.bak"
+SSH_PORT="22"
+SSH_TIMEOUT="7"
+
+# Set to "yes" if remote execution needs sudo.
+# Set to "no" if nishu can run ss, ping, vnstat and systemctl.
+REMOTE_USE_SUDO="yes"
+
+# ================================================================
+# DETECT WHETHER THIS IS THE PROXY SERVER
+# ================================================================
+
+is_proxy_server() {
+    hostname -I 2>/dev/null |
+        tr ' ' '\n' |
+        grep -Fxq "$PROXY_SERVER"
+}
+
+# ================================================================
+# CLIENT-SIDE SSH EXECUTION
+# ================================================================
+
+if ! is_proxy_server; then
+
+    clear 2>/dev/null || true
+
+    echo "============================================================"
+    echo "              REMOTE SQUID HEALTH REPORT"
+    echo "============================================================"
+    printf "%-18s : %s\n" "Proxy Server" "$PROXY_SERVER"
+    printf "%-18s : %s\n" "SSH User" "$SSH_USER"
+    printf "%-18s : %s\n" "Remote Script" "$REMOTE_SCRIPT"
+    echo "============================================================"
+    echo
+
+    # Verify SSH client installation.
+    if ! command -v ssh >/dev/null 2>&1; then
+        echo "ERROR: OpenSSH client is not installed."
+        echo
+        echo "Install it using:"
+        echo "sudo apt install openssh-client"
+        exit 1
+    fi
+
+    # Verify that the proxy server SSH port is reachable.
+    if command -v nc >/dev/null 2>&1; then
+        if ! nc -z -w "$SSH_TIMEOUT" "$PROXY_SERVER" "$SSH_PORT" \
+            >/dev/null 2>&1; then
+
+            echo "ERROR: Cannot connect to SSH service."
+            printf "%-18s : %s\n" "Server" "$PROXY_SERVER"
+            printf "%-18s : %s\n" "SSH Port" "$SSH_PORT"
+            echo
+            echo "Check network connectivity, SSH service, and firewall rules."
+            exit 1
+        fi
+    fi
+
+    # First test whether SSH-key authentication works.
+    if ssh \
+        -p "$SSH_PORT" \
+        -o BatchMode=yes \
+        -o ConnectTimeout="$SSH_TIMEOUT" \
+        -o StrictHostKeyChecking=accept-new \
+        "${SSH_USER}@${PROXY_SERVER}" \
+        "exit" >/dev/null 2>&1; then
+
+        SSH_AUTH_STATUS="SSH KEY"
+    else
+        SSH_AUTH_STATUS="PASSWORD"
+    fi
+
+    printf "%-18s : %s\n" "Authentication" "$SSH_AUTH_STATUS"
+    echo
+
+    if [[ "$SSH_AUTH_STATUS" == "PASSWORD" ]]; then
+        echo "SSH password authentication will be requested."
+        echo
+    fi
+
+    # Execute the server-side report.
+    if [[ "$REMOTE_USE_SUDO" == "yes" ]]; then
+
+        ssh \
+            -tt \
+            -p "$SSH_PORT" \
+            -o ConnectTimeout="$SSH_TIMEOUT" \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${PROXY_SERVER}" \
+            "sudo bash '$REMOTE_SCRIPT'"
+
+        SSH_EXIT=$?
+
+    else
+
+        ssh \
+            -T \
+            -p "$SSH_PORT" \
+            -o ConnectTimeout="$SSH_TIMEOUT" \
+            -o ServerAliveInterval=15 \
+            -o ServerAliveCountMax=2 \
+            -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${PROXY_SERVER}" \
+            "bash '$REMOTE_SCRIPT'"
+
+        SSH_EXIT=$?
+
+    fi
+
+    echo
+
+    if [[ "$SSH_EXIT" -ne 0 ]]; then
+        echo "ERROR: Remote proxy report failed."
+        exit "$SSH_EXIT"
+    fi
+
+    exit 0
+fi
+
+

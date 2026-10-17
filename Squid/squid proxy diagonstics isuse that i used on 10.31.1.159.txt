@@ -1,0 +1,470 @@
+Here is the complete step-by-step summary of what you have done so far, without creating another document.
+
+Proxy Server Backup and Recovery Work Completed
+1. Identified the recovery requirement
+
+You wanted protection against a situation where:
+
+The proxy server suddenly powers off.
+Ubuntu starts successfully after power returns.
+Squid configuration appears missing or changed.
+Network interfaces or IP addresses are not restored correctly.
+Main and custom routing tables disappear.
+Policy-routing rules are missing.
+iptables or firewall rules do not return after reboot.
+
+The objective was to maintain a verified working baseline and provide a controlled recovery process.
+
+2. Created the core backup and restore script
+
+The original script file was:
+
+proxy-safe-backup-restore.sh
+
+
+You installed it as:
+
+/usr/local/sbin/proxy-safe
+
+
+Installation command used:
+
+sudo install -m 700 proxy-safe-backup-restore.sh \
+  /usr/local/sbin/proxy-safe
+
+
+Its purpose is to:
+
+Create versioned snapshots.
+Save Squid configuration.
+Save Netplan configuration.
+Save IPv4 and IPv6 iptables.
+Record IP addresses and interface state.
+Record all routing tables.
+Record policy-routing rules.
+Save network-dispatcher configuration.
+Generate integrity checksums.
+Verify existing snapshots.
+Perform controlled restoration.
+3. Validated the core script
+
+You checked its Bash syntax:
+
+sudo bash -n /usr/local/sbin/proxy-safe
+
+
+The command produced no output, which means Bash found no syntax errors.
+
+4. Corrected the unbound variable issue
+
+The initial snapshot command failed with:
+
+name: unbound variable
+
+
+The original variable assignment referenced name before it had safely completed initialization under set -u.
+
+You corrected it to:
+
+local name="${1:-snapshot-$STAMP}"
+local dir="$BASE/$name"
+
+
+After this correction, the script passed syntax validation and snapshot creation worked.
+
+5. Created and verified the first baseline
+
+You initially created:
+
+/var/backups/proxy-safe/last-known-good
+
+
+The snapshot completed successfully and every backup file passed checksum verification.
+
+You later deleted this first snapshot by mistake. This did not affect the running Squid, Netplan, routes, or firewall configuration because only the backup copy was deleted.
+
+6. Created the permanent timestamped baseline
+
+You ran:
+
+SNAP="last-known-good-$(date +%Y%m%d-%H%M%S)"
+
+sudo /usr/local/sbin/proxy-safe snapshot "$SNAP"
+
+
+The successfully created snapshot is:
+
+/var/backups/proxy-safe/last-known-good-20260829-151029
+
+
+This is now your main recovery baseline.
+
+7. Verified what the snapshot contains
+
+The snapshot captured files such as:
+
+etc-netplan.tar
+etc-squid.tar
+iptables.v4
+iptables.v6
+ip-address.txt
+ip-link.txt
+ip-route-all.txt
+ip-rule.txt
+netplan-get.yaml
+networkd-dispatcher.tar
+packages.txt
+route-probe.txt
+squid-status.txt
+squid-version.txt
+SHA256SUMS
+
+
+Meaning:
+
+etc-netplan.tar: Persistent Netplan files.
+etc-squid.tar: Squid configuration, ACLs, and associated files.
+iptables.v4: Active IPv4 firewall state.
+iptables.v6: Active IPv6 firewall state.
+ip-route-all.txt: All working routing tables.
+ip-rule.txt: Policy-routing rules.
+ip-address.txt: Interface and IP-address state.
+SHA256SUMS: Backup-integrity checksums.
+8. Compared current routes with the snapshot
+
+The first comparison used different command formats:
+
+ip route show table all
+
+
+versus the detailed format stored in the snapshot:
+
+ip -details route show table all
+
+
+This initially produced many apparent differences.
+
+You corrected the comparison by using:
+
+sudo ip -details route show table all \
+  > /tmp/current-routes-details.txt
+
+
+Then:
+
+sudo diff -u \
+  /var/backups/proxy-safe/last-known-good/ip-route-all.txt \
+  /tmp/current-routes-details.txt
+
+
+The corrected comparison showed that the routes matched.
+
+The only difference was the changing IPv6 Router Advertisement lifetime:
+
+expires 1706sec
+expires 1550sec
+
+
+This was a normal dynamic countdown, not route corruption.
+
+9. Confirmed important route information
+
+The comparison confirmed that the working state included:
+
+Management interface route through enp4s0.
+Main default routes through kv1 to kv9.
+Route metrics from 100 through 900.
+Custom route tables such as t1, t3, t4, t5, t6, t7, t8, and t9.
+Internal routes for 10.31.0.0/16 and 10.40.0.0/16.
+Connected routes for the WAN subnets.
+Corresponding policy-routing rules.
+
+No route restoration was required.
+
+10. Compared interface addressing
+
+The detailed IP-address comparison showed differences in live bridge timers such as:
+
+gc_timer
+
+
+These values change continuously while the server runs.
+
+The important values remained consistent:
+
+Interface names
+MAC addresses
+IPv4 addresses
+IPv6 link-local addresses
+MTU
+Operational state
+Bridge identity
+
+Therefore, the address differences were runtime timer changes, not configuration loss.
+
+11. Created the diagnostic recovery assistant
+
+The second source script was:
+
+proxy-recovery-assistant.sh
+
+
+It was installed as:
+
+/usr/local/sbin/proxy-recovery-assistant
+
+
+Its purpose is detailed diagnosis and comparison. It collects:
+
+Squid parse results
+Squid service status
+Squid journal entries
+Listening ports
+Netplan validation
+Interface addresses
+All routes
+Policy rules
+IPv4 and IPv6 firewall state
+Proxy test results
+Individual difference files
+
+Its reports are stored under:
+
+/var/log/proxy-recovery/
+
+12. Ran the recovery comparison
+
+You generated a report under:
+
+/var/log/proxy-recovery/incident-20260829-151823
+
+
+The result showed:
+
+Squid parse: PASS
+Squid service: ACTIVE
+Netplan generate: PASS
+Squid port 3128: LISTENING
+Normalized routes: MATCH
+Policy rules: MATCH
+Normalized iptables: DIFFER
+
+13. Investigated the iptables difference
+
+You opened:
+
+sudo cat "$LATEST_REPORT/iptables.diff"
+
+
+The only differences were the generated timestamps:
+
+Generated by iptables-save
+Completed on
+
+
+The functional content was identical:
+
+mangle table matched.
+filter table matched.
+nat table matched.
+Chain policies matched.
+No functional rule was added, removed, or reordered.
+
+Therefore, the firewall state functionally matched the baseline.
+
+14. Improved iptables normalization
+
+The comparison logic was updated to ignore:
+
+Packet and byte counters.
+Generated by iptables-save timestamp lines.
+Completed on timestamp lines.
+
+The normalization logic now uses:
+
+normalize_iptables() {
+  sed -E \
+    -e '/^# Generated by iptables-save /d' \
+    -e '/^# Completed on /d' \
+    -e 's/\[[0-9]+:[0-9]+\]/[0:0]/g'
+}
+
+
+This prevents harmless timestamp differences from causing a false firewall warning.
+
+15. Created the combined emergency-recovery script
+
+The third source script was:
+
+proxy-emergency-recovery.sh
+
+
+It was installed as:
+
+/usr/local/sbin/proxy-emergency-recovery
+
+
+This is your main operational tool after a power failure.
+
+It combines:
+
+Latest-snapshot discovery
+Snapshot verification
+Interface checks
+Route and policy-rule comparison
+Netplan validation
+Squid validation
+Squid service checks
+Port 3128 checks
+iptables comparison
+Incident reporting
+Controlled recovery
+
+Its reports are stored under:
+
+/var/log/proxy-emergency/
+
+16. Added restore safety controls
+
+The emergency recovery command does not restore immediately.
+
+It first performs all checks. If the system matches the baseline, it stops and reports:
+
+Decision: HEALTHY
+
+
+If checks fail or differ, recovery requires two exact confirmations:
+
+CONSOLE-READY
+
+
+and:
+
+RESTORE
+
+
+This reduces the risk of an accidental restore or SSH lockout.
+
+The script also does not automatically apply Netplan. After restoration, Netplan must be tested manually from protected console access:
+
+sudo netplan --debug generate
+sudo netplan try --timeout 120
+
+17. Established the normal future workflow
+Before changing Squid, Netplan, routes, or firewall
+
+Create a unique snapshot:
+
+sudo /usr/local/sbin/proxy-safe snapshot \
+  before-change-$(date +%Y%m%d-%H%M%S)
+
+
+Then verify that snapshot:
+
+sudo /usr/local/sbin/proxy-safe verify \
+  /var/backups/proxy-safe/SNAPSHOT-NAME
+
+For a normal health check
+
+Run:
+
+sudo /usr/local/sbin/proxy-emergency-recovery check
+
+After a future power failure
+
+First obtain physical, Proxmox, IPMI, iDRAC, iLO, or second-SSH access.
+
+Then run:
+
+sudo /usr/local/sbin/proxy-emergency-recovery check
+
+
+If it reports HEALTHY, stop and do not restore.
+
+If it reports REVIEW REQUIRED, inspect the report. Only when actual configuration loss is confirmed, run:
+
+sudo /usr/local/sbin/proxy-emergency-recovery recover
+
+
+After restoration:
+
+sudo netplan --debug generate
+sudo netplan try --timeout 120
+
+
+Then perform the final verification:
+
+sudo /usr/local/sbin/proxy-emergency-recovery check
+
+18. Archived the source script files
+
+You created:
+
+/root/proxy-recovery-scripts/
+
+
+You moved the downloaded source files there:
+
+proxy-safe-backup-restore.sh
+proxy-recovery-assistant.sh
+proxy-emergency-recovery.sh
+
+
+The working installed commands remain under:
+
+/usr/local/sbin/proxy-safe
+/usr/local/sbin/proxy-recovery-assistant
+/usr/local/sbin/proxy-emergency-recovery
+
+
+The source files under /root/proxy-recovery-scripts/ are archive copies and can be mode 600.
+
+Because a wildcard under /root did not expand in your normal user’s shell, the correct permission command is:
+
+sudo find /root/proxy-recovery-scripts \
+  -maxdepth 1 -type f -name '*.sh' \
+  -exec chmod 600 {} +
+
+
+Verify:
+
+sudo find /root/proxy-recovery-scripts \
+  -maxdepth 1 -type f \
+  -printf '%M %u:%g %p\n'
+
+Final current arrangement
+Installed operational commands
+/usr/local/sbin/proxy-safe
+/usr/local/sbin/proxy-recovery-assistant
+/usr/local/sbin/proxy-emergency-recovery
+
+Protected source copies
+/root/proxy-recovery-scripts/
+
+Verified configuration snapshot
+/var/backups/proxy-safe/last-known-good-20260829-151029
+
+Diagnostic reports
+/var/log/proxy-recovery/
+/var/log/proxy-emergency/
+
+Current proxy status
+Squid configuration: PASS
+Squid service: ACTIVE
+Port 3128: LISTENING
+Netplan validation: PASS
+Routes: MATCH
+Policy rules: MATCH
+iptables functional state: MATCH
+Restore required: NO
+
+The main command to remember
+
+After a future power failure, run from console access:
+
+sudo /usr/local/sbin/proxy-emergency-recovery check
+
+
+Only if it reports a real failure and you have reviewed the differences should you run:
+
+sudo /usr/local/sbin/proxy-emergency-recovery recover

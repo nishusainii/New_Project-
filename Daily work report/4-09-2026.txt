@@ -1,0 +1,84 @@
+ Name: Nishu Saini
+ Date: 04/09/2026
+ Login: 08:58 AM
+ Logout: 08:00PM
+
+
+
+Today's Work Summary
+
+
+9:00 AM to 2:00 PM
+
+-Analyzed and reviewed existing multi-VLAN network configuration on the Squid proxy server.
+-Verified operational status of VLAN13 (192.168.18.30/24) and VLAN18 (192.168.5.30/24).
+-Created and configured VLAN19 (ID: 19) with IP address 192.168.21.10/24 and gateway 192.168.21.1.
+-Validated VLAN19 connectivity, routing, and configuration persistence.
+-Integrated Airtel ISP into the existing multi-ISP Squid proxy environment.
+-Created new Squid listener on port 8894 for Airtel connectivity.
+-Configured Squid ACLs and source-based outbound IP routing for Airtel traffic.
+-Corrected Squid ACL configuration errors and validated configuration syntax.
+-Restarted and verified Squid proxy service functionality.
+-Successfully tested outbound internet access through all ISP links:
+   Jio1
+   Jio2
+  Airtel
+-Performed public IP validation for each ISP using authenticated proxy testing.
+-Reviewed and updated policy-based routing configuration.
+-Created dedicated Airtel routing table (Table ID 103).
+-Added source-based routing policies for Airtel traffic.
+-Applied and validated Netplan routing configuration changes.
+-Verified routing policy entries using ip rule show.
+-Confirmed VLAN19 NetworkManager profile creation and auto-connect settings.
+-Verified Netplan-generated VLAN configuration files and persistence across reboots.
+-Resolved Netplan YAML indentation and routing configuration issues.
+-Completed production readiness and reboot persistence validation for the multi-WAN deployment.
+
+Coordination & Support Activities
+Coordinated with the Mumbai Office IT Team regarding IT system setup and infrastructure requirements.
+Discussed network, system, and deployment-related configuration requirements with the Mumbai IT team.
+Provided technical support and implementation guidance for infrastructure-related activities.
+
+
+2:00 PM To 2:45 PM 
+
+- Lunch break.
+
+2:45 PM to 8:00 PM 
+
+Proxmox, Ceph & Storage Infrastructure Activities
+
+-Validated three-node Proxmox cluster health and quorum status.
+-Performed complete Ceph environment cleanup and OSD reconfiguration.
+-Identified and protected Proxmox operating system disks during storage operations.
+-Repaired Ceph monitor network configuration on prox22.
+-Restored Ceph monitor quorum across prox22, prox23, and prox24.
+-Deployed and configured 12 new Ceph BlueStore OSDs across the cluster.
+-Investigated and resolved Ceph placement group (PG) issues.
+-Removed obsolete Ceph storage pools and recreated required storage structures.
+-Created and initialized a new Ceph RBD storage pool.
+-Integrated Ceph RBD storage with Proxmox and validated cluster-wide availability.
+-Verified Ceph cluster health status as HEALTH_OK.
+-Implemented local ZFS RAIDZ2 storage pools on prox22, prox23, and prox24.
+-Configured ZFS datasets and integrated them into Proxmox storage management.
+-Validated RAIDZ2 health, performance, and error-free operation.
+-Verified node-restricted ZFS storage behavior and shared Ceph storage accessibility.
+-Validated Dell PERC H755 controller configuration and health status.
+-Confirmed JBOD presentation of 20 TB SAS drives for Ceph and ZFS usage.
+-Mapped all storage devices to physical Dell PERC enclosure and slot locations.
+-Tested physical disk locate LED functionality using Dell PERCCLI.
+-Created and validated an interactive Ceph/ZFS disk locator and mapping utility.
+-Documented final storage architecture for Ceph, ZFS, reserved disks, and operating system storage.
+-Completed full infrastructure validation including Ceph, ZFS, Proxmox storage, and hardware mapping verification.
+
+Final Outcome
+✅ Multi-ISP Squid proxy deployment operational
+✅ VLAN19 successfully deployed and validated
+✅ Airtel ISP integrated and tested
+✅ Policy-based routing functioning correctly
+✅ Three-node Proxmox cluster healthy and operational
+✅ Ceph storage cluster rebuilt and validated
+✅ ZFS RAIDZ2 storage implemented successfully
+✅ Physical disk mapping and maintenance documentation completed
+✅ Infrastructure ready for production workload deployment
+✅ Coordination completed with Mumbai Office IT Team for IT system setup support.

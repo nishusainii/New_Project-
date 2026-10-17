@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ==============================================================================
+  File: unattend.xml
+  Purpose: Unattended Sysprep Answer File for Windows 10/11 VDI Clones on Proxmox VE
+  Target: Windows 10 22H2 / Windows 11 23H2/24H2 (64-bit amd64)
+  Destination in Guest: C:\Windows\System32\Sysprep\unattend.xml
+  Features:
+    - PersistAllDeviceInstalls=true (Preserves VirtIO SCSI, NetKVM & Balloon drivers)
+    - Auto-generates unique ComputerName (*)
+    - Suppresses all OOBE wizard screens (EULA, Privacy, Online MS Account, Cortana)
+    - Automatically enables QEMU-GA & Sets Network to Private on first boot
+  ==============================================================================
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+  
+  <!-- ======================================================================== -->
+  <!-- Phase 1: Specialize Pass (Runs during first boot of clone)               -->
+  <!-- ======================================================================== -->
+  <settings pass="specialize">
+    
+    <!-- CRITICAL: Retain all installed VirtIO and hypervisor drivers across clones -->
+    <component name="Microsoft-Windows-PnpSysprep" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <PersistAllDeviceInstalls>true</PersistAllDeviceInstalls>
+      <DoNotCleanUpNonPresentDevices>false</DoNotCleanUpNonPresentDevices>
+    </component>
+
+    <!-- License preservation: Prevent depleting Sysprep re-arm limits -->
+    <component name="Microsoft-Windows-Security-SPP" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <SkipRearm>1</SkipRearm>
+    </component>
+
+    <!-- System Identity & Timezone configuration -->
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <!-- Setting ComputerName to '*' instructs Windows to generate a unique randomized hostname -->
+      <ComputerName>*</ComputerName>
+      <TimeZone>UTC</TimeZone>
+      <RegisteredOrganization>Enterprise VDI</RegisteredOrganization>
+      <RegisteredOwner>VDI Administrator</RegisteredOwner>
+    </component>
+
+  </settings>
+
+  <!-- ======================================================================== -->
+  <!-- Phase 2: OOBE System Pass (Zero-Touch Out-Of-Box Experience)              -->
+  <!-- ======================================================================== -->
+  <settings pass="oobeSystem">
+    
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      
+      <!-- Suppress all interactive OOBE dialogues -->
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideLocalAccountScreen>true</HideLocalAccountScreen>
+        <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+      </OOBE>
+
+      <!-- Local Administrator Account Password Configuration (vdiadmin / Password123!) -->
+      <UserAccounts>
+        <AdministratorPassword>
+          <Value>Password123!</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Description>VDI Local Administrator</Description>
+            <DisplayName>vdiadmin</DisplayName>
+            <Group>Administrators</Group>
+            <Name>vdiadmin</Name>
+            <Password>
+              <Value>Password123!</Value>
+              <PlainText>true</PlainText>
+            </Password>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+
+      <!-- Post-Clone First Logon Initialization -->
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>Set Network Connection Category to Private</Description>
+          <CommandLine>powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Description>Ensure QEMU Guest Agent Service is Running</Description>
+          <CommandLine>cmd.exe /c "sc.exe config qemu-ga start= auto &amp; net start qemu-ga"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <Description>Verify VirtIO Balloon Service is Running</Description>
+          <CommandLine>cmd.exe /c "sc.exe config BalloonService start= auto &amp; net start BalloonService"</CommandLine>
+        </SynchronousCommand>
+        <SynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <Description>Enable Remote Desktop Protocol Connections</Description>
+          <CommandLine>reg.exe add "HKLM\SYSTEM\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f</CommandLine>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+
+    </component>
+
+    <!-- International Core Settings -->
+    <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <InputLocale>0409:00000409</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+
+  </settings>
+
+</unattend>

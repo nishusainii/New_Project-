@@ -1,0 +1,8 @@
+Elapsed Time,Phase,Event Name,Technical Telemetry & Recovery Dynamics
+T+0s,FAULT,nic3 Down on All Nodes,"ip link set nic3 down executed on prox22, prox23, prox24 simultaneously"
+T+15s,FAULT,Management Preserved,Corosync and PVE management on vmbr0 remain 100% active (3/3 votes)
+T+30s,FAULT,Client I/O Frozen,Guest storage writes safely buffered in memory; zero VM kernel panics
+T+91s,RECOVERY,nic3 Restored (UP),Physical link UP restored simultaneously on all 3 nodes
++21s (from UP),RECOVERY,All 12 OSDs UP/IN,100% of OSD daemons re-establish monitor heartbeats and mark UP
++24s (from UP),RECOVERY,All 33 PGs Peered,Placement groups complete peering exchange; zero degraded PGs
++28s (from UP),RECOVERY,Cluster HEALTH_OK,Ceph reaches full HEALTH_OK; client VM I/O resumes automatically

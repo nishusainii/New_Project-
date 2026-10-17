@@ -1,0 +1,37 @@
+  ### Download Locations
+
+  The zip files are available directly on your Desktop and in the project folder:
+
+   Package                 | Size   | Path                                 | Use Case
+  -------------------------|--------|--------------------------------------|--------------------------------------------------------------------------------------------------------------------------------
+   Complete Offline Bundle | 80 MB  | wireguard-enterprise-production.zip  | Ready for Air-Gapped / Offline systems. Contains the pre-compiled Docker image (wireguard-enterprise-image.tar.gz), automated
+                           |        |                                      | installer script, configuration, and source code. Requires zero internet access.
+   Lightweight Source Code | 109 KB | wireguard-enterprise-source-code.zip | Pure source code, Dockerfile, Compose file, templates, and scripts (without the heavy 80 MB Docker image). Best for fast
+                           |        |                                      | transfers, backups, or git.
+
+  (Duplicates are also preserved in )
+  ──────
+  ### What Is Included in the Updated Package
+  • NFTables Configuration Manager: Interactive tabs for /etc/nftables.conf (Host Main) and /etc/nftables/acl.nft (WireGuard VPN ACLs) with live dry-run validation, atomic kernel reload, and snippet
+  helpers.
+  • Automatic .env Credential Sync: Automatically updates the admin password in the database upon startup if changed in .env (ADMIN_PASSWORD=admin@123).
+  • Complete Handshake & Routing Rules: Baseline firewall rules and NAT postrouting presets configured for zero handshake drop issues.
+  • Refined NOC Dashboard: High-contrast Light Slate & Midnight Dark themes, real-time live telemetry, and peer management with QR codes.
+  • Air-Gapped Installer Script: scripts/deploy-offline.sh to automatically verify kernel modules, load the offline Docker image, and launch the service with a single command.
+  ──────
+  ### How to Deploy on a New Server in the Future
+  1. Copy the zip file to your target server:
+    scp wireguard-enterprise-production.zip user@<new-server-ip>:/tmp/
+  2. Extract on the target server:
+    sudo mkdir -p /opt/wireguard-enterprise
+    sudo unzip /tmp/wireguard-enterprise-production.zip -d /opt/wireguard-enterprise
+    cd /opt/wireguard-enterprise
+
+  3. Configure environment (IP, ports, admin password):
+    sudo nano .env
+
+  4. Run the automated offline installer:
+    sudo bash scripts/deploy-offline.sh
+  Or with Docker Compose:
+    docker load < wireguard-enterprise-image.tar.gz
+    sudo docker compose up -d

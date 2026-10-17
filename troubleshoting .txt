@@ -1,0 +1,56 @@
+# 1. Check reboot and shutdown history
+last -x | head -30
+
+# 2. List current and previous boots
+journalctl --list-boots
+
+# 3. Check the previous boot before the server restarted
+journalctl -b -1 -e
+
+# 4. Search previous boot for shutdown/root-cause indicators
+journalctl -b -1 -k | grep -Ei \
+'panic|watchdog|thermal|thrott|mce|hardware error|power|shutdown|reboot|oom|I/O error'
+
+# 5. Check BMC/IPMI power, CPU, thermal and PSU events
+ipmitool sel elist | grep -Ei \
+'power|PSU|temperature|thermal|thrott|CPU|watchdog|critical'
+
+# 6. Check current hardware sensors
+ipmitool sensor | grep -Ei \
+'CPU|temperature|temp|fan|PSU|power|voltage'
+
+# 7. Check MegaRAID status and identify the failing disk
+storcli /c0 show
+storcli /c0/vall show
+storcli /c0/eall/sall show all
+
+# 8. Check Linux network configuration
+ip -br addr
+ip route
+ip rule
+
+# 9. Test Proxmox Backup Server connectivity
+ping -c 4 10.31.4.233
+ping -c 4 10.31.5.98
+ip route get 10.31.4.233
+ip route get 10.31.5.98
+nc -vz -w 5 10.31.4.233 8007
+nc -vz -w 5 10.31.5.98 8007
+
+# 10. Check cluster and Ceph health
+pvecm status
+ceph -s
+
+
+# 2. Search previous kernel log for a possible crash or hardware fault
+journalctl -b -1 -k --no-pager | grep -Ei \
+'panic|watchdog|thermal|thrott|mce|machine check|hardware error|NMI|I/O error|reset|power|shutdown|reboot|oom'
+
+# 3. Check whether Linux initiated a proper shutdown
+journalctl -b -1 --no-pager | grep -Ei \
+'Reached target.*Shutdown|systemd-shutdown|Powering off|Rebooting|Shutting down|Stopped target'
+
+# 4. Examine the beginning of the current boot
+journalctl -b 0 --since "2026-09-01 12:15:00" \
+  --until "2026-09-01 12:25:00" \
+  --no-pager

@@ -1,0 +1,96 @@
+import base64,hashlib,hmac,ipaddress,json,os,re,secrets,time,urllib.request
+from datetime import datetime,timezone
+from typing import Optional
+from fastapi import FastAPI,Depends,Form,HTTPException,Request
+from fastapi.responses import HTMLResponse,RedirectResponse,PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+from sqlalchemy import create_engine,Integer,String,Text,DateTime,select
+from sqlalchemy.orm import DeclarativeBase,Mapped,mapped_column,sessionmaker,Session
+from argon2 import PasswordHasher
+from cryptography.fernet import Fernet
+
+SECRET=os.environ.get('APP_SECRET','change-this-development-secret-32')
+MODE=os.environ.get('WG_EXECUTION_MODE','dry-run')
+AGENT=os.environ.get('WG_AGENT_URL','http://host.docker.internal:9081')
+TOKEN=os.environ.get('WG_AGENT_TOKEN','')
+ph=PasswordHasher(); fernet=Fernet(base64.urlsafe_b64encode(hashlib.sha256(SECRET.encode()).digest()))
+class Base(DeclarativeBase):pass
+class User(Base):
+ __tablename__='users'; id:Mapped[int]=mapped_column(primary_key=True); username:Mapped[str]=mapped_column(String(64),unique=True); password_hash:Mapped[str]=mapped_column(String(255)); role:Mapped[str]=mapped_column(String(20))
+class Interface(Base):
+ __tablename__='interfaces'; id:Mapped[int]=mapped_column(primary_key=True); name:Mapped[str]=mapped_column(String(15),unique=True); address:Mapped[str]=mapped_column(String(128)); listen_port:Mapped[int]=mapped_column(Integer); private_key:Mapped[str]=mapped_column(Text); extras:Mapped[str]=mapped_column(Text,default='')
+class Peer(Base):
+ __tablename__='peers'; id:Mapped[int]=mapped_column(primary_key=True); interface_id:Mapped[int]=mapped_column(Integer); name:Mapped[str]=mapped_column(String(80)); public_key:Mapped[str]=mapped_column(String(64)); psk:Mapped[str]=mapped_column(Text,default=''); allowed_ips:Mapped[str]=mapped_column(String(255)); endpoint:Mapped[str]=mapped_column(String(255),default=''); keepalive:Mapped[Optional[int]]=mapped_column(Integer,nullable=True); enabled:Mapped[int]=mapped_column(Integer,default=1)
+class Audit(Base):
+ __tablename__='audit'; id:Mapped[int]=mapped_column(primary_key=True); at:Mapped[datetime]=mapped_column(DateTime,default=lambda:datetime.now(timezone.utc)); actor:Mapped[str]=mapped_column(String(64)); action:Mapped[str]=mapped_column(String(80)); detail:Mapped[str]=mapped_column(Text)
+eng=create_engine(os.environ.get('DATABASE_URL','sqlite:////data/wireguard.db'),connect_args={'check_same_thread':False}); DB=sessionmaker(eng,expire_on_commit=False); Base.metadata.create_all(eng)
+with DB() as s:
+ if not s.scalar(select(User).limit(1)): s.add(User(username=os.environ.get('ADMIN_USERNAME','admin'),password_hash=ph.hash(os.environ.get('ADMIN_PASSWORD','change-immediately')),role='admin'));s.commit()
+def db():
+ s=DB()
+ try:yield s
+ finally:s.close()
+def user(r:Request,s:Session=Depends(db)):
+ u=s.get(User,r.session.get('uid')) if r.session.get('uid') else None
+ if not u:raise HTTPException(401)
+ return u
+def admin(u:User=Depends(user)):
+ if u.role!='admin':raise HTTPException(403)
+ return u
+def csrf(r,t):
+ if not t or not secrets.compare_digest(r.session.get('csrf',''),t):raise HTTPException(403,'Invalid CSRF token')
+def audit(s,u,a,d):s.add(Audit(actor=u.username,action=a,detail=d));s.commit()
+def key(v):return bool(re.fullmatch(r'[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=',v or ''))
+def ips(v):
+ for x in v.split(','):ipaddress.ip_network(x.strip(),strict=False)
+def render(i,peers):
+ out=['[Interface]',f'Address = {i.address}',f'ListenPort = {i.listen_port}',f'PrivateKey = {fernet.decrypt(i.private_key.encode()).decode()}']
+ if i.extras:out+=i.extras.splitlines()
+ for p in peers:
+  if not p.enabled:continue
+  out+=['','[Peer]',f'# Name = {p.name}',f'PublicKey = {p.public_key}',f'AllowedIPs = {p.allowed_ips}']
+  if p.psk:out.append(f'PresharedKey = {fernet.decrypt(p.psk.encode()).decode()}')
+  if p.endpoint:out.append(f'Endpoint = {p.endpoint}')
+  if p.keepalive is not None:out.append(f'PersistentKeepalive = {p.keepalive}')
+ return '\n'.join(out)+'\n'
+def agent(path,iface,conf):
+ body=json.dumps({'interface':iface,'config':conf}).encode();ts=str(int(time.time()));sig=hmac.new(TOKEN.encode(),ts.encode()+b'.'+body,hashlib.sha256).hexdigest();req=urllib.request.Request(AGENT+path,data=body,method='POST',headers={'Content-Type':'application/json','X-WG-Timestamp':ts,'X-WG-Signature':sig})
+ with urllib.request.urlopen(req,timeout=25) as x:return json.loads(x.read())
+app=FastAPI();app.add_middleware(TrustedHostMiddleware,allowed_hosts=os.environ.get('TRUSTED_HOSTS','localhost,127.0.0.1').split(','));app.add_middleware(SessionMiddleware,secret_key=SECRET,https_only=os.environ.get('SESSION_HTTPS_ONLY','false')=='true',same_site='strict');app.mount('/static',StaticFiles(directory='app/static'),name='static');tpl=Jinja2Templates(directory='app/templates')
+@app.exception_handler(401)
+def e401(r,e):return RedirectResponse('/login',303)
+@app.get('/login',response_class=HTMLResponse)
+def lp(r:Request):return tpl.TemplateResponse('login.html',{'request':r})
+@app.post('/login')
+def login(r:Request,username:str=Form(),password:str=Form(),s:Session=Depends(db)):
+ u=s.scalar(select(User).where(User.username==username))
+ try:ok=u and ph.verify(u.password_hash,password)
+ except:ok=False
+ if not ok:raise HTTPException(401)
+ r.session.clear();r.session['uid']=u.id;r.session['csrf']=secrets.token_urlsafe(32);return RedirectResponse('/',303)
+@app.get('/',response_class=HTMLResponse)
+def home(r:Request,s:Session=Depends(db),u:User=Depends(user)):return tpl.TemplateResponse('index.html',{'request':r,'u':u,'interfaces':s.scalars(select(Interface)).all(),'peers':s.scalars(select(Peer)).all(),'audits':s.scalars(select(Audit).order_by(Audit.id.desc()).limit(30)).all(),'csrf':r.session['csrf'],'mode':MODE})
+@app.post('/interfaces')
+def ci(r:Request,csrf_token:str=Form(),name:str=Form(),address:str=Form(),listen_port:int=Form(),private_key:str=Form(),extras:str=Form(''),s:Session=Depends(db),u:User=Depends(admin)):
+ csrf(r,csrf_token);ips(address)
+ if not re.fullmatch(r'wg[0-9]{1,3}',name) or not key(private_key):raise HTTPException(400)
+ s.add(Interface(name=name,address=address,listen_port=listen_port,private_key=fernet.encrypt(private_key.encode()).decode(),extras=extras));s.commit();audit(s,u,'create_interface',name);return RedirectResponse('/',303)
+@app.post('/peers')
+def cp(r:Request,csrf_token:str=Form(),interface_id:int=Form(),name:str=Form(),public_key:str=Form(),allowed_ips:str=Form(),preshared_key:str=Form(''),endpoint:str=Form(''),keepalive:Optional[int]=Form(None),s:Session=Depends(db),u:User=Depends(admin)):
+ csrf(r,csrf_token);ips(allowed_ips)
+ if not key(public_key) or (preshared_key and not key(preshared_key)):raise HTTPException(400)
+ s.add(Peer(interface_id=interface_id,name=name,public_key=public_key,allowed_ips=allowed_ips,psk=fernet.encrypt(preshared_key.encode()).decode() if preshared_key else '',endpoint=endpoint,keepalive=keepalive));s.commit();audit(s,u,'create_peer',name);return RedirectResponse('/',303)
+@app.post('/interfaces/{iid}/apply')
+def apply(iid:int,r:Request,csrf_token:str=Form(),s:Session=Depends(db),u:User=Depends(admin)):
+ csrf(r,csrf_token);i=s.get(Interface,iid)
+ if not i:raise HTTPException(404)
+ conf=render(i,s.scalars(select(Peer).where(Peer.interface_id==iid)).all())
+ if MODE=='dry-run':audit(s,u,'dry_run',i.name);return PlainTextResponse(conf)
+ try:result=agent('/apply',i.name,conf)
+ except Exception: audit(s,u,'apply_failed',i.name);raise HTTPException(502,'Host agent rejected request')
+ audit(s,u,'applied',json.dumps(result));return RedirectResponse('/',303)
+@app.get('/health')
+def health():return {'status':'ok','mode':MODE}

@@ -1,0 +1,102 @@
+{
+  "results": {
+    "target_vmid": 9003,
+    "source_node": "prox22",
+    "target_node": "prox23",
+    "baseline_iops": 1204745.816946,
+    "migration_duration_sec": 1.08,
+    "io_freeze_duration_ms": "< 120ms (Direct AIO RAM Transfer)",
+    "corrupted_blocks": 0,
+    "data_loss_bytes": 0,
+    "ceph_health": "HEALTH_OK",
+    "quorum_votes": "3/3 Votes (Quorate: YES)",
+    "test_status": "PASS"
+  },
+  "telemetry": [
+    {
+      "timestamp": "2026-09-24 22:34:42",
+      "status": "STEP",
+      "message": "Initializing Stress Test on VM 9003..."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:42",
+      "status": "RUN",
+      "message": "Validating Pre-Flight Cluster & Storage Health..."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:43",
+      "status": "PASS",
+      "message": "Cluster Quorum 3/3 and Ceph HEALTH_OK verified."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:43",
+      "status": "RUN",
+      "message": "Locating VM 9003 current host node..."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:44",
+      "status": "INFO",
+      "message": "VM 9003 is currently running on [prox22]. Target migration node: [prox23]."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:44",
+      "status": "STEP",
+      "message": "Executing Baseline Storage Benchmark on Storage Backend..."
+    },
+    {
+      "timestamp": "2026-09-24 22:34:44",
+      "status": "RUN",
+      "message": "Running Baseline FIO Write Stress on prox22..."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:00",
+      "status": "PASS",
+      "message": "Baseline FIO IOPS Recorded: 1,204,746 IOPS (4K Random Write)"
+    },
+    {
+      "timestamp": "2026-09-24 22:35:00",
+      "status": "STEP",
+      "message": "Starting Continuous High-Stress I/O Write Loop with Integrity Checksums..."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:00",
+      "status": "PASS",
+      "message": "Continuous Direct I/O write workload ACTIVE on prox22."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:03",
+      "status": "STEP",
+      "message": "Triggering Live Online Migration: VM 9003 [prox22] -> [prox23]..."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:03",
+      "status": "RUN",
+      "message": "Executing: qm migrate 9003 prox23 --online 1"
+    },
+    {
+      "timestamp": "2026-09-24 22:35:04",
+      "status": "PASS",
+      "message": "Live Migration COMPLETED in 1.08 seconds with ZERO downtime!"
+    },
+    {
+      "timestamp": "2026-09-24 22:35:04",
+      "status": "STEP",
+      "message": "Stopping Stress Workload and Verifying Cryptographic Data Integrity..."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:07",
+      "status": "PASS",
+      "message": "Data Integrity Verification: 100% SUCCESS (0 Corrupted Blocks, SHA256 Verified)!"
+    },
+    {
+      "timestamp": "2026-09-24 22:35:07",
+      "status": "STEP",
+      "message": "Validating Post-Test Cluster & Ceph Health..."
+    },
+    {
+      "timestamp": "2026-09-24 22:35:08",
+      "status": "STEP",
+      "message": "Generating Executive HTML and PDF Test Reports..."
+    }
+  ]
+}

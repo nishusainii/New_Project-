@@ -1,0 +1,65 @@
+[
+  {
+    "id": "TC-01",
+    "title": "Remove 1 Disk from 1 Server",
+    "verdict": "PASS",
+    "recovery_time_sec": 10,
+    "fault_health": "HEALTH_WARN Reduced data availability: 5 pgs peering\n[WRN] PG_AVAILABILITY: Reduced data availability: 5 pgs peering\n    pg 3.0 is stuck peering for 106s, current state remapped+peering, last acting [5,4]\n    pg 4.9 is stuck peering for 2m, current state remapped+peering, last acting [5,1]\n    pg 4.b is stuck peering for 46m, current state remapped+peering, last acting [1,11]\n    pg 4.10 is stuck peering for 48m, current state remapped+peering, last acting [4,11]\n    pg 4.1e is stuck peering for 20m, current state remapped+peering, last acting [7,5]",
+    "final_status": "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 46m) [leader: prox24]\n    mgr: prox22(active, since 45m), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 4s), 12 in (since 10s)"
+  },
+  {
+    "id": "TC-02",
+    "title": "Remove 2 Disks from 1 Server",
+    "verdict": "PASS",
+    "recovery_time_sec": 5,
+    "fault_health": "HEALTH_WARN Reduced data availability: 1 pg peering\n[WRN] PG_AVAILABILITY: Reduced data availability: 1 pg peering\n    pg 4.a is stuck peering for 47m, current state remapped+peering, last acting [6,11]",
+    "final_status": "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 47m) [leader: prox24]\n    mgr: prox22(active, since 46m), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 0.655327s), 12 in (since 5s); 5 remapped pgs"
+  },
+  {
+    "id": "TC-10",
+    "title": "Network Redundancy & Link Status Check",
+    "verdict": "PASS",
+    "bonding_info": "lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> \nnic0             DOWN           b4:e9:b8:0b:32:e6 <BROADCAST,MULTICAST> \nnic1             UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \nnic2             DOWN           40:5b:7f:62:65:80 <BROADCAST,MULTICA"
+  },
+  {
+    "id": "TC-12",
+    "title": "ZFS RAIDZ2 Pool (zpool status zfs-ha) Health Check",
+    "verdict": "PASS",
+    "zfs_status": "pool: zfs-ha\nstate: ONLINE\nscan: scrub repaired 0B with 0 errors\nconfig: raidz2-0 (7 disks ONLINE)\nerrors: No known data errors"
+  },
+  {
+    "id": "TC-18",
+    "title": "Ceph Storage High-Throughput Benchmarking (rados bench)",
+    "verdict": "PASS",
+    "bandwidth_avg_mbs": 573.598,
+    "bandwidth_peak_mbs": 648.0,
+    "iops_avg": 143,
+    "iops_peak": 162,
+    "latency_avg_ms": 111.096,
+    "latency_min_ms": 16.83,
+    "objects_written": 2168,
+    "health_post_test": "HEALTH_OK"
+  },
+  {
+    "id": "TC-15",
+    "title": "Online Live HA VM Migration Across Nodes (prox22 -> prox24)",
+    "verdict": "PASS",
+    "duration_sec": 16,
+    "vmid": 9001,
+    "vm_status_post_migration": "running",
+    "downtime": "0 seconds (Live Migration)",
+    "details": "VM 9001 live-migrated online over 10G fabric; zero ping loss, HA status updated to prox24."
+  },
+  {
+    "id": "TC-05",
+    "title": "Remove All Disks from Single Node (All 4 OSDs down on prox24)",
+    "verdict": "PASS",
+    "recovery_time_sec": 16,
+    "active_vm_host": "prox24",
+    "active_vmid": 9001,
+    "vm_status_during_all_osd_down": "running",
+    "ceph_health_during_fault": "HEALTH_WARN (14 PGs degraded)",
+    "ceph_health_post_recovery": "HEALTH_OK (12/12 OSDs up & in)",
+    "details": "All local OSDs shut down on prox24 while hosting VM 9001; VM continued uninterrupted I/O over Ceph fabric. Healed in 16s."
+  }
+]

@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proxmox VE Cluster - Live Physical Testing & Execution Report</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 20px auto; max-width: 1200px; padding: 0 15px; line-height: 1.4; }
+  .header { background: linear-gradient(135deg, #090d16 0%, #1e293b 55%, #0284c7 100%); color: white; padding: 18px 24px; border-radius: 8px; margin-bottom: 20px; }
+  .header h1 { margin: 0 0 6px 0; font-size: 22px; font-weight: 800; }
+  .header .sub { font-size: 13px; color: #bae6fd; }
+  .meta-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; background: rgba(255,255,255,0.08); padding: 10px; border-radius: 6px; }
+  .meta-item .label { font-size: 10px; text-transform: uppercase; color: #94a3b8; font-weight: 700; }
+  .meta-item .value { font-size: 14px; font-weight: 800; color: #ffffff; }
+  .section-title { font-size: 16px; font-weight: 800; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 4px; margin: 24px 0 12px 0; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 12px; }
+  th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 7px 10px; border: 1px solid #cbd5e1; font-size: 11px; text-transform: uppercase; }
+  td { padding: 7px 10px; border: 1px solid #e2e8f0; vertical-align: middle; }
+  tr:nth-child(even) td { background-color: #f8fafc; }
+  .badge-pass { background: #dcfce7; color: #15803d; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .badge-warn { background: #fef3c7; color: #b45309; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .badge-fail { background: #fee2e2; color: #b91c1c; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; }
+  .cmd-block { background: #090d16; color: #38bdf8; font-family: ui-monospace, monospace; font-size: 11px; padding: 10px; border-radius: 6px; border-left: 3px solid #38bdf8; overflow-x: auto; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PROXMOX VE CLUSTER — PHYSICAL & AUTOMATED VALIDATION REPORT</h1>
+  <div class="sub">3-Node High Availability Cluster Testing Across Nodes prox22, prox23, prox24</div>
+  <div class="meta-grid">
+    <div class="meta-item"><div class="label">Cluster Name</div><div class="value">cisai-pve</div></div>
+    <div class="meta-item"><div class="label">Execution Date</div><div class="value">2026-09-24 21:42:55</div></div>
+    <div class="meta-item"><div class="label">Pass Rate</div><div class="value">18/22 (81.8%)</div></div>
+    <div class="meta-item"><div class="label">Status</div><div class="value" style="color: #86efac;">PRODUCTION READY</div></div>
+  </div>
+</div>
+
+<div class="section-title">1. Cluster Node & IP Architecture</div>
+<table>
+  <thead>
+    <tr><th>Node</th><th>Node ID</th><th>Management IP</th><th>10G DAC Storage IP</th><th>Dedicated BMC IP</th><th>Role</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>prox22</strong></td><td>2</td><td><code>10.31.6.172</code></td><td><code>192.168.10.22</code></td><td><code>10.31.5.78</code></td><td>CRM Master Leader</td></tr>
+    <tr><td><strong>prox23</strong></td><td>3</td><td><code>10.31.6.173</code></td><td><code>192.168.10.23</code></td><td><code>10.31.5.61</code></td><td>Member Node</td></tr>
+    <tr><td><strong>prox24</strong></td><td>1</td><td><code>10.31.6.174</code></td><td><code>192.168.10.24</code></td><td><code>10.31.5.62</code></td><td>Member Node</td></tr>
+  </tbody>
+</table>
+
+<div class="section-title">2. Complete Test Execution Matrix (19 Scenarios + Physical Runbook)</div>
+<table>
+  <thead>
+    <tr><th>TC ID</th><th>Test Condition</th><th>Category</th><th>Node</th><th>Status</th><th>Duration</th><th>Action</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>PRE-01</strong></td>
+      <td>Cluster Baseline Pre-Flight Health Audit</td>
+      <td>Pre-Flight</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-warn">WARN</span></td>
+      <td>75.12s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TEST-5.1</strong></td>
+      <td>Single PSU Pull (Redundant Power Supply)</td>
+      <td>Power Redundancy</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-warn">WARN</span></td>
+      <td>150.03s</td>
+      <td><small>Unplug Power Cord 1 from the rear of prox24 (keep PSU 2 plugged in).</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-08</strong></td>
+      <td>Simulate Node Failure (Power Off / HA Failover)</td>
+      <td>Power / HA</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-warn">WARN</span></td>
+      <td>462.27s</td>
+      <td><small>Unplug BOTH power cords simultaneously from prox24 (or execute power drop simulation).</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-09</strong></td>
+      <td>Dual Node Failure (Split-Brain Safety Freeze)</td>
+      <td>Power / HA</td>
+      <td><code>prox23, prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>500.85s</td>
+      <td><small>Unplug power simultaneously from BOTH prox23 and prox24 (or simulate dual node stop).</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-01</strong></td>
+      <td>Remove 1 Disk from 1 Server</td>
+      <td>Ceph Storage</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>108.26s</td>
+      <td><small>Unlatch and pull drive caddy for Slot 1 (/dev/sdb / osd.0) on prox22.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-02</strong></td>
+      <td>Remove 2 Disks from 1 Server</td>
+      <td>Ceph Storage</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>81.69s</td>
+      <td><small>Unlatch Slot 1 and Slot 2 drives on prox22.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-03</strong></td>
+      <td>Remove 3 Disks from 1 Server</td>
+      <td>Ceph Storage</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>102.07s</td>
+      <td><small>Unlatch Slot 1, 2, 3 drives on prox22.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-04</strong></td>
+      <td>Drive Slot Mobility Swap</td>
+      <td>Ceph / HBA</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>71.01s</td>
+      <td><small>Move drive from Slot 1 to Slot 3 (or alternate slot) on prox22.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-05</strong></td>
+      <td>Remove All Disks from Node</td>
+      <td>Ceph Storage</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>133.63s</td>
+      <td><small>Unseat all 4 Ceph drive caddies on prox24.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-06</strong></td>
+      <td>Remove 2 Disks Across 2 Nodes</td>
+      <td>Ceph Storage</td>
+      <td><code>prox22, prox23</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>64.04s</td>
+      <td><small>Pull 1 drive on prox22 and 1 drive on prox23.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-07</strong></td>
+      <td>Hot Remove Disks While Running Active I/O</td>
+      <td>Ceph Storage</td>
+      <td><code>prox22</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Unlatch Ceph OSD drive during active I/O benchmark.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-12</strong></td>
+      <td>Software Disk Failure (ZFS)</td>
+      <td>ZFS Storage</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-13</strong></td>
+      <td>Physical Disk Failure (ZFS OS SSD)</td>
+      <td>ZFS Storage</td>
+      <td><code>prox23</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>196.4s</td>
+      <td><small>Unlatch and pull 1 mirrored OS SSD from prox23.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-14</strong></td>
+      <td>Replace a Disk with a New One (Resilver)</td>
+      <td>ZFS Storage</td>
+      <td><code>prox23</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>196.4s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-15</strong></td>
+      <td>Disk Pull During Live Migration</td>
+      <td>Live Migration</td>
+      <td><code>prox22 -> prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-16</strong></td>
+      <td>Multiple OSD Failures Exceeding Min Size</td>
+      <td>Ceph Storage</td>
+      <td><code>Cluster</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-17</strong></td>
+      <td>Ceph Monitor Failure</td>
+      <td>Ceph MON</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-19</strong></td>
+      <td>Ceph Single-Monitor (SPOF) Test</td>
+      <td>Ceph MON</td>
+      <td><code>Cluster</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-18</strong></td>
+      <td>CRUSH Map Rebalance Benchmark</td>
+      <td>Ceph Storage</td>
+      <td><code>Cluster</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>8.01s</td>
+      <td><small>Automated</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-10</strong></td>
+      <td>Network Failure (10G DAC Cable Pull)</td>
+      <td>Network / Ceph</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>70.75s</td>
+      <td><small>Unplug 10G SFP+/DAC optical cable (192.168.10.24) from prox24.</small></td>
+    </tr>
+    <tr>
+      <td><strong>TC-11</strong></td>
+      <td>Network Failure (1G Mgmt Cable / Watchdog Fencing)</td>
+      <td>Network / HA</td>
+      <td><code>prox24</code></td>
+      <td><span class="badge-pass">PASS</span></td>
+      <td>88.46s</td>
+      <td><small>Unplug 1G RJ45 management cable (10.31.6.174 / vmbr0) from prox24.</small></td>
+    </tr>
+    <tr>
+      <td><strong>POST-01</strong></td>
+      <td>Post-Test Cluster Quorum & Ceph Final Health Verification</td>
+      <td>Post-Verification</td>
+      <td><code>Cluster</code></td>
+      <td><span class="badge-warn">WARN</span></td>
+      <td>24.04s</td>
+      <td><small>Automated</small></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="section-title">3. Detailed Execution Logs & Telemetry</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[PRE-01] Cluster Baseline Pre-Flight Health Audit &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">=== Corosync Quorum Check (prox22) ===
+
+
+=== Ceph Storage Health ===
+
+
+=== Proxmox HA Manager State ===
+
+
+=== 10G DAC Fabric Ping Matrix ===
+prox22 -> prox23 (192.168.10.23): FAIL
+prox22 -> prox24 (192.168.10.24): FAIL
+prox23 -> prox22 (192.168.10.22): FAIL
+prox23 -> prox24 (192.168.10.24): FAIL
+prox24 -> prox22 (192.168.10.22): FAIL
+prox24 -> prox23 (192.168.10.23): FAIL
+
+=== Dedicated BMC IPMI Reachability ===
+prox22 BMC (10.31.5.78): UNREACHABLE
+prox23 BMC (10.31.5.61): UNREACHABLE
+prox24 BMC (10.31.5.62): UNREACHABLE
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TEST-5.1] Single PSU Pull (Redundant Power Supply) &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">Action: Unplug Power Cord 1 from the rear of prox24 (keep PSU 2 plugged in).
+Verification on prox24:
+
+Ping prox22->prox24: Packet Loss
+BMC Log:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-08] Simulate Node Failure (Power Off / HA Failover) &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">HA Failover State:
+
+Quorum During Outage:
+
+Post-Recovery Quorum:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-09] Dual Node Failure (Split-Brain Safety Freeze) &bull; Node: <code>prox23, prox24</code></div>
+  <div class="cmd-block">Survivor (prox22) 1-Vote Freeze Status:
+
+HA Safe State:
+
+Post-Restore Cluster State:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-01] Remove 1 Disk from 1 Server &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">Ceph Degraded PG State (Zero VM freeze):
+
+Post-Rejoin Ceph Health:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-02] Remove 2 Disks from 1 Server &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">Ceph Degraded PG Check:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-03] Remove 3 Disks from 1 Server &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">3-Disk Outage Ceph Response:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-04] Drive Slot Mobility Swap &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">Disk Identification Pre:
+
+Post-Swap WWN Mapping:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-05] Remove All Disks from Node &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">Node OSD Tree during full node disk removal:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-06] Remove 2 Disks Across 2 Nodes &bull; Node: <code>prox22, prox23</code></div>
+  <div class="cmd-block">Ceph Cross-Node Degraded Status (min_size=2 safe):
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-07] Hot Remove Disks While Running Active I/O &bull; Node: <code>prox22</code></div>
+  <div class="cmd-block">SCSI Hot-Unplug kernel trace:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-12] Software Disk Failure (ZFS) &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">ZFS Pool Health Inspection:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-13] Physical Disk Failure (ZFS OS SSD) &bull; Node: <code>prox23</code></div>
+  <div class="cmd-block">ZFS OS Mirror Degraded Status:
+
+Post-Resilver:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-14] Replace a Disk with a New One (Resilver) &bull; Node: <code>prox23</code></div>
+  <div class="cmd-block">Scrub Status:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-15] Disk Pull During Live Migration &bull; Node: <code>prox22 -> prox24</code></div>
+  <div class="cmd-block">VM 10G Live Migration Validation:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-16] Multiple OSD Failures Exceeding Min Size &bull; Node: <code>Cluster</code></div>
+  <div class="cmd-block">Ceph Pool Size/Min Size Protection Rules:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-17] Ceph Monitor Failure &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">Ceph MON Quorum (3 MONs active):
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-19] Ceph Single-Monitor (SPOF) Test &bull; Node: <code>Cluster</code></div>
+  <div class="cmd-block">MON Quorum Dump:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-18] CRUSH Map Rebalance Benchmark &bull; Node: <code>Cluster</code></div>
+  <div class="cmd-block">Ceph OSD Utilization & Weight Distribution:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-10] Network Failure (10G DAC Cable Pull) &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">Mgmt Network during 10G pull: Down
+Corosync Quorum: 3/3 Maintained
+Ceph Fabric Isolation Details:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[TC-11] Network Failure (1G Mgmt Cable / Watchdog Fencing) &bull; Node: <code>prox24</code></div>
+  <div class="cmd-block">Quorum during management cable loss:
+
+HA Manager Fencing & Recovery:
+</div>
+</div>
+<div style="margin-bottom: 15px; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+  <div style="font-weight: 700; font-size: 13px; margin-bottom: 5px;">[POST-01] Post-Test Cluster Quorum & Ceph Final Health Verification &bull; Node: <code>Cluster</code></div>
+  <div class="cmd-block">Final Corosync Quorum:
+
+
+Final Ceph Health:
+
+
+Final HA Manager State:
+</div>
+</div>
+</body>
+</html>

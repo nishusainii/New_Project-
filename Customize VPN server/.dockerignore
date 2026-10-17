@@ -1,0 +1,17 @@
+# Python byte-code
+__pycache__/
+*.py[cod]
+
+# VCS
+.git/
+.gitignore
+
+# Local runtime
+*.pid
+vpn_server.pid
+
+# Not needed in the image
+tests/
+.dockerignore
+Dockerfile
+docker-compose.yml

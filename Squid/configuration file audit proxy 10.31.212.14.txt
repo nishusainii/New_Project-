@@ -1,0 +1,104 @@
+  # ========================
+# PORT
+# ========================
+http_port 8085
+
+# ========================
+# AUTHENTICATION
+# ========================
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/password
+auth_param basic children 5
+auth_param basic realm Squid Proxy Authentication
+auth_param basic credentialsttl 2 hours
+
+acl authenticated proxy_auth REQUIRED
+# ========================
+# ALLOWED SOURCE IPs
+# ========================
+
+acl allowed_ips src "/etc/squid/allowed_ips.txt"
+
+# ========================
+# OPENFORTIVPN CLIENTS
+# ========================
+acl openfortivpn_clients src "/etc/squid/openfortivpn_clients.txt"
+
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+
+# ========================
+# METHODS AND SAFE PORTS
+# ========================
+acl CONNECT method CONNECT
+
+acl SSL_ports port 443
+acl SSL_ports port 4433
+
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 4433
+
+# ========================
+# CACHE STORAGE
+# ========================
+cache_dir ufs /var/spool/squid/cache 10000 16 256
+cache_mem 512 MB
+maximum_object_size 50 MB
+minimum_object_size 0 KB
+
+# ========================
+# ACCESS RULES
+# ========================
+
+# Reject unsafe destination ports first
+http_access deny !Safe_ports
+
+# CONNECT is allowed only to HTTPS and FortiGate SSL-VPN ports
+http_access deny CONNECT !SSL_ports
+
+# OpenFortiVPN clients can connect only to 182.19.54.189:4433
+http_access allow openfortivpn_clients fortigate_sslvpn fortigate_sslvpn_port CONNECT
+
+# Normal proxy users require both an allowed IP and authentication
+http_access allow localhost authenticated
+
+http_access allow allowed_ips authenticated
+
+# Reject everything else
+http_access deny all
+
+# ========================
+# LOGGING
+# ========================
+access_log /var/log/squid/access.log
+
+
+cat allowed_ips.txt 
+10.31.0.87
+10.40.4.67
+10.31.1.81
+10.40.4.66
+10.31.1.59
+10.31.1.124
+10.31.1.183
+10.31.1.136
+10.31.0.140
+
+ cat openfortivpn_clients.txt 
+ 10.31.0.87
+ 10.40.4.67
+ 10.31.1.81
+ 10.40.4.66
+ 10.31.1.124
+ 10.31.1.183
+ 10.31.1.136
+ 10.31.0.140
+
+ sudo cat password 
+
+proxyuser:$2y$05$xO/ZIN5CkDct2b.l26tGAOego8cIHi88jFMy8coFNs1En/6wIgOD6
+nishu:$apr1$WBKUHWh6$Kwg5oy4OAw7thLQb4nIzD/
+ 
+
+
+

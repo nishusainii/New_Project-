@@ -1,0 +1,129 @@
+Name: Nishu Saini
+Date: 24/09/2026
+Login Time: 09:20 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:20 AM to 10:00 AM
+
+GNS3 Virtual Palo Alto Lab Health Check & Topology Verification
+
+- Performed morning system diagnostic check on GNS3 server running in Docker container (`gns3-server` on port 3080).
+- Re-opened and verified active topology for `Palo-Alto-Lab` with all nodes (`PA-VM-1`, `Switch1`, `Switch2`, `PC1` through `PC8`, `NAT1`, `NAT3`).
+- Confirmed virtual firewall operational health on Management IP `172.17.0.50` (Ping: 0.2ms latency, Web GUI on port 443) and serial console on Telnet port 5000.
+- Verified bidirectional Layer 3 routing and security policy enforcement between `Trust-L1` (192.168.10.0/24) and `Trust-L2` (192.168.20.0/24) across the firewall.
+
+10:00 AM to 10:30 AM
+
+Host-to-GNS3 Virtual Lab Routing Architecture & Diagnostics
+
+- Investigated network routing behavior between physical host laptop (10.31.1.59 / 172.17.0.1) and internal GNS3 virtual PCs.
+- Diagnosed root causes preventing host-to-lab communication:
+  * Lack of static routes in host Linux routing table for internal private subnets (`192.168.10.0/24` and `192.168.20.0/24`).
+  * Stateful firewall boundary filtering on Palo Alto `Untrust` to `Trust` zone transitions.
+- Formulated static routing configuration on host laptop (`ip route add 192.168.10.0/24 via 172.17.0.51`) and inbound PAN-OS security policies (`Allow-Inbound-From-Laptop`) to establish direct bidirectional communication.
+
+10:30 AM to 11:30 AM
+
+Juniper EX2300-C TAC Support, Asset Validation & Account Entitlement
+
+- Tracked Juniper Customer Support registration and account entitlement case (Case Reference ID: `2026-0923-938239`).
+- Validated hardware asset details for Juniper EX2300-C switch (Serial Number: `HV0217520242`).
+- Prepared and submitted verified company registration and institutional linkage documentation connecting Innspark Solutions Pvt. Ltd. with Amrita Vishwa Vidyapeetham (Amritapuri campus, PIN: 690525).
+- Followed up with Juniper support team to expedite review and request authorized ARM 32-bit Junos recovery image (`junos-arm-32-*.tgz`).
+- Status: In Progress / Actively Tracking.
+
+11:30 AM to 12:00 PM
+
+Proxmox Cluster Maintenance & APT Repository Troubleshooting
+
+- Investigated daily recurring alert `TASK ERROR: command 'apt-get update' failed: exit code 100` across Proxmox cluster nodes (`prox22`, `prox23`, `prox24`).
+- Diagnosed root causes:
+  * Syntax error in `/etc/apt/apt.conf.d/no-nag-script` causing APT engine parse failures.
+  * Enterprise repository returning 401 unauthorized errors due to missing subscription license.
+- Cleaned malformed APT configuration hooks and disabled commercial enterprise repositories (`pve-enterprise.list` / `.sources`).
+- Configured the official Debian Bookworm community repository (`pve-no-subscription`) in `/etc/apt/sources.list`.
+- Resolved duplicate repository package list warnings (`W: Target Packages is configured multiple times`).
+- Validated `apt-get update` across all nodes (`prox22`, `prox23`, `prox24`), confirming clean execution with Exit Code 0.
+- Safely powered down the `gns3-server` Docker container on the host machine to release system resources.
+
+12:00 PM to 01:10 PM
+
+Proxmox Cluster Physical Datacenter Testing Analysis, Runbook & PDF Generation
+
+- Analyzed the 3-Node Proxmox VE + Ceph + ZFS Cluster (`cisai-pve`) involving `prox22` (Host: 10.31.6.172, BMC: 10.31.5.78), `prox23` (Host: 10.31.6.173, BMC: 10.31.5.61), and `prox24` (Host: 10.31.6.174, BMC: 10.31.5.62).
+- Performed a gap analysis between completed software/remote tests and tests that strictly require physical datacenter presence (hardware fault injection, PSU pulls, backplane hot-swapping, link cuts).
+- Audited and mapped all 19 Excel test conditions from `Manual Test Case proxmox.xlsx` (TC-01 through TC-19):
+  * Mapped physical power tests: Redundant Single PSU cord pull (0 packet drop), Dual-PSU catastrophic node loss (HA VM failover within 60–120s), and Dual-node power drop (cluster read-only freeze to prevent split-brain).
+  * Mapped physical storage tests: Live Ceph HDD hot-pull under active write load (`osd.0` / `/dev/sdb`), Drive slot mobility swap (Slot 1 to 3) verifying HBA IT-mode permanent WWN detection, and ZFS OS boot mirror SSD pull & resilver (`rpool`).
+  * Mapped physical network tests: 10G DAC optical storage cable pull on `nic3` (192.168.10.24) and 1G Management cable pull on `vmbr0` (10.31.6.174) testing hardware watchdog fencing.
+- Built, structured, and compiled a comprehensive **Physical Datacenter Testing Checklist & Command Runbook**:
+  * Added exact terminal assignments (`RUN ON: prox22`, `RUN ON: prox23`, `RUN ON: prox24`, `RUN ON: Laptop Terminal`).
+  * Included copy-pasteable pre-check, monitoring, restoration, and verification commands with expected outputs for every test.
+  * Rendered the complete runbook into an official printable PDF (`Proxmox_Datacenter_Physical_Testing_Checklist.pdf`) and interactive HTML format (`Proxmox_Datacenter_Physical_Testing_Checklist.html`).
+
+01:10 PM to 01:40 PM
+
+Lunch Break
+
+01:40 PM to 05:00 PM
+
+On-Site Datacenter Physical Testing & Ceph Hot-Swap Resilience Validation (prox22)
+
+- Diagnosed and resolved `MON_CLOCK_SKEW` warning on `mon.prox22` caused by an initial 5 hr 30 min timezone discrepancy between nodes:
+  * Synchronized system time across `prox22`, `prox23`, and `prox24` using direct cluster node time reference.
+  * Verified Ceph monitor quorum synchronization and restored baseline cluster health to `HEALTH_OK`.
+- Executed physical on-site Ceph HDD live hot-pull resilience test (TC-01 & TC-07) on `prox22`:
+  * Physically unlatched and removed 18.2 TB Ceph data drive caddy (`osd.0` / `/dev/sda`).
+  * Verified system fault tolerance under active write load (`rados -p ceph bench`): Cluster sustained active throughput at 117 MiB/s (31 op/s) with **zero I/O freeze or guest workload disruption** under 3x replica protection (`5 pgs degraded`).
+- Performed physical drive re-insertion and BlueStore recovery:
+  * Analyzed Linux dynamic SCSI device re-enumeration (drive dynamically recognized as `/dev/sdn` on SCSI bus rescan).
+  * Refreshed Device Mapper and LVM volume groups (`ceph-d1246597-45f6-40a6-ad11-fb6c122df899`), reactivated OSD 0 via `ceph-volume lvm activate`, and cleared systemd restart rate-limits.
+  * Verified automated placement group peering and object backfilling: `osd.0` returned to `UP` and `IN`, with all 33 placement groups achieving `active+clean` and cluster status certifying **100% HEALTH_OK (12 OSDs up, 12 in)**.
+
+05:00 PM to 07:30 PM
+
+Master Physical 19-Scenario Testing Suite & Network Fabric Validation
+
+- Configured dedicated on-site laptop management interface on `prox22` (`nic0`: `192.168.99.1/24`) to enable direct, high-speed console and Proxmox Web GUI access (`https://192.168.99.1:8006`).
+- Executed the comprehensive physical testing suite (`proxmox_physical_testing_suite.py`) across all 3 cluster nodes (`prox22`, `prox23`, `prox24`) based on the master 19-scenario runbook:
+  * Ceph Storage Multi-Drive Pulls: Validated single disk, 2-disk simultaneous, 3-disk, and full-node disk removal (TC-01, TC-02, TC-03, TC-05) without virtual machine interruption.
+  * Drive Slot Mobility Swap (TC-04): Verified that moving SAS physical drive caddies between different backplane slots (Slot 1 to Slot 3) preserves LVM UUIDs and persistent WWN mappings.
+  * Power & Quorum Resilience (TC-08, TC-09): Tested single PSU redundancy, node power loss, and dual-node power drop, confirming survivor node read-only freeze to guarantee 100% split-brain immunity.
+  * Network Link Redundancy (TC-10, TC-11): Validated 10G SFP+ DAC interconnect pullout and 1G management network failure with hardware watchdog fencing.
+  * ZFS Storage Resilience (TC-12, TC-13, TC-14): Verified 7-disk RAIDZ2 pool (`zfs-ha`) and OS mirror SSD recovery with zero data corruption.
+- Generated the complete 19-scenario execution report and master audit PDF (`proxmox_testing_report_20260924_214255.pdf`).
+
+07:30 PM to 09:30 PM
+
+Simultaneous 3-Node 10G Blackout Outage Testing & Ceph Root Cause Analysis (RCA)
+
+- Developed and executed a specialized simultaneous 3-node 10G storage network blackout test (`test_simultaneous_3node_10g_pullout.py`):
+  * Unplugged 10G DAC cables on all 3 nodes (`prox22`, `prox23`, `prox24`) concurrently for 60 seconds.
+  * Monitored cluster behavior during total storage fabric blackout and recorded Time-to-Recovery (TTR). Verified automatic reconnection and placement group re-peering.
+- Conducted deep-dive technical Root Cause Analysis (RCA) on Ceph OSD behavior during physical hot-pull tests:
+  * Identified Linux kernel dynamic SCSI re-enumeration (`/dev/sdb` with Major:Minor 8:16 re-enumerated as `/dev/sdn` with 8:208) causing in-memory LVM Device-Mapper linear mapping desync (`dm-7` pointing to dead minor number), leading to BlueStore `direct_aligned_read` Error 5 (`Input/output error`).
+  * Formulated and verified the automated Standard Operating Procedure (SOP) to refresh device-mapper tables without rebooting (`vgchange -an`, `udevadm trigger`, `vgchange -ay`, `ceph-volume lvm activate --all`).
+- Diagnosed Proxmox Web GUI transition artifacts (blue wrench and question mark `?` icons):
+  * Identified HA Manager maintenance mode state (`hastate: maintenance`) and paused `pvestatd` metric daemon on `prox23`/`prox24`.
+  * Disabled maintenance mode and restarted cluster daemons, restoring all node icons to solid green checkmarks.
+- Authored and rendered the official Executive Root Cause Analysis Report in Markdown, HTML, and PDF formats (`CEPH_STORAGE_TESTING_RCA_REPORT.pdf`).
+
+09:30 PM to 10:45 PM
+
+Live VM FIO Stress Migration, ZFS Scrub Audit & Datacenter Sign-Off
+
+- Executed live VM workload and synthetic FIO stress failover testing (`test_vm_fio_live_failover_stress.py`):
+  * Benchmarked peak local storage performance at **1,204,746 IOPS** (4K direct random write).
+  * Injected continuous direct asynchronous write stress on VM 9003 while executing an online live migration from `prox22` to `prox23`.
+  * Migration completed in **1.08 seconds** with **< 120ms I/O freeze** and **100% SHA256 cryptographic verification (0 corrupted blocks)**.
+- Performed full ZFS cryptographic block tree scrub and silent data corruption verification (`test_zfs_scrub_bitrot_healing.py`):
+  * Scrubbed the 127 TiB ZFS RAIDZ2 pool (`zfs-ha`) across all nodes. Verified **0 READ, 0 WRITE, and 0 CKSUM (bitrot) errors** across all 21 SAS hard drives.
+- Conducted final pre-departure cluster health verification:
+  * Corosync Quorum: 3 / 3 Votes (`Quorate: YES`).
+  * Ceph Distributed Storage: **HEALTH_OK (12/12 OSDs UP & IN, 33/33 PGs active+clean)**.
+  * ZFS Storage Pools: 100% ONLINE (0 Errors) on all 3 nodes.
+  * HA Manager & VMs: CRM Watchdogs active, all guest workloads running smoothly.
+- Compiled and synchronized all audit PDFs, reports, and test scripts directly onto the Desktop directory (`/home/nishusaini/Desktop/Proxmox_Testing_Reports/`).
+- Status: Full Datacenter Resilience Testing Successfully Completed & Signed Off.

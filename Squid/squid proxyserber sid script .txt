@@ -1,0 +1,151 @@
+
+#!/bin/bash
+
+# ==========================================
+# SQUID MULTI-WAN HEALTH REPORT
+# ==========================================
+
+declare -A PORTMAP=(
+[8860]="kv1|192.168.14.30|192.168.14.1"
+[8859]="kv2|192.168.16.30|192.168.16.1"
+[8878]="kv3|192.168.12.30|192.168.12.1"
+[8855]="kv4|192.168.18.30|192.168.18.1"
+[8868]="kv5|192.168.8.30|192.168.8.1"
+[8888]="kv6|192.168.1.30|192.168.1.1"
+[8898]="kv7|192.168.4.30|192.168.4.1"
+[8858]="kv8|192.168.19.30|192.168.19.1"
+[8848]="kv9|192.168.5.30|192.168.5.1"
+)
+
+ACTIVE_WAN=0
+FAILED_WAN=0
+TOTAL_CONN=0
+TOTAL_CLIENTS=0
+
+printf "\n"
+echo "======================================================================================================================================="
+echo "                                       SQUID MULTI-WAN HEALTH REPORT"
+echo "Generated : $(date)"
+echo "======================================================================================================================================="
+
+printf "+----------------------------------------------------------------------------------------------------------------------+\n"
+printf "| %-5s | %-4s | %-14s | %-5s | %-7s | %-30s | %-7s | %-9s | %-13s |\n" \
+"Port" "NIC" "Source IP" "Conn" "Clients" "Today's Bandwidth" "Gateway" "Port Test" "Status"
+printf "+----------------------------------------------------------------------------------------------------------------------+\n"
+
+for PORT in 8860 8859 8878 8855 8868 8888 8898 8858 8848
+do
+    DATA="${PORTMAP[$PORT]}"
+
+    NIC=$(echo "$DATA" | cut -d'|' -f1)
+    IP=$(echo "$DATA" | cut -d'|' -f2)
+    GW=$(echo "$DATA" | cut -d'|' -f3)
+
+    # Connections
+    CONN=$(ss -tn 2>/dev/null | grep ":$PORT " | wc -l)
+
+    # Unique clients
+    CLIENTS=$(ss -tn 2>/dev/null | grep ":$PORT " | \
+        awk '{print $5}' | cut -d: -f1 | sort -u | wc -l)
+
+    TOTAL_CONN=$((TOTAL_CONN + CONN))
+    TOTAL_CLIENTS=$((TOTAL_CLIENTS + CLIENTS))
+
+    # Gateway Status
+    if ping -c1 -W1 "$GW" >/dev/null 2>&1
+    then
+        GWSTATUS="✅ UP"
+    else
+        GWSTATUS="❌ DOWN"
+    fi
+
+    # Proxy Port Test
+    timeout 5 curl -I -x http://127.0.0.1:$PORT https://www.google.com \
+        >/dev/null 2>&1
+
+    if [ $? -eq 0 ]
+    then
+        PORTTEST="✅ OK"
+    else
+        PORTTEST="❌ FAIL"
+    fi
+
+    # Today's bandwidth
+    BW=$(vnstat -i "$NIC" 2>/dev/null | \
+         awk '/today/ {print $2$3" RX / "$5$6" TX"}')
+
+    [ -z "$BW" ] && BW="N/A"
+
+    if [[ "$GWSTATUS" == "✅ UP" ]]
+    then
+        STATUS="✅ Stable"
+        ACTIVE_WAN=$((ACTIVE_WAN+1))
+    else
+        STATUS="❌ ISP Down"
+        FAILED_WAN=$((FAILED_WAN+1))
+    fi
+
+    printf "| %-5s | %-4s | %-14s | %-5s | %-7s | %-30s | %-7s | %-9s | %-13s |\n" \
+    "$PORT" "$NIC" "$IP" "$CONN" "$CLIENTS" "$BW" "$GWSTATUS" "$PORTTEST" "$STATUS"
+done
+
+printf "+--------------------------------------------------------------------------------------------------------------------------------+\n"
+
+# Squid Status
+SQUID_STATUS=$(systemctl is-active squid 2>/dev/null)
+
+echo
+echo "System Health"
+echo "-------------"
+
+if [ "$SQUID_STATUS" = "active" ]
+then
+    echo "Squid Service       : ✅ Running"
+else
+    echo "Squid Service       : ❌ Stopped"
+fi
+
+echo "Active WANs         : $ACTIVE_WAN"
+echo "Failed WANs         : $FAILED_WAN"
+echo "Connected Clients   : $TOTAL_CLIENTS"
+echo "Active Connections  : $TOTAL_CONN"
+
+echo
+echo "Bandwidth Summary"
+echo "-----------------"
+
+TOTAL_RX=0
+TOTAL_TX=0
+
+for NIC in kv1 kv2 kv3 kv6 kv7 kv8
+do
+    vnstat -i "$NIC" >/tmp/vn.$$ 2>/dev/null
+
+    RX=$(awk '/today/ {print $2" "$3}' /tmp/vn.$$)
+    TX=$(awk '/today/ {print $5" "$6}' /tmp/vn.$$)
+    TT=$(awk '/today/ {print $8" "$9}' /tmp/vn.$$)
+
+    echo "$NIC  : $TT"
+done
+
+rm -f /tmp/vn.$$
+
+echo
+echo "Overall Status"
+echo "--------------"
+
+if [ "$ACTIVE_WAN" -ge 1 ]
+then
+    echo "✅ Squid Healthy"
+    echo "✅ Multi-WAN Active"
+    echo "✅ $ACTIVE_WAN ISPs Operational"
+
+    if [ "$FAILED_WAN" -gt 0 ]
+    then
+        echo "❌ $FAILED_WAN ISPs Down"
+    fi
+else
+    echo "❌ Squid Connectivity Issue Detected"
+fi
+
+echo

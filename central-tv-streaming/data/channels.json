@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ch-live",
+    "name": "Live Broadcast (Screen / Camera)",
+    "type": "webrtc",
+    "streamKey": "live",
+    "description": "Ultra-low-latency real-time video stream from presenter laptop"
+  },
+  {
+    "id": "ch-signage",
+    "name": "Corporate Digital Signage",
+    "type": "signage",
+    "description": "Automated corporate announcements, image carousel & company loop"
+  },
+  {
+    "id": "ch-dashboard",
+    "name": "Live Metrics / Kiosk Dashboard",
+    "type": "url",
+    "url": "/dashboard.html",
+    "description": "Full-screen web dashboard / status monitor"
+  }
+]

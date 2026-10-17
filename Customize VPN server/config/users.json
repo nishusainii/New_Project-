@@ -1,0 +1,18 @@
+{
+  "users": {
+    "admin": {
+      "salt": "66f3087d73206b867c70d4bddae3e073",
+      "hash": "20429565e2378f944de021360f7915cb607c781eccfd44119bcb2ea3c143173a",
+      "iterations": 200000,
+      "enabled": true,
+      "vpn_ip": null,
+      "allowed_subnets": [
+        "0.0.0.0/0"
+      ],
+      "bandwidth_kbps": 0,
+      "client_cn": null,
+      "groups": [],
+      "max_connections": null
+    }
+  }
+}

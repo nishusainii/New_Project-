@@ -1,0 +1,189 @@
+The Docker Engine is installed, but the Docker Compose V2 plugin is missing. Do not remove or reinstall Docker on this production WireGuard server. First check whether the older standalone docker-compose command is already available.
+
+1. Check installed versions
+docker --version
+docker info >/dev/null && echo "Docker daemon: running"
+
+docker-compose --version 2>/dev/null || echo "Legacy docker-compose: not installed"
+docker compose version 2>/dev/null || echo "Compose V2 plugin: not installed"
+
+cat /etc/os-release
+
+2. If docker-compose works
+
+If this returns a version:
+
+docker-compose --version
+
+
+you can use the hyphenated command for now:
+
+docker-compose config
+docker-compose build --no-cache
+docker-compose up -d
+docker-compose ps
+docker-compose logs --tail=100 app
+
+
+This does not require changing your YAML file. Compose V1 uses docker-compose, while Compose V2 uses docker compose.
+
+3. Preferred fix for Ubuntu or Debian
+
+If the server is Ubuntu or Debian and Docker’s repository is already configured, install only the Compose plugin:
+
+sudo apt-get update
+sudo apt-get install -y docker-compose-plugin
+
+
+Verify:
+
+docker compose version
+
+
+Docker’s official documentation specifies docker-compose-plugin for Ubuntu and Debian installations.
+
+If APT says package not found
+
+Check whether the Docker repository exists:
+
+grep -Rns "download.docker.com" \
+  /etc/apt/sources.list \
+  /etc/apt/sources.list.d 2>/dev/null
+
+
+Also inspect the installed Docker package source:
+
+dpkg -l | grep -E 'docker|containerd'
+apt-cache policy docker-ce docker.io docker-compose-plugin
+
+
+Do not remove docker.io, containerd, or the existing Docker Engine on the production server merely to enable Compose. Repository migration should be handled as a separate reviewed change because Docker documents potential package conflicts between distribution packages and its official Engine packages.
+
+4. If this is an RPM system
+
+For a compatible RPM-based system configured with Docker’s repository, Docker documents:
+
+sudo yum update
+sudo yum install docker-compose-plugin
+
+
+Then verify:
+
+docker compose version
+
+5. Validate the project after Compose is available
+
+Enter the correct directory:
+
+cd /path/to/wireguard-vpn-manager-v4-syncconf
+pwd
+ls -la
+
+
+Confirm dry-run mode before starting:
+
+grep '^WG_EXECUTION_MODE=' .env
+
+
+Required result:
+
+WG_EXECUTION_MODE=dry-run
+
+
+Validate the resolved Compose configuration:
+
+docker compose config
+
+
+Then check only the security-relevant portions:
+
+docker compose config |
+grep -A8 -B4 -E \
+'127.0.0.1:8080|/etc/wireguard|read_only|cap_drop|no-new-privileges'
+
+
+You should see the effective equivalents of:
+
+127.0.0.1:8080
+/etc/wireguard mounted read-only
+read_only: true
+cap_drop: ALL
+no-new-privileges:true
+
+6. Prepare the writable database directory
+
+The application container runs with UID 10001. Prepare only the application data directory:
+
+mkdir -p data
+sudo chown -R 10001:10001 data
+sudo chmod 700 data
+
+
+Confirm:
+
+stat -c '%A %a %u:%g %n' data
+
+
+Expected:
+
+700 10001:10001 data
+
+
+Do not change permissions on:
+
+/etc/wireguard
+/etc/wireguard/wg0.conf
+
+
+Keep wg0.conf as root:root with mode 0600.
+
+7. Start only the dry-run Web UI
+docker compose build --no-cache
+docker compose up -d
+
+
+Validate:
+
+docker compose ps
+docker compose logs --tail=100 app
+curl -sS http://127.0.0.1:8080/health
+
+
+Expected health response:
+
+{"status":"ok","mode":"dry-run"}
+
+
+Confirm localhost-only binding:
+
+sudo ss -lntp | grep ':8080'
+
+
+Expected:
+
+127.0.0.1:8080
+
+8. Confirm WireGuard remained unchanged
+sudo wg show interfaces
+ip -br address show dev wg0
+sudo wg show wg0 listen-port
+sudo wg show wg0 peers
+
+
+Your expected production state remains:
+
+wg0 active
+172.29.250.1/24
+Web UI in dry-run mode
+/etc/wireguard mounted read-only
+Host agent not installed
+wgreload not called
+
+
+For the immediate next command, first run:
+
+docker-compose --version 2>/dev/null || true
+cat /etc/os-release
+
+
+If docker-compose is absent and the server is Ubuntu/Debian with Docker’s repository configured, install only docker-compose-plugin.

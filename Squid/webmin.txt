@@ -1,0 +1,178 @@
+Yes, you can install Webmin from source/manual package, but on a production Squid proxy server I recommend installing the official .deb package rather than compiling from source.
+
+
+Pre-Check Before Installing
+
+Since this is your Squid production server:
+
+sudo squid -k parse
+sudo systemctl status squid
+
+
+Backup:
+
+sudo cp -a /etc/squid /root/squid-backup-$(date +%F)
+
+
+Check port 10000 is free:
+
+ss -tulpn | grep 10000
+Option 1: Install Directly Using the Webmin .deb Package
+
+Download:
+
+wget https://prdownloads.sourceforge.net/webadmin/webmin_2.653_all.deb
+
+
+Install dependencies:
+
+sudo apt update
+sudo apt install -y perl libnet-ssleay-perl openssl libauthen-pam-perl \
+libpam-runtime libio-pty-perl tar wget
+
+
+Install Webmin:
+
+sudo dpkg -i webmin_2.653_all.deb
+
+
+If dependency errors occur:
+
+sudo apt --fix-broken install -y
+
+
+Then rerun:
+
+sudo dpkg -i webmin_2.653_all.deb
+
+
+The Webmin site provides downloadable .deb packages for Debian/Ubuntu systems.
+
+Pre-Check Before Installing
+
+Since this is your Squid production server:
+
+sudo squid -k parse
+sudo systemctl status squid
+
+
+Backup:
+
+sudo cp -a /etc/squid /root/squid-backup-$(date +%F)
+
+
+Check port 10000 is free:
+
+ss -tulpn | grep 10000
+
+Post-Check After Installing
+
+Verify Webmin:
+
+sudo systemctl status webmin
+
+
+Verify listening port:
+
+ss -tulpn | grep 10000
+
+
+Access:
+
+https://SERVER-IP:10000
+
+Verify Squid Was Not Affected
+sudo squid -k parse
+sudo systemctl status squid
+
+
+Check logs:
+
+tail -f /var/log/squid/cache.log
+
+
+Test proxy:
+
+curl -x http://username:password@SERVER-IP:3128 https://ifconfig.me
+
+Security Recommendation
+
+Because this server is a proxy for many users, immediately restrict Webmin access:
+
+sudo ufw allow from YOUR_ADMIN_IP to any port 10000 proto tcp
+
+
+Do not expose port 10000 to all users on your network.
+
+If you want, I can also give you a complete rollback plan (backup, install, validation, and recovery commands) specifically for your Ubuntu 22.04 Squid server.
+
+
+
+for user creation 
+
+Perfect. Your output shows the user already exists and already has full Webmin access:
+
+admin:$y$j9T$...
+admin: *
+
+
+The line:
+
+admin: *
+
+
+in /etc/webmin/webmin.acl means ALL Webmin modules are assigned to the admin user.
+
+Test the user
+
+Login to Webmin:
+
+https://<server-ip>:10000
+
+
+Username:
+
+admin
+
+
+Password: the password you set when creating the user.
+
+If login fails
+
+Reset the admin password:
+
+sudo /usr/share/webmin/changepass.pl /etc/webmin admin NewStrongPassword
+
+
+Example:
+
+sudo /usr/share/webmin/changepass.pl /etc/webmin admin Admin@123
+
+
+Then restart Webmin:
+
+sudo systemctl restart webmin
+
+Create another full-admin user from CLI
+
+For example, create nishu with full access:
+
+sudo bash -c 'echo "nishu:x" >> /etc/webmin/miniserv.users'
+sudo /usr/share/webmin/changepass.pl /etc/webmin nishu StrongPassword123
+sudo bash -c 'echo "nishu: *" >> /etc/webmin/webmin.acl'
+sudo systemctl restart webmin
+
+
+Verify:
+
+grep nishu /etc/webmin/miniserv.users
+grep nishu /etc/webmin/webmin.acl
+
+
+Expected:
+
+nishu:$y$...
+nishu: *
+
+
+That user will have full administrator privileges identical to root/admin in Webmin. 

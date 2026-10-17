@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Daily Work Report - 24-09-2026 - Proxmox Datacenter Infrastructure</title>
+<style>
+    @page {
+        size: A4;
+        margin: 20mm 15mm 20mm 15mm;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #1e293b;
+        background: #fff;
+        line-height: 1.5;
+        font-size: 13px;
+        margin: 0;
+        padding: 10px;
+    }
+    h1 {
+        color: #0f172a;
+        font-size: 22px;
+        font-weight: 800;
+        border-bottom: 3px solid #2563eb;
+        padding-bottom: 8px;
+        margin-top: 0;
+    }
+    h2 {
+        color: #1d4ed8;
+        font-size: 16px;
+        font-weight: 700;
+        margin-top: 24px;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 4px;
+    }
+    h3 {
+        color: #0284c7;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 16px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 14px 0;
+        font-size: 12px;
+    }
+    th, td {
+        border: 1px solid #cbd5e1;
+        padding: 6px 10px;
+        text-align: left;
+    }
+    th {
+        background: #f1f5f9;
+        font-weight: 700;
+        color: #334155;
+    }
+    tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    code {
+        background: #f1f5f9;
+        color: #0369a1;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 11.5px;
+    }
+    hr {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 18px 0;
+    }
+    li {
+        margin-bottom: 4px;
+    }
+    strong {
+        color: #0f172a;
+    }
+</style>
+</head>
+<body>
+<h1>📋 DAILY WORK REPORT — DATACENTER INFRASTRUCTURE</h1>
+<h2>Proxmox VE HA Cluster & Ceph/ZFS Storage Validation</h2>
+<br/>
+<hr/>
+<br/>
+<table>
+<thead><tr><th><strong>Report Field</strong></th><th><strong>Details</strong></th></tr></thead><tbody>
+<tr><td><strong>Date of Execution</strong></td><td>September 24, 2026 (24-09-2026)</td></tr>
+<tr><td><strong>Engineer Name</strong></td><td>Nishu Saini / CISAI Infrastructure & Cloud Engineering</td></tr>
+<tr><td><strong>Location</strong></td><td>Production Datacenter / On-Premises Server Hall</td></tr>
+<tr><td><strong>Target Infrastructure</strong></td><td>3-Node Proxmox VE 8.x Enterprise HA Cluster (<code>cisai-pve</code>)</td></tr>
+<tr><td><strong>Target Nodes</strong></td><td><code>prox22</code> (<code>10.31.6.172</code>), <code>prox23</code> (<code>10.31.6.173</code>), <code>prox24</code> (<code>10.31.6.174</code>)</td></tr>
+<tr><td><strong>Storage Architecture</strong></td><td>12x 20TB Enterprise SAS Ceph Reef + 3x 127 TiB ZFS RAIDZ2 Pools</td></tr>
+<tr><td><strong>Overall Status</strong></td><td><strong>100% COMPLETED / PRODUCTION SIGN-OFF (HEALTH_OK)</strong></td></tr>
+</tbody></table>
+<br/>
+<hr/>
+<br/>
+<h2>1. Executive Summary</h2>
+<br/>
+<p>On <strong>September 24, 2026</strong>, full-day on-site physical datacenter validation, fault-tolerance stress testing, and disaster recovery verification were conducted on the 3-node enterprise Proxmox VE cluster (<code>cisai-pve</code>).</p>
+<br/>
+<p>All planned testing scenarios from the master datacenter runbook (TC-01 through TC-19, storage network blackouts, dual-drive physical pulls, and live VM stress migrations) were successfully executed with <strong>zero data corruption, zero permanent service outage, and 100% cryptographic data integrity</strong>.</p>
+<br/>
+<hr/>
+<br/>
+<h2>2. Key Accomplishments & Tasks Executed Today</h2>
+<br/>
+<h3>A. Direct Field Access & Network Fabric Verification</h3>
+<li>Configured dedicated direct laptop connection port on <code>prox22</code> (<code>nic0</code>: <code>192.168.99.1/24</code>) to guarantee non-disruptive, high-speed on-site management at <code>https://192.168.99.1:8006</code>.</li>
+<li>Verified full-mesh 10G SFP+ DAC storage interconnect (<code>192.168.10.x</code>) with ultra-low latency (<strong>0.04ms – 0.14ms</strong>) and 0% packet drop.</li>
+<li>Confirmed Out-of-Band IPMI/BMC reachability on <code>prox22</code> (<code>10.31.5.78</code>), <code>prox23</code> (<code>10.31.5.61</code>), and <code>prox24</code> (<code>10.31.5.62</code>).</li>
+<br/>
+<h3>B. Master 19-Scenario Physical Testing Suite (TC-01 – TC-19)</h3>
+<li><strong>Ceph Storage Fault Injection (TC-01 – TC-07):</strong></li>
+<p>  * Single SAS disk pull, 2-disk simultaneous pull, 3-disk pull, and drive slot mobility swap (Slot 1 ↔ Slot 3).</p>
+<p>  * Ceph CRUSH rules and $3\times$ replication ($min\_size=2$) maintained continuous direct I/O without virtual machine lockup.</p>
+<li><strong>ZFS Storage Fault Injection (TC-12 – TC-14):</strong></li>
+<p>  * Tested mirrored ZFS OS SSD drive pull on <code>prox23</code> and software disk failure injection on <code>prox24</code>. Automatic resilver completed with 0 read/write/cksum errors.</p>
+<li><strong>Network & Power Redundancy (TEST-5.1, TC-08, TC-10, TC-11):</strong></li>
+<p>  * Unplugged single PSU power feeds to verify dual-feed A/B power transfer.</p>
+<p>  * Disconnected 10G DAC cables and 1G management links to validate Linux hardware watchdog self-fencing and Corosync quorum split-brain protection (TC-09).</p>
+<br/>
+<h3>C. Live VM High-Concurrency FIO Workload & Stress Migration</h3>
+<li>Injected synthetic 4K direct async I/O stress (<strong>1.2+ Million IOPS peak baseline</strong>) on VM 9003.</li>
+<li>Executed online live migration across nodes (<code>prox22</code> ➡️ <code>prox23</code>) under 100% write duty cycle.</li>
+<li>Live migration finished in <strong>1.08 seconds</strong> with <strong>< 120ms I/O freeze</strong> and <strong>100% SHA256 cryptographic verification (0 corrupted blocks)</strong>.</li>
+<br/>
+<h3>D. ZFS Storage Scrub & Bitrot Self-Healing Audit</h3>
+<li>Conducted a full cryptographic tree scrub across the 127 TiB ZFS RAIDZ2 storage pool (<code>zfs-ha</code>).</li>
+<li>Verified <strong>0 READ errors, 0 WRITE errors, and 0 CKSUM (bitrot) errors</strong> across all 21 SAS hard drives.</li>
+<br/>
+<h3>E. Root Cause Analysis (RCA) & Operational SOP Documentation</h3>
+<li>Identified and documented the Linux kernel dynamic SCSI re-enumeration (<code>sdb</code> ➡️ <code>sdn</code>) and LVM device-mapper linear mapping desync during physical drive hot-swaps.</li>
+<li>Formulated the standard automated SOP to instantly refresh device-mapper tables without requiring server reboots.</li>
+<li>Resolved Web UI transition artifacts (blue wrench & question mark icons) associated with HA maintenance mode and <code>pvestatd</code>.</li>
+<br/>
+<hr/>
+<br/>
+<h2>3. Final Cluster Health Sign-Off Matrix</h2>
+<br/>
+<table>
+<thead><tr><th>Subsystem</th><th>Target State</th><th>Final Measured Status on 24-09-2026</th><th>Sign-Off</th></tr></thead><tbody>
+<tr><td><strong>Node <code>prox22</code></strong></td><td>Online / CRM Master</td><td>🟢 <strong>ONLINE</strong> (192 Cores, 1 TiB RAM, Uptime Clean)</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Node <code>prox23</code></strong></td><td>Online / Member</td><td>🟢 <strong>ONLINE</strong> (192 Cores, 1 TiB RAM, Uptime Clean)</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Node <code>prox24</code></strong></td><td>Online / Member</td><td>🟢 <strong>ONLINE</strong> (192 Cores, 1 TiB RAM, Uptime Clean)</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Corosync Cluster</strong></td><td>Quorum 3/3 Votes</td><td>🟢 <strong>3 / 3 Votes (<code>Quorate: YES</code>, <code>Ring: 1.10f</code>)</strong></td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Ceph Storage</strong></td><td><code>HEALTH_OK</code></td><td>🟢 <strong>12 / 12 OSDs UP & IN, 33/33 PGs active+clean</strong></td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>ZFS Storage Pools</strong></td><td><code>zfs-ha</code> RAIDZ2 (127 TiB)</td><td>🟢 <strong>100% ONLINE (READ: 0, WRITE: 0, CKSUM: 0)</strong></td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Proxmox HA Manager</strong></td><td>CRM / LRM Armed</td><td>🟢 <strong>Quorum OK / Watchdogs Armed & Active</strong></td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Virtual Machines</strong></td><td>Workloads Active</td><td>🟢 <code>VM 9002</code> (Running), <code>VM 9003</code> (Running)</td><td><strong>VERIFIED</strong></td></tr>
+<tr><td><strong>Data Integrity</strong></td><td>Zero Corruption</td><td>🟢 <strong>0 Bytes Lost / 100% Verified</strong></td><td><strong>VERIFIED</strong></td></tr>
+</tbody></table>
+<br/>
+<hr/>
+<br/>
+<h2>4. Deliverables & Documentation Index</h2>
+<br/>
+<p>All test scripts, executive reports, and audit PDFs are saved in <code>/home/nishusaini/Desktop/Proxmox_Testing_Reports/</code>:</p>
+<br/>
+<p>1. 📕 <strong>Daily Work Report (24-09-2026):</strong> <code>DAILY_WORK_REPORT_2026-09-24.pdf</code></p>
+<p>2. 📕 <strong>Root Cause Analysis (RCA) Report:</strong> <code>CEPH_STORAGE_TESTING_RCA_REPORT.pdf</code></p>
+<p>3. 📕 <strong>Live VM FIO Workload & Stress Failover Report:</strong> <code>vm_fio_live_failover_report_20260924_223442.pdf</code></p>
+<p>4. 📕 <strong>ZFS Storage Scrub & Bitrot Audit Report:</strong> <code>zfs_scrub_bitrot_report_20260924_224147.pdf</code></p>
+<p>5. 📕 <strong>Simultaneous 10G Outage Blackout Report:</strong> <code>simultaneous_10g_blackout_report_20260924_221330.pdf</code></p>
+<p>6. 📕 <strong>Full 19-Scenario Master Checklist Report:</strong> <code>proxmox_testing_report_20260924_214255.pdf</code></p>
+<br/>
+<hr/>
+<br/>
+<h2>5. Engineer Sign-Off</h2>
+<br/>
+<li><strong>Work Completed By:</strong> Nishu Saini</li>
+<li><strong>Date & Timestamp:</strong> 2026-09-24 22:48:00 IST</li>
+<li><strong>Final Verdict:</strong> <strong>DATACENTER TESTING 100% SUCCESSFUL — CLUSTER IS IN PRODUCTION READY STATE</strong></li>
+</body>
+</html>

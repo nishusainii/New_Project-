@@ -1,0 +1,245 @@
+UEBA (User and Entity Behavior Analytics) Explained
+
+UEBA (User and Entity Behavior Analytics) is a cybersecurity technology that uses behavioral analytics and machine learning to detect suspicious or abnormal activities performed by users and non-human entities such as servers, devices, applications, 
+and databases.
+
+Traditional SIEM tools often rely on predefined rules, such as:
+
+5 failed logins = Alert
+
+
+UEBA goes further by learning what is normal behavior and detecting deviations from it.
+
+Why UEBA is Needed
+
+Consider this scenario:
+
+User: John
+
+Normal Behavior:
+✓ Logs in from India
+✓ Works 9 AM - 6 PM
+✓ Accesses HR systems
+✓ Downloads 10-20 files/day
+
+
+One day:
+
+✗ Login at 2:00 AM
+✗ Login from another country
+✗ Downloads 500 files
+✗ Accesses finance servers
+
+
+All actions may use valid credentials, so traditional security tools might not flag them immediately.
+
+UEBA identifies these activities as unusual compared to the user's normal behavior and raises an alert.
+
+What Does UEBA Monitor?
+User Activities
+Login patterns
+Logout activities
+File access
+Application usage
+Data downloads
+VPN usage
+Privilege escalations
+Entity Activities
+
+Entities include:
+
+Servers
+Databases
+Applications
+Routers
+Firewalls
+IoT Devices
+Cloud Resources
+
+
+UEBA monitors:
+
+Network traffic
+Database access
+Server communications
+Application behavior
+Device activity
+How UEBA Works
+Step 1: Data Collection
+
+UEBA collects data from:
+
+SIEM Logs
+Active Directory
+VPN Logs
+Firewall Logs
+Endpoint Logs
+Application Logs
+Cloud Logs
+
+Step 2: Build Baselines
+
+UEBA learns what normal behavior looks like.
+
+Example:
+
+User: Pranav
+
+Logs in:
+9 AM - 6 PM
+
+Location:
+Amritapuri
+
+Average Downloads:
+25 files/day
+
+Applications:
+Jira
+Teams
+Git
+
+
+This becomes the user's behavioral baseline.
+
+Step 3: Behavior Analysis
+
+Current activities are compared with historical behavior.
+
+Example:
+
+Normal:
+20 files/day
+
+Current:
+1000 files/day
+
+
+Deviation detected.
+
+Step 4: Risk Scoring
+
+UEBA assigns risk scores.
+
+Example:
+
+Login from new location = 20 points
+
+Access to privileged server = 30 points
+
+Mass download = 50 points
+
+Total Risk Score = 100
+
+
+Higher scores receive higher priority.
+
+Step 5: Alert Generation
+
+UEBA generates alerts such as:
+
+Possible Account Compromise
+
+User:
+john.doe
+
+Risk Score:
+95
+
+Reason:
+Unusual login + bulk file download
+
+UEBA Architecture
+Data Sources
+    │
+    ▼
+SIEM Platform
+    │
+    ▼
+UEBA Engine
+    │
+    ├─ Baseline Creation
+    ├─ Machine Learning
+    ├─ Risk Scoring
+    └─ Anomaly Detection
+    │
+    ▼
+SOC Dashboard
+    │
+    ▼
+Alerts & Incidents
+
+Common UEBA Use Cases
+1. Insider Threat Detection
+
+Example:
+
+Employee copies confidential files
+before resignation.
+
+
+UEBA detects abnormal file access behavior.
+
+2. Compromised Accounts
+
+Example:
+
+Attacker steals credentials
+and accesses systems.
+
+
+Credentials are valid, but behavior is abnormal.
+
+UEBA flags the activity.
+
+3. Privilege Abuse
+
+Example:
+
+Normal user accesses
+administrator resources.
+
+
+UEBA detects unusual access patterns.
+
+4. Data Exfiltration
+
+Example:
+
+Downloads 50 GB of data
+before leaving company.
+
+
+UEBA identifies the unusual transfer volume.
+
+5. Lateral Movement
+
+Example:
+
+Compromised account
+accesses multiple servers.
+
+
+UEBA detects movement patterns that differ from normal behavior.
+
+UEBA vs SIEM
+SIEM	UEBARule-based detection	Behavior-based detection
+Detects known threats	Detects known and unknown threats
+Event correlation	Behavioral analysis
+Static rules	Machine learning models
+Generates alerts from events	Generates alerts from anomalies
+
+UEBA is often integrated into modern SIEM platforms to enhance threat detection.
+
+Popular UEBA Tools
+Microsoft Sentinel UEBA
+Splunk UBA
+Exabeam UEBA
+IBM QRadar UEBA
+Securonix UEBA
+Fortinet UEBA
+Interview Answer (Short)
+
+UEBA (User and Entity Behavior Analytics) is a security analytics solution that uses machine learning and behavioral analysis to establish baselines for users and entities such as servers, applications, and devices.
+ It continuously compares current activity against normal behavior, assigns risk scores to anomalies, and generates alerts for potential threats such as insider attacks, compromised accounts, privilege abuse, and data exfiltration. 
+ UEBA is commonly integrated with SIEM platforms to improve threat detection and incident response.

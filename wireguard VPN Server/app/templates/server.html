@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Server Setup · WireGuard Control Center{% endblock %}
+{% block page_heading %}WireGuard Server Configuration{% endblock %}
+{% block page_subheading %}Manage network endpoints, listening port 443 UDP, subnet 172.29.250.1/24, and zero-downtime reload settings{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-secondary" onclick="location.reload()" title="Refresh interface status">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+  <span>Refresh</span>
+</button>
+{% if user.role == 'admin' %}
+<button class="btn btn-primary" onclick="handleAutoImport()" id="btnAutoImport" title="Auto-scan host wg0.conf, backups, and live kernel to adopt settings and all peers">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  <span>Import Configuration</span>
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <h2>Interface Settings ({{ iface.name }})</h2>
+      <p>Core cryptographic parameters and networking configuration</p>
+    </div>
+  </div>
+
+  <form id="serverSettingsForm" onsubmit="handleSaveServer(event)">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+      <div class="form-group">
+        <label for="ifaceName">Interface Name</label>
+        <input type="text" id="ifaceName" value="{{ iface.name }}" disabled>
+        <div class="form-help">Linux kernel device name.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="ifaceAddress">VPN IPv4 Address / Subnet *</label>
+        <input type="text" id="ifaceAddress" name="address" value="{{ iface.address }}" {% if user.role != 'admin' %}readonly{% endif %} required>
+        <div class="form-help">Production gateway IP (e.g. <code>172.29.250.1/24</code>).</div>
+      </div>
+
+      <div class="form-group">
+        <label for="ifacePort">Listening UDP Port *</label>
+        <input type="number" id="ifacePort" name="listen_port" value="{{ iface.listen_port }}" {% if user.role != 'admin' %}readonly{% endif %} required>
+        <div class="form-help">Public WireGuard listener (e.g. <code>443</code> UDP).</div>
+      </div>
+
+      <div class="form-group">
+        <label for="ifaceMtu">Tunnel MTU *</label>
+        <input type="number" id="ifaceMtu" name="mtu" value="{{ iface.mtu }}" {% if user.role != 'admin' %}readonly{% endif %} required>
+        <div class="form-help">Maximum transmission unit (default <code>1420</code>).</div>
+      </div>
+
+      <div class="form-group">
+        <label for="ifaceEndpoint">Public Server Endpoint (IP or Hostname) *</label>
+        <input type="text" id="ifaceEndpoint" name="endpoint" value="{{ iface.endpoint }}" placeholder="e.g. 203.0.113.10 or vpn.company.com" {% if user.role != 'admin' %}readonly{% endif %}>
+        <div class="form-help">Used by clients to establish connections.</div>
+      </div>
+
+      <div class="form-group">
+        <label for="ifaceDns">DNS Resolvers</label>
+        <input type="text" id="ifaceDns" name="dns" value="{{ iface.dns or '' }}" placeholder="Leave blank for no client DNS override" {% if user.role != 'admin' %}readonly{% endif %}>
+        <div class="form-help">Optional. Leave empty to avoid forcing DNS onto clients.</div>
+      </div>
+
+      <div class="form-group" style="grid-column: span 2;">
+        <label>Server Public Key (Read Only)</label>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="serverPubKey" value="{{ iface.public_key }}" readonly style="font-family: monospace; color: var(--primary);">
+          <button type="button" class="btn btn-secondary" onclick="navigator.clipboard.writeText('{{ iface.public_key }}'); alert('Server public key copied to clipboard!');">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      {% if user.role == 'admin' %}
+      <button type="submit" class="btn btn-primary">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        <span>Save Settings & Re-sync</span>
+      </button>
+      {% else %}
+      <button type="button" class="btn btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">
+        <span>Read-Only Viewer Mode (Settings Locked)</span>
+      </button>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Production Reload Architecture Documentation Card -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <h2>Production Reload Architecture</h2>
+      <p>Zero-downtime synchronization mechanics</p>
+    </div>
+  </div>
+
+  <div style="background: var(--bg-input); padding: 1.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.88rem; line-height: 1.7;">
+    <p>WireGuard Enterprise follows the standard production flow for updating live WireGuard instances:</p>
+    <ul style="margin: 0.75rem 0 0.75rem 1.5rem; color: var(--text-muted);">
+      <li><b>Target Configuration:</b> <code>/etc/wireguard/wg0.conf</code> (Owner: <code>root:root</code>, Mode: <code>0600</code>).</li>
+      <li><b>Atomic Reload Command:</b> <code>bash -c 'wg syncconf wg0 &lt;(wg-quick strip /etc/wireguard/wg0.conf)'</code></li>
+      <li><b>Custom Reload Helper:</b> If present, invokes <code>/usr/local/bin/wgreload</code> to trigger the reload cleanly.</li>
+      <li><b>Non-Disruptive:</b> Active client tunnels and established cryptographic sessions remain completely uninterrupted.</li>
+    </ul>
+    <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="openModal('importConfigModal')">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span>Advanced: Paste / Upload Raw Config</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handleSaveServer(event) {
+  event.preventDefault();
+  const form = event.target;
+  const payload = {
+    address: form.address.value,
+    listen_port: parseInt(form.listen_port.value, 10),
+    mtu: parseInt(form.mtu.value, 10),
+    endpoint: form.endpoint.value || null,
+    dns: form.dns.value || null,
+    extra_directives: ""
+  };
+
+  try {
+    const resp = await fetch('/api/server', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (resp.ok) {
+      alert("Server interface settings saved successfully!");
+      location.reload();
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      alert(`Error saving settings: ${err.detail || err.message || ('HTTP ' + resp.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+async function handleAutoImport() {
+  const btn = document.getElementById("btnAutoImport");
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="svg-icon svg-icon-sm spin" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg><span>Importing...</span>`;
+
+  try {
+    const resp = await fetch('/api/server/auto-import', { method: 'POST' });
+    const res = await resp.json().catch(() => ({}));
+    if (resp.ok && res.success) {
+      alert(res.message || "Configuration and peers imported successfully!");
+      location.reload();
+    } else {
+      alert(`Import Failed: ${res.detail || res.message || ('HTTP ' + resp.status)}`);
+      btn.innerHTML = origHtml;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+    btn.innerHTML = origHtml;
+    btn.disabled = false;
+  }
+}
+
+async function handleImportTextSubmit(event) {
+  event.preventDefault();
+  const textarea = document.getElementById("importConfigText");
+  const content = textarea.value.trim();
+  if (!content) {
+    alert("Please paste WireGuard .conf or .json text.");
+    return;
+  }
+  try {
+    const resp = await fetch('/api/server/import-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    const res = await resp.json().catch(() => ({}));
+    if (resp.ok && res.success) {
+      alert(res.message);
+      location.reload();
+    } else {
+      alert(`Import Failed: ${res.detail || res.message || ('HTTP ' + resp.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+</script>
+
+<!-- Modal: Paste / Upload Config -->
+<div id="importConfigModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 680px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-cyan" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <h3 style="margin: 0;">Import Configuration (Conf / JSON)</h3>
+      </div>
+      <button class="close-modal" onclick="closeModal('importConfigModal')">&times;</button>
+    </div>
+
+    <form onsubmit="handleImportTextSubmit(event)">
+      <div style="padding: 1.25rem;">
+        <p style="color: var(--text-sub); font-size: 0.88rem; margin-top: 0; margin-bottom: 0.75rem;">
+          Paste full <code>wg0.conf</code>, <code>wg0.json</code>, or <code>[Peer]</code> blocks below. Existing peers with the same public key will be updated without duplicates.
+        </p>
+        <textarea id="importConfigText" rows="12" placeholder="[Interface]&#10;Address = 172.29.250.1/24&#10;ListenPort = 443&#10;&#10;[Peer]&#10;PublicKey = ...&#10;AllowedIPs = 172.29.250.2/32&#10;...&#10;&#10;OR paste JSON: { &quot;peers&quot;: [ ... ] }" style="width: 100%; font-family: monospace; font-size: 0.85rem; padding: 0.75rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-sm); resize: vertical; box-sizing: border-box;" required></textarea>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.25rem; border-top: 1px solid var(--border);">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('importConfigModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span>Parse & Import</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

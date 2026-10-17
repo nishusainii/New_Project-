@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Proxmox 5-Node Cluster Setup — Complete Command Reference</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --primary:   #f97316;
+      --primary-d: #ea580c;
+      --accent:    #0ea5e9;
+      --accent-d:  #0284c7;
+      --green:     #22c55e;
+      --purple:    #a855f7;
+      --red:       #ef4444;
+      --bg:        #0f172a;
+      --bg2:       #1e293b;
+      --bg3:       #273249;
+      --border:    #334155;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --code-bg:   #0d1117;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    /* ── COVER PAGE ── */
+    .cover {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+    .cover::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 30%, rgba(249,115,22,0.18) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 80% 70%, rgba(14,165,233,0.15) 0%, transparent 70%);
+    }
+    .cover-logo {
+      font-size: 72px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .cover-badge {
+      background: linear-gradient(135deg, var(--primary), var(--primary-d));
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      padding: 6px 20px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+      position: relative;
+    }
+    .cover h1 {
+      font-size: 48px;
+      font-weight: 800;
+      text-align: center;
+      line-height: 1.15;
+      position: relative;
+      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      max-width: 820px;
+    }
+    .cover h1 span {
+      background: linear-gradient(135deg, var(--primary), #fb923c);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cover-sub {
+      font-size: 18px;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 18px;
+      max-width: 680px;
+      position: relative;
+    }
+    .cover-meta {
+      display: flex;
+      gap: 32px;
+      margin-top: 56px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+    }
+    .cover-chip {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 14px 24px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+    }
+    .cover-chip .num { font-size: 28px; font-weight: 800; color: var(--primary); }
+    .cover-chip .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+    .cover-footer {
+      position: absolute;
+      bottom: 30px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* ── TABLE OF CONTENTS ── */
+    .toc-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 48px;
+      page-break-after: always;
+    }
+    .toc-page h2 {
+      font-size: 30px;
+      font-weight: 800;
+      margin-bottom: 32px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+    }
+    .toc-list { list-style: none; }
+    .toc-list li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .toc-list li .toc-num {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      min-width: 30px;
+    }
+    .toc-list li .toc-title { flex: 1; font-size: 15px; font-weight: 500; }
+    .toc-list li .toc-dots {
+      flex: 1;
+      border-bottom: 1px dotted var(--border);
+      margin: 0 8px;
+      opacity: 0.4;
+    }
+    .toc-section-hdr {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      margin-top: 24px;
+      margin-bottom: 4px;
+      padding: 0;
+      border: none !important;
+    }
+
+    /* ── MAIN CONTENT ── */
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 48px 80px;
+    }
+
+    /* ── SECTION HEADERS ── */
+    .chapter {
+      page-break-before: always;
+      padding-top: 60px;
+    }
+    .chapter-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(249,115,22,0.05));
+      border: 1px solid rgba(249,115,22,0.3);
+      border-radius: 8px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+    }
+    h2.section-title {
+      font-size: 32px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .section-desc {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 36px;
+      max-width: 720px;
+    }
+    h3.sub-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 36px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h3.sub-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(var(--primary), var(--primary-d));
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    h4.step-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 24px 0 8px;
+      color: var(--accent);
+    }
+
+    /* ── INFO / WARN BOXES ── */
+    .box {
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 20px 0;
+      font-size: 13.5px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .box-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .box-info  { background: rgba(14,165,233,0.1);  border-left: 4px solid var(--accent); }
+    .box-warn  { background: rgba(249,115,22,0.1);  border-left: 4px solid var(--primary); }
+    .box-danger{ background: rgba(239,68,68,0.1);   border-left: 4px solid var(--red); }
+    .box-success{ background: rgba(34,197,94,0.1);  border-left: 4px solid var(--green); }
+    .box-purple{ background: rgba(168,85,247,0.1);  border-left: 4px solid var(--purple); }
+    .box strong { color: var(--text); }
+
+    /* ── CODE BLOCKS ── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 14px 0 22px;
+      page-break-inside: avoid;
+    }
+    .code-header {
+      background: #161b22;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .code-header .dots { display: flex; gap: 6px; }
+    .code-header .dots span {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .dot-r { background: #ff5f56; }
+    .dot-y { background: #ffbd2e; }
+    .dot-g { background: #27c93f; }
+    .code-header .code-label {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .code-header .node-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 100px;
+      background: rgba(249,115,22,0.2);
+      color: var(--primary);
+    }
+    pre {
+      padding: 18px 20px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: #c9d1d9;
+    }
+    pre .cm  { color: #8b949e; } /* comment */
+    pre .kw  { color: #ff7b72; } /* keyword */
+    pre .var { color: #79c0ff; } /* variable */
+    pre .str { color: #a5d6ff; } /* string */
+    pre .num { color: #f2cc60; } /* number */
+    pre .cmd { color: #7ee787; } /* command */
+    pre .flag{ color: #d2a8ff; } /* flag */
+
+    /* ── NETWORK TABLE ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13px;
+      page-break-inside: avoid;
+    }
+    thead tr { background: var(--bg3); }
+    th {
+      padding: 10px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .tag-orange{ background: rgba(249,115,22,0.2); color: var(--primary); }
+    .tag-blue  { background: rgba(14,165,233,0.2);  color: var(--accent); }
+    .tag-green { background: rgba(34,197,94,0.2);   color: var(--green); }
+    .tag-purple{ background: rgba(168,85,247,0.2);  color: var(--purple); }
+    .tag-red   { background: rgba(239,68,68,0.2);   color: var(--red); }
+
+    /* ── DIVIDER ── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+
+    /* ── STEP COUNTER ── */
+    .steps { counter-reset: step; }
+    .step {
+      counter-increment: step;
+      display: flex;
+      gap: 18px;
+      margin: 20px 0;
+      page-break-inside: avoid;
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-d));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+    .step-body { flex: 1; }
+    .step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .step-body p  { font-size: 13px; color: var(--muted); }
+
+    /* ── ARCHITECTURE DIAGRAM ── */
+    .arch-diagram {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      margin: 20px 0 32px;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .arch-node {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0 12px;
+    }
+    .arch-icon { font-size: 32px; }
+    .arch-name { font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 600; }
+    .arch-ip   { font-size: 10px; color: var(--muted); }
+    .arch-row  { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; margin: 16px 0; }
+    .arch-line {
+      color: var(--border);
+      font-size: 16px;
+      user-select: none;
+    }
+    .arch-switch {
+      background: linear-gradient(135deg, rgba(14,165,233,0.2), rgba(14,165,233,0.05));
+      border: 1px solid rgba(14,165,233,0.4);
+      border-radius: 10px;
+      padding: 10px 24px;
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+      margin: 12px 0;
+      display: inline-block;
+    }
+    .arch-storage-row {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .arch-storage {
+      background: rgba(249,115,22,0.1);
+      border: 1px dashed rgba(249,115,22,0.4);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 11px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* ── STORAGE CARD ── */
+    .storage-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin: 20px 0 32px;
+    }
+    .storage-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .storage-card .s-icon { font-size: 28px; margin-bottom: 10px; }
+    .storage-card .s-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .storage-card .s-desc { font-size: 12px; color: var(--muted); }
+    .storage-card .s-badge {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    /* print */
+    @media print {
+      body { background: #fff; color: #111; }
+      .cover { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); min-height: auto; padding: 80px 40px; }
+      .code-block { border: 1px solid #ccc; }
+      pre { background: #f8f8f8; color: #222; }
+      .code-header { background: #eee; }
+      .box-info  { background: #e0f2fe; }
+      .box-warn  { background: #fff7ed; }
+      .box-danger{ background: #fef2f2; }
+      .box-success{ background: #f0fdf4; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--                        COVER PAGE                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">🖥️</div>
+  <div class="cover-badge">Complete Technical Reference</div>
+  <h1>Proxmox VE<br/><span>5-Node Cluster Setup</span><br/>Command Reference</h1>
+  <p class="cover-sub">
+    Step-by-step commands for building a production-ready Proxmox cluster
+    with Ceph, NFS, ZFS RAID-Z2, and LVM storage — designed for future reference.
+  </p>
+  <div class="cover-meta">
+    <div class="cover-chip">
+      <div class="num">5</div>
+      <div class="lbl">Proxmox Nodes</div>
+    </div>
+    <div class="cover-chip">
+      <div class="num">4</div>
+      <div class="lbl">Storage Types</div>
+    </div>
+    <div class="cover-chip">
+      <div class="num">300+</div>
+      <div class="lbl">Commands</div>
+    </div>
+    <div class="cover-chip">
+      <div class="num">PVE 8.x</div>
+      <div class="lbl">Proxmox Version</div>
+    </div>
+  </div>
+  <div class="cover-footer">Innspark Infrastructure Team · September 2026 · For Internal Use</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--                    TABLE OF CONTENTS                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="toc-page">
+  <h2>📋 Table of Contents</h2>
+  <ul class="toc-list">
+    <li class="toc-section-hdr" style="border:none;">Foundation</li>
+    <li>
+      <span class="toc-num">01</span>
+      <span class="toc-title">Network & IP Planning</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">02</span>
+      <span class="toc-title">Proxmox Installation Prerequisites</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">03</span>
+      <span class="toc-title">Cluster Creation — pve1 (Master Node)</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">04</span>
+      <span class="toc-title">Join Nodes 2–5 to Cluster</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">05</span>
+      <span class="toc-title">Cluster Verification</span>
+      <span class="toc-dots"></span>
+    </li>
+
+    <li class="toc-section-hdr" style="border:none;margin-top:18px;">Storage Setup</li>
+    <li>
+      <span class="toc-num">06</span>
+      <span class="toc-title">Ceph Distributed Storage</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">07</span>
+      <span class="toc-title">NFS Storage</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">08</span>
+      <span class="toc-title">ZFS RAID-Z2 Storage</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">09</span>
+      <span class="toc-title">LVM Storage</span>
+      <span class="toc-dots"></span>
+    </li>
+
+    <li class="toc-section-hdr" style="border:none;margin-top:18px;">Management & Hardening</li>
+    <li>
+      <span class="toc-num">10</span>
+      <span class="toc-title">HA (High Availability) Setup</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">11</span>
+      <span class="toc-title">Firewall Configuration</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">12</span>
+      <span class="toc-title">Backup & Restore</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">13</span>
+      <span class="toc-title">Monitoring & Useful Commands</span>
+      <span class="toc-dots"></span>
+    </li>
+    <li>
+      <span class="toc-num">14</span>
+      <span class="toc-title">Troubleshooting Cheat-Sheet</span>
+      <span class="toc-dots"></span>
+    </li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--              SECTION 01 — NETWORK PLANNING                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="content">
+  <div class="chapter">
+    <div class="chapter-label">📡 Section 01</div>
+    <h2 class="section-title">Network & IP Planning</h2>
+    <p class="section-desc">
+      Define the IP layout before touching any node. A clean network plan prevents
+      split-brain, corosync timeouts, and storage performance issues.
+    </p>
+
+    <!-- Architecture Diagram -->
+    <div class="arch-diagram">
+      <div style="font-size:13px;font-weight:700;color:var(--muted);margin-bottom:20px;text-transform:uppercase;letter-spacing:2px;">Cluster Architecture Overview</div>
+      <div class="arch-row">
+        <div class="arch-node">
+          <div class="arch-icon">🖥️</div>
+          <div class="arch-name">pve1</div>
+          <div class="arch-ip">10.0.0.11</div>
+        </div>
+        <div class="arch-line">━━━</div>
+        <div class="arch-node">
+          <div class="arch-icon">🖥️</div>
+          <div class="arch-name">pve2</div>
+          <div class="arch-ip">10.0.0.12</div>
+        </div>
+        <div class="arch-line">━━━</div>
+        <div class="arch-node">
+          <div class="arch-icon">🖥️</div>
+          <div class="arch-name">pve3</div>
+          <div class="arch-ip">10.0.0.13</div>
+        </div>
+        <div class="arch-line">━━━</div>
+        <div class="arch-node">
+          <div class="arch-icon">🖥️</div>
+          <div class="arch-name">pve4</div>
+          <div class="arch-ip">10.0.0.14</div>
+        </div>
+        <div class="arch-line">━━━</div>
+        <div class="arch-node">
+          <div class="arch-icon">🖥️</div>
+          <div class="arch-name">pve5</div>
+          <div class="arch-ip">10.0.0.15</div>
+        </div>
+      </div>
+      <div class="arch-switch">🔀 Management Switch (10.0.0.0/24)</div>
+      <div style="color:var(--muted);font-size:11px;margin:4px 0;">+</div>
+      <div class="arch-switch" style="background:rgba(168,85,247,0.1);border-color:rgba(168,85,247,0.4);color:var(--purple);">⚡ Ceph / Storage Network (10.10.0.0/24)</div>
+      <div class="arch-storage-row">
+        <div class="arch-storage">💾 Ceph RBD</div>
+        <div class="arch-storage">📁 NFS</div>
+        <div class="arch-storage">🗄️ ZFS RAID-Z2</div>
+        <div class="arch-storage">📦 LVM</div>
+      </div>
+    </div>
+
+    <!-- Node IP Table -->
+    <h3 class="sub-title">Node IP Assignment</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Hostname</th>
+          <th>Management IP</th>
+          <th>Ceph/Storage IP</th>
+          <th>Gateway</th>
+          <th>Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>pve1</strong></td>
+          <td><code>10.0.0.11/24</code></td>
+          <td><code>10.10.0.11/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-orange">Master / Quorum</span></td>
+        </tr>
+        <tr>
+          <td><strong>pve2</strong></td>
+          <td><code>10.0.0.12/24</code></td>
+          <td><code>10.10.0.12/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-blue">Worker</span></td>
+        </tr>
+        <tr>
+          <td><strong>pve3</strong></td>
+          <td><code>10.0.0.13/24</code></td>
+          <td><code>10.10.0.13/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-blue">Worker</span></td>
+        </tr>
+        <tr>
+          <td><strong>pve4</strong></td>
+          <td><code>10.0.0.14/24</code></td>
+          <td><code>10.10.0.14/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-blue">Worker</span></td>
+        </tr>
+        <tr>
+          <td><strong>pve5</strong></td>
+          <td><code>10.0.0.15/24</code></td>
+          <td><code>10.10.0.15/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-blue">Worker</span></td>
+        </tr>
+        <tr>
+          <td><strong>NFS Server</strong></td>
+          <td><code>10.0.0.20/24</code></td>
+          <td><code>10.10.0.20/24</code></td>
+          <td>10.0.0.1</td>
+          <td><span class="tag tag-green">NFS Server</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Port Table -->
+    <h3 class="sub-title">Required Firewall Ports</h3>
+    <table>
+      <thead>
+        <tr><th>Port</th><th>Protocol</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>8006</td><td>TCP</td><td>Proxmox Web UI (HTTPS)</td></tr>
+        <tr><td>5900–5999</td><td>TCP</td><td>VNC Console (SPICE/noVNC)</td></tr>
+        <tr><td>3128</td><td>TCP</td><td>SPICE Proxy</td></tr>
+        <tr><td>5405–5412</td><td>UDP</td><td>Corosync Cluster Communication</td></tr>
+        <tr><td>111, 2049</td><td>TCP/UDP</td><td>NFS RPC / NFS Data</td></tr>
+        <tr><td>6789</td><td>TCP</td><td>Ceph MON</td></tr>
+        <tr><td>6800–7300</td><td>TCP</td><td>Ceph OSD / MDS</td></tr>
+        <tr><td>22</td><td>TCP</td><td>SSH</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 02 — PREREQUISITES                      -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">⚙️ Section 02</div>
+    <h2 class="section-title">Proxmox Installation Prerequisites</h2>
+    <p class="section-desc">
+      Run these commands on <strong>every node (pve1–pve5)</strong> right after a fresh
+      Proxmox VE 8.x ISO install. Adjust IPs for each node.
+    </p>
+
+    <div class="box box-warn">
+      <span class="box-icon">⚠️</span>
+      <div>
+        <strong>Run on ALL 5 nodes.</strong> Where you see <code>NODE_IP</code>, <code>NODE_NAME</code>,
+        replace with the correct values per node (see IP table above).
+      </div>
+    </div>
+
+    <h3 class="sub-title">Step 1 — Set Hostname</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ALL NODES</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Replace pve1 with the actual hostname of each node</span>
+hostnamectl set-hostname pve1
+
+<span class="cm"># Verify</span>
+hostname</pre>
+    </div>
+
+    <h3 class="sub-title">Step 2 — Configure /etc/hosts</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ALL NODES</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Edit hosts file (same content on every node)</span>
+cat &gt; /etc/hosts &lt;&lt;'EOF'
+127.0.0.1       localhost
+<span class="cm"># Proxmox Cluster Nodes</span>
+10.0.0.11       pve1.innspark.local   pve1
+10.0.0.12       pve2.innspark.local   pve2
+10.0.0.13       pve3.innspark.local   pve3
+10.0.0.14       pve4.innspark.local   pve4
+10.0.0.15       pve5.innspark.local   pve5
+<span class="cm"># NFS Server</span>
+10.0.0.20       nfs-server.innspark.local  nfs-server
+EOF
+
+<span class="cm"># Verify resolution</span>
+ping -c2 pve2</pre>
+    </div>
+
+    <h3 class="sub-title">Step 3 — Configure Network Interfaces</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">/etc/network/interfaces — pve1 example</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Edit /etc/network/interfaces</span>
+cat &gt; /etc/network/interfaces &lt;&lt;'EOF'
+auto lo
+iface lo inet loopback
+
+<span class="cm"># Management Network (eno1 = your physical NIC)</span>
+auto eno1
+iface eno1 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+    address 10.0.0.11/24
+    gateway 10.0.0.1
+    bridge-ports eno1
+    bridge-stp off
+    bridge-fd 0
+    dns-nameservers 8.8.8.8 8.8.4.4
+
+<span class="cm"># Ceph / Storage Network (eno2 = second NIC)</span>
+auto eno2
+iface eno2 inet static
+    address 10.10.0.11/24
+EOF
+
+<span class="cm"># Apply network config</span>
+systemctl restart networking</pre>
+    </div>
+
+    <div class="box box-info">
+      <span class="box-icon">ℹ️</span>
+      <div>Replace <code>eno1</code> / <code>eno2</code> with your actual NIC names (use <code>ip link show</code> to find them). Adjust the IP addresses for each node (10.0.0.12 for pve2, etc.).</div>
+    </div>
+
+    <h3 class="sub-title">Step 4 — Disable Enterprise Repo &amp; Enable Free Repo</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ALL NODES</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Disable enterprise subscription repo</span>
+echo "deb [arch=amd64] http://download.proxmox.com/debian/pve bookworm pve-no-subscription" \
+  &gt; /etc/apt/sources.list.d/pve-no-sub.list
+
+<span class="cm"># Comment out enterprise repo</span>
+sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/pve-enterprise.list
+
+<span class="cm"># Also disable ceph enterprise repo if present</span>
+[ -f /etc/apt/sources.list.d/ceph.list ] && \
+  sed -i 's/^deb/#deb/' /etc/apt/sources.list.d/ceph.list
+
+<span class="cm"># Add no-subscription ceph repo</span>
+echo "deb http://download.proxmox.com/debian/ceph-reef bookworm no-subscription" \
+  &gt; /etc/apt/sources.list.d/ceph-no-sub.list
+
+<span class="cm"># Update and upgrade</span>
+apt update &amp;&amp; apt full-upgrade -y
+
+<span class="cm"># Install useful utilities</span>
+apt install -y htop iotop nmap curl wget vim net-tools lsof \
+               nfs-kernel-server nfs-common smartmontools</pre>
+    </div>
+
+    <h3 class="sub-title">Step 5 — Setup SSH Key Authentication Between Nodes</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on pve1 ONLY</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Generate SSH key on master node</span>
+ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+
+<span class="cm"># Copy key to all other nodes</span>
+for NODE in pve2 pve3 pve4 pve5; do
+  ssh-copy-id -i ~/.ssh/id_ed25519.pub root@${NODE}
+  echo "✅ Key copied to ${NODE}"
+done
+
+<span class="cm"># Test passwordless SSH</span>
+for NODE in pve2 pve3 pve4 pve5; do
+  ssh root@${NODE} "hostname &amp;&amp; uptime"
+done</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 03 — CREATE CLUSTER (pve1)              -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🔵 Section 03</div>
+    <h2 class="section-title">Create the Cluster — pve1 (Master)</h2>
+    <p class="section-desc">
+      Initialise the Proxmox cluster from the first node. This creates the Corosync ring,
+      sets quorum, and generates join tokens for the other nodes.
+    </p>
+
+    <div class="box box-danger">
+      <span class="box-icon">🚨</span>
+      <div><strong>Run ONLY on pve1.</strong> If you run this on pve2–5, you'll create a separate cluster.</div>
+    </div>
+
+    <h3 class="sub-title">Create the Cluster</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1 ONLY</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Create cluster named "innspark-cluster" with corosync on management network</span>
+pvecm create innspark-cluster \
+  --link0 address=10.0.0.11 \
+  --link1 address=10.10.0.11
+
+<span class="cm"># Verify cluster was created</span>
+pvecm status
+
+<span class="cm"># List cluster nodes (should show pve1)</span>
+pvecm nodes</pre>
+    </div>
+
+    <h3 class="sub-title">Expected Output</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">Expected Output</span>
+      </div>
+      <pre>Cluster information
+-------------------
+Name:             innspark-cluster
+Config Version:   1
+Transport:        knet
+Secure auth:      on
+
+Quorum information
+------------------
+Date:             Fri Sep 19 09:00:00 2026
+Quorum provider:  corosync_votequorum
+Nodes:            1
+Node ID:          0x00000001
+Ring ID:          1.5
+Quorate:          Yes
+
+Votequorum information
+----------------------
+Expected votes:   1
+Highest expected: 1
+Total votes:      1
+Quorum:           1
+Flags:            Quorate</pre>
+    </div>
+
+    <h3 class="sub-title">Check Corosync Config</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># View generated corosync config</span>
+cat /etc/pve/corosync.conf
+
+<span class="cm"># Check corosync service status</span>
+systemctl status corosync
+systemctl status pve-cluster</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 04 — JOIN NODES 2–5                     -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🔗 Section 04</div>
+    <h2 class="section-title">Join Nodes 2–5 to the Cluster</h2>
+    <p class="section-desc">
+      Each worker node joins the cluster by connecting to the master node (pve1).
+      Run the join command on each node individually.
+    </p>
+
+    <div class="box box-warn">
+      <span class="box-icon">⚠️</span>
+      <div>
+        <strong>Join one node at a time.</strong> Wait for each node to successfully join
+        before adding the next. Adding nodes too fast can confuse Corosync quorum.
+      </div>
+    </div>
+
+    <h3 class="sub-title">Join pve2</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on pve2</span>
+        <span class="node-badge">pve2</span>
+      </div>
+      <pre><span class="cm"># Join the cluster (you will be prompted for pve1's root password)</span>
+pvecm add 10.0.0.11 \
+  --link0 address=10.0.0.12 \
+  --link1 address=10.10.0.12
+
+<span class="cm"># Verify pve2 is in the cluster</span>
+pvecm status
+pvecm nodes</pre>
+    </div>
+
+    <h3 class="sub-title">Join pve3</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on pve3</span>
+        <span class="node-badge">pve3</span>
+      </div>
+      <pre>pvecm add 10.0.0.11 \
+  --link0 address=10.0.0.13 \
+  --link1 address=10.10.0.13
+
+pvecm status</pre>
+    </div>
+
+    <h3 class="sub-title">Join pve4</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on pve4</span>
+        <span class="node-badge">pve4</span>
+      </div>
+      <pre>pvecm add 10.0.0.11 \
+  --link0 address=10.0.0.14 \
+  --link1 address=10.10.0.14
+
+pvecm status</pre>
+    </div>
+
+    <h3 class="sub-title">Join pve5</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on pve5</span>
+        <span class="node-badge">pve5</span>
+      </div>
+      <pre>pvecm add 10.0.0.11 \
+  --link0 address=10.0.0.15 \
+  --link1 address=10.10.0.15
+
+pvecm status</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 05 — VERIFY CLUSTER                     -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">✅ Section 05</div>
+    <h2 class="section-title">Cluster Verification</h2>
+    <p class="section-desc">Run these commands from any node to confirm the cluster is healthy before configuring storage.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Any Node</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Full cluster status</span>
+pvecm status
+
+<span class="cm"># List all nodes with IDs</span>
+pvecm nodes
+
+<span class="cm"># Check quorum (must say Quorate: Yes)</span>
+pvecm quorum
+
+<span class="cm"># Check corosync ring status</span>
+corosync-cfgtool -s
+
+<span class="cm"># Check cluster filesystem (pmxcfs)</span>
+systemctl status pve-cluster
+
+<span class="cm"># View all VMs/containers across cluster</span>
+pvesh get /cluster/resources
+
+<span class="cm"># Check corosync ring errors</span>
+corosync-cfgtool -R
+
+<span class="cm"># Verify all 5 nodes visible in UI API</span>
+pvesh get /nodes</pre>
+    </div>
+
+    <div class="box box-success">
+      <span class="box-icon">✅</span>
+      <div>
+        <strong>Success Criteria:</strong> All 5 nodes show in <code>pvecm nodes</code>,
+        <code>Quorate: Yes</code>, and Expected votes = 5. Now you can configure storage.
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 06 — CEPH STORAGE                       -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">💾 Section 06</div>
+    <h2 class="section-title">Ceph Distributed Storage</h2>
+    <p class="section-desc">
+      Ceph provides distributed, fault-tolerant block storage (RBD). With 5 nodes,
+      you get replication factor 3 and can tolerate 2 node failures.
+    </p>
+
+    <div class="box box-purple">
+      <span class="box-icon">🔮</span>
+      <div>
+        <strong>Ceph Network:</strong> Use the dedicated storage NIC (10.10.0.x) for Ceph traffic.
+        Never mix Ceph OSD traffic with management/VM traffic.
+      </div>
+    </div>
+
+    <h3 class="sub-title">Step 1 — Install Ceph on ALL Nodes</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ALL NODES</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Install Ceph via Proxmox helper (do on each node)</span>
+pveceph install --version reef
+
+<span class="cm"># OR use apt directly</span>
+apt install -y ceph ceph-osd ceph-mon ceph-mgr ceph-mds
+
+<span class="cm"># Verify ceph version</span>
+ceph --version</pre>
+    </div>
+
+    <h3 class="sub-title">Step 2 — Initialise Ceph (pve1 ONLY)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1 ONLY</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Initialise Ceph cluster with storage network</span>
+pveceph init --network 10.10.0.0/24
+
+<span class="cm"># Check generated ceph.conf</span>
+cat /etc/ceph/ceph.conf</pre>
+    </div>
+
+    <h3 class="sub-title">Step 3 — Create Monitors (MON) on All Nodes</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run separately on each node</span>
+      </div>
+      <pre><span class="cm"># On pve1</span>
+pveceph mon create
+
+<span class="cm"># On pve2</span>
+pveceph mon create
+
+<span class="cm"># On pve3</span>
+pveceph mon create
+
+<span class="cm"># On pve4</span>
+pveceph mon create
+
+<span class="cm"># On pve5</span>
+pveceph mon create
+
+<span class="cm"># Verify monitors (from any node)</span>
+ceph mon stat
+ceph mon dump</pre>
+    </div>
+
+    <h3 class="sub-title">Step 4 — Create Managers (MGR)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash</span>
+      </div>
+      <pre><span class="cm"># Create MGR on pve1, pve2, pve3 (min 3 for HA)</span>
+<span class="cm"># On pve1:</span>
+pveceph mgr create
+
+<span class="cm"># On pve2:</span>
+pveceph mgr create
+
+<span class="cm"># On pve3:</span>
+pveceph mgr create
+
+<span class="cm"># Check MGR status</span>
+ceph mgr stat</pre>
+    </div>
+
+    <h3 class="sub-title">Step 5 — Create OSDs (One per Disk per Node)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Run on each node for each data disk</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># List available disks (use disks that are NOT the OS disk)</span>
+lsblk -d -o NAME,SIZE,TYPE,MOUNTPOINT
+fdisk -l | grep "^Disk /dev"
+
+<span class="cm"># Create OSD from /dev/sdb on pve1 (repeat for sdc, sdd etc.)</span>
+pveceph osd create /dev/sdb
+
+<span class="cm"># Example: Each node has 3 x OSD disks (sdb, sdc, sdd)</span>
+pveceph osd create /dev/sdb
+pveceph osd create /dev/sdc
+pveceph osd create /dev/sdd
+
+<span class="cm"># Advanced: Use separate DB/WAL device (NVMe for metadata)</span>
+pveceph osd create /dev/sdb \
+  --db-dev /dev/nvme0n1 \
+  --db-dev-size 60
+
+<span class="cm"># Verify OSDs are up</span>
+ceph osd stat
+ceph osd tree</pre>
+    </div>
+
+    <h3 class="sub-title">Step 6 — Create Ceph Pool</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Create a replicated pool for VMs (size=3 means 3 copies)</span>
+pveceph pool create vm-pool \
+  --size 3 \
+  --min-size 2 \
+  --pg-autoscale-mode on \
+  --add-storages 1
+
+<span class="cm"># Verify pool created</span>
+ceph osd pool ls
+ceph osd pool ls detail
+
+<span class="cm"># Check pool stats</span>
+rados df
+
+<span class="cm"># Full Ceph health check</span>
+ceph health detail
+ceph status
+ceph df</pre>
+    </div>
+
+    <h3 class="sub-title">Step 7 — Add Ceph Storage to Proxmox GUI</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Add Ceph RBD storage to Proxmox</span>
+pvesm add rbd ceph-storage \
+  --pool vm-pool \
+  --username admin \
+  --krbd 0 \
+  --content images,rootdir
+
+<span class="cm"># Verify storage added</span>
+pvesm status
+pvesm list ceph-storage</pre>
+    </div>
+
+    <h3 class="sub-title">Ceph Health &amp; Monitoring Commands</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Ceph Monitoring</span>
+      </div>
+      <pre><span class="cm"># Overall status</span>
+ceph status
+ceph health
+
+<span class="cm"># Watch status live</span>
+watch -n2 ceph status
+
+<span class="cm"># OSD performance</span>
+ceph osd perf
+
+<span class="cm"># IO stats</span>
+ceph iostat
+
+<span class="cm"># Disk usage</span>
+ceph df detail
+
+<span class="cm"># Show PG (placement group) status</span>
+ceph pg stat
+ceph pg dump_stuck
+
+<span class="cm"># Check scrub status</span>
+ceph pg dump | grep scrub
+
+<span class="cm"># Enable dashboard module</span>
+ceph mgr module enable dashboard
+ceph dashboard create-self-signed-cert
+ceph dashboard set-login-credentials admin &lt;&lt;&lt; "YourPassword"
+ceph mgr services</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 07 — NFS STORAGE                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">📁 Section 07</div>
+    <h2 class="section-title">NFS Storage Setup</h2>
+    <p class="section-desc">
+      NFS provides shared storage for ISOs, backups, and VM disk images.
+      Set up an NFS server (on a dedicated node or external server) and
+      mount it on all Proxmox nodes.
+    </p>
+
+    <h3 class="sub-title">Part A — Configure NFS Server (on nfs-server 10.0.0.20)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — NFS SERVER (10.0.0.20)</span>
+        <span class="node-badge">nfs-server</span>
+      </div>
+      <pre><span class="cm"># Install NFS server</span>
+apt install -y nfs-kernel-server nfs-common
+
+<span class="cm"># Create export directories</span>
+mkdir -p /mnt/nfs/isos
+mkdir -p /mnt/nfs/backups
+mkdir -p /mnt/nfs/vm-images
+mkdir -p /mnt/nfs/snippets
+
+<span class="cm"># Set permissions</span>
+chmod 777 /mnt/nfs/isos /mnt/nfs/backups \
+          /mnt/nfs/vm-images /mnt/nfs/snippets
+
+<span class="cm"># Configure exports — /etc/exports</span>
+cat &gt; /etc/exports &lt;&lt;'EOF'
+/mnt/nfs/isos       10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+/mnt/nfs/backups    10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+/mnt/nfs/vm-images  10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+/mnt/nfs/snippets   10.0.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+EOF
+
+<span class="cm"># Apply exports</span>
+exportfs -ra
+exportfs -v
+
+<span class="cm"># Enable &amp; start NFS services</span>
+systemctl enable nfs-kernel-server rpcbind
+systemctl restart nfs-kernel-server rpcbind
+
+<span class="cm"># Verify exports</span>
+showmount -e localhost</pre>
+    </div>
+
+    <h3 class="sub-title">Part B — Add NFS to Proxmox (from pve1)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1 (Web UI or CLI)</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Test NFS mount from pve1 first</span>
+showmount -e 10.0.0.20
+mount -t nfs 10.0.0.20:/mnt/nfs/isos /mnt/test
+ls /mnt/test
+umount /mnt/test
+
+<span class="cm"># Add NFS ISO storage to Proxmox cluster</span>
+pvesm add nfs nfs-isos \
+  --server 10.0.0.20 \
+  --export /mnt/nfs/isos \
+  --content iso \
+  --options vers=4
+
+<span class="cm"># Add NFS Backup storage</span>
+pvesm add nfs nfs-backups \
+  --server 10.0.0.20 \
+  --export /mnt/nfs/backups \
+  --content backup \
+  --options vers=4
+
+<span class="cm"># Add NFS VM Image storage</span>
+pvesm add nfs nfs-vm-images \
+  --server 10.0.0.20 \
+  --export /mnt/nfs/vm-images \
+  --content images \
+  --options vers=4
+
+<span class="cm"># Add NFS Snippets storage</span>
+pvesm add nfs nfs-snippets \
+  --server 10.0.0.20 \
+  --export /mnt/nfs/snippets \
+  --content snippets \
+  --options vers=4
+
+<span class="cm"># Verify all NFS storages</span>
+pvesm status
+pvesm list nfs-isos</pre>
+    </div>
+
+    <h3 class="sub-title">NFS Performance Tuning</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — NFS SERVER</span>
+        <span class="node-badge">nfs-server</span>
+      </div>
+      <pre><span class="cm"># Increase NFS threads for better performance</span>
+echo 'RPCNFSDCOUNT=32' &gt;&gt; /etc/default/nfs-kernel-server
+
+<span class="cm"># Tune kernel NFS buffer sizes</span>
+cat &gt;&gt; /etc/sysctl.conf &lt;&lt;'EOF'
+net.core.rmem_max = 134217728
+net.core.wmem_max = 134217728
+net.core.rmem_default = 134217728
+net.core.wmem_default = 134217728
+vm.dirty_ratio = 10
+vm.dirty_background_ratio = 5
+EOF
+sysctl -p
+
+<span class="cm"># Restart NFS</span>
+systemctl restart nfs-kernel-server</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 08 — ZFS RAID-Z2                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🗄️ Section 08</div>
+    <h2 class="section-title">ZFS RAID-Z2 Storage</h2>
+    <p class="section-desc">
+      ZFS RAID-Z2 provides RAID-6 equivalent protection — it can survive 2 simultaneous
+      disk failures. Ideal for local storage with high data integrity requirements.
+      Requires minimum 6 disks per node for a RAID-Z2 vdev.
+    </p>
+
+    <div class="box box-info">
+      <span class="box-icon">ℹ️</span>
+      <div>
+        <strong>RAID-Z2 Minimum:</strong> 6 disks = 4 data + 2 parity. Recommended: 8 disks (6+2).
+        ZFS is configured per-node (local storage), not shared like Ceph.
+      </div>
+    </div>
+
+    <h3 class="sub-title">Step 1 — Install ZFS Utilities</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ALL NODES (or just the ZFS nodes)</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># ZFS is built into Proxmox kernel, but install utils</span>
+apt install -y zfsutils-linux
+
+<span class="cm"># Load ZFS kernel module</span>
+modprobe zfs
+
+<span class="cm"># Make ZFS load on boot</span>
+echo 'zfs' &gt;&gt; /etc/modules
+
+<span class="cm"># Verify ZFS version</span>
+zfs --version
+zpool --version</pre>
+    </div>
+
+    <h3 class="sub-title">Step 2 — Identify Disks for ZFS Pool</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Each Node</span>
+      </div>
+      <pre><span class="cm"># List all disks and sizes</span>
+lsblk -d -o NAME,SIZE,MODEL,SERIAL,TYPE
+
+<span class="cm"># Get disk IDs (use these instead of /dev/sdX for stability)</span>
+ls -la /dev/disk/by-id/ | grep -v part
+
+<span class="cm"># Check disk health before using</span>
+smartctl -a /dev/sdb
+smartctl -a /dev/sdc</pre>
+    </div>
+
+    <h3 class="sub-title">Step 3 — Create ZFS RAID-Z2 Pool</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Each Node (adjust disk names)</span>
+        <span class="node-badge">pve1 example</span>
+      </div>
+      <pre><span class="cm"># === OPTION A: Using /dev/disk/by-id (RECOMMENDED for production) ===</span>
+zpool create -f zfs-raidz2 \
+  raidz2 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0123456 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0234567 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0345678 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0456789 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0567890 \
+  /dev/disk/by-id/ata-WDC_WD4TB_WD-WCC4N0678901
+
+<span class="cm"># === OPTION B: Using /dev/sdX (simpler but less reliable after reboot) ===</span>
+zpool create -f zfs-raidz2 \
+  raidz2 \
+  /dev/sdb /dev/sdc /dev/sdd \
+  /dev/sde /dev/sdf /dev/sdg
+
+<span class="cm"># === OPTION C: 2 RAID-Z2 vdevs for better performance (8 disks) ===</span>
+zpool create -f zfs-raidz2 \
+  raidz2 /dev/sdb /dev/sdc /dev/sdd /dev/sde \
+  raidz2 /dev/sdf /dev/sdg /dev/sdh /dev/sdi
+
+<span class="cm"># Verify pool was created</span>
+zpool status zfs-raidz2
+zpool list</pre>
+    </div>
+
+    <h3 class="sub-title">Step 4 — Configure ZFS Pool Settings</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ZFS Pool Configuration</span>
+      </div>
+      <pre><span class="cm"># Enable LZ4 compression (saves space, barely affects performance)</span>
+zfs set compression=lz4 zfs-raidz2
+
+<span class="cm"># Set atime=off (performance improvement)</span>
+zfs set atime=off zfs-raidz2
+
+<span class="cm"># Enable auto-trim for SSDs (skip for HDDs)</span>
+zpool set autotrim=on zfs-raidz2
+
+<span class="cm"># Set recordsize for VMs/databases (16K or 64K)</span>
+zfs set recordsize=64K zfs-raidz2
+
+<span class="cm"># Create dedicated dataset for VM images</span>
+zfs create zfs-raidz2/vm-data
+zfs create zfs-raidz2/backups
+zfs create zfs-raidz2/isos
+
+<span class="cm"># Set ZFS ARC max RAM (e.g., 8GB = 8589934592 bytes)</span>
+echo 'options zfs zfs_arc_max=8589934592' &gt; /etc/modprobe.d/zfs.conf
+update-initramfs -u
+
+<span class="cm"># View all ZFS properties</span>
+zfs get all zfs-raidz2</pre>
+    </div>
+
+    <h3 class="sub-title">Step 5 — Add ZFS to Proxmox Storage</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Each Node (or from pve1 for cluster-wide)</span>
+      </div>
+      <pre><span class="cm"># Add ZFS pool as local storage on pve1 (run on each node for local storage)</span>
+pvesm add zfspool zfs-raidz2-pve1 \
+  --pool zfs-raidz2 \
+  --nodes pve1 \
+  --content images,rootdir
+
+<span class="cm"># For pve2 (run on pve2 or specify from pve1)</span>
+pvesm add zfspool zfs-raidz2-pve2 \
+  --pool zfs-raidz2 \
+  --nodes pve2 \
+  --content images,rootdir
+
+<span class="cm"># Verify</span>
+pvesm status
+pvesm list zfs-raidz2-pve1</pre>
+    </div>
+
+    <h3 class="sub-title">ZFS Maintenance Commands</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ZFS Health &amp; Maintenance</span>
+      </div>
+      <pre><span class="cm"># Full pool status &amp; health</span>
+zpool status -v zfs-raidz2
+
+<span class="cm"># Start a scrub (integrity check) — recommended monthly</span>
+zpool scrub zfs-raidz2
+
+<span class="cm"># Check scrub progress</span>
+zpool status zfs-raidz2 | grep -A5 scrub
+
+<span class="cm"># List all datasets</span>
+zfs list
+
+<span class="cm"># ZFS pool I/O stats</span>
+zpool iostat zfs-raidz2 2
+
+<span class="cm"># Show ARC statistics</span>
+arc_summary
+cat /proc/spl/kstat/zfs/arcstats | head -20
+
+<span class="cm"># Replace a failed disk (sde = old, sdf = new)</span>
+zpool replace zfs-raidz2 /dev/sde /dev/sdf
+zpool status zfs-raidz2
+
+<span class="cm"># Automate monthly scrubs</span>
+echo '0 1 1 * * root zpool scrub zfs-raidz2' &gt;&gt; /etc/cron.d/zfs-scrub</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 09 — LVM STORAGE                        -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">📦 Section 09</div>
+    <h2 class="section-title">LVM Storage</h2>
+    <p class="section-desc">
+      LVM (Logical Volume Manager) provides flexible local block storage.
+      Use LVM-Thin for VM disks (thin provisioning / snapshots) and LVM for raw block devices.
+    </p>
+
+    <h3 class="sub-title">Part A — LVM Setup</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Each Node</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Install LVM2</span>
+apt install -y lvm2
+
+<span class="cm"># Check available disks (do NOT use the OS disk)</span>
+lsblk
+
+<span class="cm"># === Step 1: Create Physical Volume (PV) ===</span>
+pvcreate /dev/sdb
+pvcreate /dev/sdc
+
+<span class="cm"># List PVs</span>
+pvdisplay
+pvs
+
+<span class="cm"># === Step 2: Create Volume Group (VG) ===</span>
+vgcreate vg-pve /dev/sdb /dev/sdc
+
+<span class="cm"># List VGs</span>
+vgdisplay
+vgs
+
+<span class="cm"># === Step 3: Create Logical Volumes (LV) ===</span>
+<span class="cm"># For VM disks (raw LV — 500GB example)</span>
+lvcreate -L 500G -n lv-vmdisk vg-pve
+
+<span class="cm"># For all remaining free space</span>
+lvcreate -l 100%FREE -n lv-data vg-pve
+
+<span class="cm"># List LVs</span>
+lvdisplay
+lvs
+
+<span class="cm"># === Step 4: Format (optional — for data LVs) ===</span>
+mkfs.ext4 /dev/vg-pve/lv-data
+mkdir -p /mnt/lvm-data
+mount /dev/vg-pve/lv-data /mnt/lvm-data
+
+<span class="cm"># Auto-mount on boot</span>
+echo '/dev/vg-pve/lv-data  /mnt/lvm-data  ext4  defaults  0  2' &gt;&gt; /etc/fstab</pre>
+    </div>
+
+    <h3 class="sub-title">Part B — LVM-Thin (Recommended for VMs)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — LVM-Thin Pool for VMs</span>
+        <span class="node-badge">pve1..pve5</span>
+      </div>
+      <pre><span class="cm"># Create a Thin Pool (thin provisioning + snapshots)</span>
+lvcreate -L 1T -T vg-pve/thin-pool
+
+<span class="cm"># Create a thin LV inside the pool</span>
+lvcreate -V 200G -T vg-pve/thin-pool -n vm-disk-01
+
+<span class="cm"># View thin pool status</span>
+lvdisplay vg-pve/thin-pool
+lvs -a -o +devices</pre>
+    </div>
+
+    <h3 class="sub-title">Part C — Add LVM to Proxmox</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — pve1 (or each node separately)</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Add standard LVM VG to Proxmox</span>
+pvesm add lvm lvm-storage-pve1 \
+  --vgname vg-pve \
+  --nodes pve1 \
+  --content images,rootdir
+
+<span class="cm"># Add LVM-Thin to Proxmox (RECOMMENDED for VMs with snapshots)</span>
+pvesm add lvmthin lvmthin-pve1 \
+  --vgname vg-pve \
+  --thinpool thin-pool \
+  --nodes pve1 \
+  --content images,rootdir
+
+<span class="cm"># For pve2 (run on pve2's VG)</span>
+pvesm add lvmthin lvmthin-pve2 \
+  --vgname vg-pve \
+  --thinpool thin-pool \
+  --nodes pve2 \
+  --content images,rootdir
+
+<span class="cm"># Verify storage</span>
+pvesm status
+pvesm list lvmthin-pve1</pre>
+    </div>
+
+    <h3 class="sub-title">LVM Useful Commands</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — LVM Management</span>
+      </div>
+      <pre><span class="cm"># Extend a VG by adding a new disk</span>
+pvcreate /dev/sdd
+vgextend vg-pve /dev/sdd
+
+<span class="cm"># Extend an LV by 100GB</span>
+lvextend -L +100G /dev/vg-pve/lv-data
+resize2fs /dev/vg-pve/lv-data  <span class="cm"># for ext4</span>
+
+<span class="cm"># Take LVM Snapshot of a VM disk</span>
+lvcreate -L 10G -s -n snap-vm100 /dev/vg-pve/vm-100-disk-0
+
+<span class="cm"># Remove LVM Snapshot</span>
+lvremove /dev/vg-pve/snap-vm100
+
+<span class="cm"># Scan all PVs/VGs/LVs</span>
+pvscan
+vgscan
+lvscan
+
+<span class="cm"># Show full details</span>
+pvdisplay -v
+vgdisplay -v
+lvdisplay -v</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 10 — HIGH AVAILABILITY                  -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🔄 Section 10</div>
+    <h2 class="section-title">High Availability (HA) Setup</h2>
+    <p class="section-desc">
+      Proxmox HA automatically restarts VMs/containers on other nodes when a
+      node fails. Requires shared storage (Ceph or NFS).
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — HA Configuration</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Create HA group with all 5 nodes</span>
+ha-manager groupadd ha-group-all \
+  --nodes pve1:2,pve2:1,pve3:1,pve4:1,pve5:1 \
+  --restricted 0 \
+  --nofailback 0
+
+<span class="cm"># List HA groups</span>
+ha-manager groupconfig
+
+<span class="cm"># Add a VM (VMID 100) to HA</span>
+ha-manager add vm:100 \
+  --group ha-group-all \
+  --state started \
+  --max-restart 3 \
+  --max-relocate 3
+
+<span class="cm"># Add a container (CTID 200) to HA</span>
+ha-manager add ct:200 \
+  --group ha-group-all \
+  --state started
+
+<span class="cm"># List all HA resources</span>
+ha-manager status
+
+<span class="cm"># Remove a VM from HA</span>
+ha-manager remove vm:100
+
+<span class="cm"># Check HA manager service</span>
+systemctl status pve-ha-lrm
+systemctl status pve-ha-crm</pre>
+    </div>
+
+    <h3 class="sub-title">Fencing (Watchdog)</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Watchdog / Fencing</span>
+      </div>
+      <pre><span class="cm"># Check watchdog config</span>
+cat /etc/pve/datacenter.cfg
+
+<span class="cm"># Enable software watchdog (if no hardware watchdog)</span>
+echo 'softdog' &gt;&gt; /etc/modules
+modprobe softdog
+
+<span class="cm"># Verify watchdog</span>
+ls /dev/watchdog*
+
+<span class="cm"># Configure in datacenter.cfg</span>
+pvesh set /cluster/options \
+  --ha '{"shutdown_policy":"freeze"}' \
+  --watchdog 'model=i6300esb'</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 11 — FIREWALL                           -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🔥 Section 11</div>
+    <h2 class="section-title">Firewall Configuration</h2>
+    <p class="section-desc">
+      Proxmox has a built-in firewall. Configure it to secure the cluster while
+      allowing required cluster and storage communications.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Firewall Rules</span>
+        <span class="node-badge">pve1</span>
+      </div>
+      <pre><span class="cm"># Enable datacenter firewall</span>
+pvesh set /cluster/firewall/options \
+  --enable 1 \
+  --policy-in DROP \
+  --policy-out ACCEPT
+
+<span class="cm"># Create a cluster-level security group for management</span>
+pvesh create /cluster/firewall/groups \
+  --group cluster-mgmt \
+  --comment "Cluster Management Rules"
+
+<span class="cm"># Allow SSH from management network</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto tcp --dport 22 \
+  --source 10.0.0.0/24 --comment "SSH"
+
+<span class="cm"># Allow Proxmox Web UI</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto tcp --dport 8006 \
+  --source 10.0.0.0/24 --comment "Proxmox WebUI"
+
+<span class="cm"># Allow Corosync cluster traffic</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto udp --dport 5405:5412 \
+  --comment "Corosync"
+
+<span class="cm"># Allow Ceph MON</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto tcp --dport 6789 \
+  --source 10.10.0.0/24 --comment "Ceph MON"
+
+<span class="cm"># Allow Ceph OSD</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto tcp --dport 6800:7300 \
+  --source 10.10.0.0/24 --comment "Ceph OSD"
+
+<span class="cm"># Allow NFS</span>
+pvesh create /cluster/firewall/groups/{cluster-mgmt}/rules \
+  --action ACCEPT --type in --proto tcp --dport 2049 \
+  --source 10.0.0.0/24 --comment "NFS"
+
+<span class="cm"># List all firewall rules</span>
+pvesh get /cluster/firewall/rules</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 12 — BACKUP &amp; RESTORE               -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">💽 Section 12</div>
+    <h2 class="section-title">Backup &amp; Restore</h2>
+    <p class="section-desc">
+      Proxmox Backup Server (PBS) integration or local vzdump backups.
+    </p>
+
+    <h3 class="sub-title">vzdump — Manual Backup</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Backup Commands</span>
+      </div>
+      <pre><span class="cm"># Backup VM 100 to NFS backup storage (stops VM)</span>
+vzdump 100 --storage nfs-backups --mode stop
+
+<span class="cm"># Backup VM 100 with snapshot (no downtime, requires QEMU agent)</span>
+vzdump 100 --storage nfs-backups --mode snapshot
+
+<span class="cm"># Backup VM 100 with suspend mode</span>
+vzdump 100 --storage nfs-backups --mode suspend
+
+<span class="cm"># Backup container 200</span>
+vzdump 200 --storage nfs-backups --mode snapshot
+
+<span class="cm"># Backup ALL VMs on node pve1 to NFS</span>
+vzdump --all --storage nfs-backups --node pve1 --mode snapshot
+
+<span class="cm"># Backup with compression</span>
+vzdump 100 --storage nfs-backups --compress zstd
+
+<span class="cm"># Schedule automatic backups (via API)</span>
+pvesh create /cluster/backup \
+  --enabled 1 \
+  --storage nfs-backups \
+  --schedule 'sun 02:00' \
+  --mode snapshot \
+  --compress zstd \
+  --prune-backups 'keep-last=7,keep-weekly=4'</pre>
+    </div>
+
+    <h3 class="sub-title">Restore</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Restore Commands</span>
+      </div>
+      <pre><span class="cm"># List available backups</span>
+pvesh get /nodes/pve1/storage/nfs-backups/content
+
+<span class="cm"># Restore VM from backup file</span>
+qmrestore /mnt/pve/nfs-backups/dump/vzdump-qemu-100-2026_09_19-02_00_00.vma.zst \
+  100 --storage ceph-storage
+
+<span class="cm"># Restore container from backup</span>
+pct restore 200 /mnt/pve/nfs-backups/dump/vzdump-lxc-200-2026_09_19-02_00_00.tar.zst \
+  --storage ceph-storage</pre>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 13 — MONITORING                         -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">📊 Section 13</div>
+    <h2 class="section-title">Monitoring &amp; Useful Daily Commands</h2>
+    <p class="section-desc">Quick reference for day-to-day cluster management.</p>
+
+    <h3 class="sub-title">Cluster Status</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Cluster Commands</span>
+      </div>
+      <pre><span class="cm"># Full cluster overview</span>
+pvecm status
+
+<span class="cm"># List all VMs across cluster</span>
+pvesh get /cluster/resources --type vm
+
+<span class="cm"># List all nodes with resources</span>
+pvesh get /nodes
+
+<span class="cm"># Node CPU/Memory usage</span>
+for NODE in pve1 pve2 pve3 pve4 pve5; do
+  echo "=== $NODE ===" && ssh root@$NODE "free -h && top -bn1 | head -5"
+done
+
+<span class="cm"># All storage status</span>
+pvesm status
+
+<span class="cm"># Disk usage across all storages</span>
+pvesm list --storage ceph-storage
+pvesm list --storage nfs-backups
+
+<span class="cm"># Live resource monitor</span>
+watch -n3 "pvesh get /cluster/resources"</pre>
+    </div>
+
+    <h3 class="sub-title">VM &amp; Container Management</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — VM &amp; Container Commands</span>
+      </div>
+      <pre><span class="cm"># List all VMs (QEMU)</span>
+qm list
+
+<span class="cm"># List all containers (LXC)</span>
+pct list
+
+<span class="cm"># Start/Stop/Restart VM</span>
+qm start 100
+qm stop 100
+qm reboot 100
+
+<span class="cm"># Migrate VM to another node (live migration)</span>
+qm migrate 100 pve2 --live
+
+<span class="cm"># Migrate with storage (different storage backend)</span>
+qm migrate 100 pve2 --live --targetstorage ceph-storage
+
+<span class="cm"># Clone VM</span>
+qm clone 100 200 --name new-vm --full
+
+<span class="cm"># Snapshot VM</span>
+qm snapshot 100 snap1 --description "Before update"
+qm listsnapshot 100
+qm rollback 100 snap1
+qm delsnapshot 100 snap1
+
+<span class="cm"># Get VM config</span>
+qm config 100
+
+<span class="cm"># Monitor VM in real time</span>
+qm monitor 100</pre>
+    </div>
+
+    <h3 class="sub-title">Log Locations</h3>
+    <table>
+      <thead><tr><th>Log</th><th>Location</th></tr></thead>
+      <tbody>
+        <tr><td>Proxmox cluster log</td><td><code>/var/log/pve-cluster/</code></td></tr>
+        <tr><td>Corosync log</td><td><code>/var/log/corosync/corosync.log</code></td></tr>
+        <tr><td>Ceph log</td><td><code>/var/log/ceph/</code></td></tr>
+        <tr><td>VM/LXC task logs</td><td><code>/var/log/pve/</code></td></tr>
+        <tr><td>vzdump backup log</td><td><code>/var/log/vzdump/</code></td></tr>
+        <tr><td>System journal</td><td><code>journalctl -u pve-cluster</code></td></tr>
+        <tr><td>HA manager log</td><td><code>journalctl -u pve-ha-crm</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!--           SECTION 14 — TROUBLESHOOTING                    -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="chapter">
+    <div class="chapter-label">🛠️ Section 14</div>
+    <h2 class="section-title">Troubleshooting Cheat-Sheet</h2>
+    <p class="section-desc">Common issues and their fixes.</p>
+
+    <h3 class="sub-title">Cluster Issues</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Cluster Troubleshooting</span>
+      </div>
+      <pre><span class="cm"># Cluster not quorate (split-brain)</span>
+pvecm expected 1   <span class="cm"># DANGEROUS! Only use if you know what you're doing</span>
+
+<span class="cm"># Restart cluster services</span>
+systemctl restart pve-cluster corosync
+
+<span class="cm"># Check corosync ring errors</span>
+corosync-cfgtool -s
+
+<span class="cm"># Force node removal from cluster (dead node)</span>
+pvecm delnode pve5
+
+<span class="cm"># Re-add a node that was removed</span>
+pvecm add 10.0.0.11 --link0 address=10.0.0.15
+
+<span class="cm"># Cluster log</span>
+journalctl -u corosync --since "1 hour ago"
+journalctl -u pve-cluster --since "1 hour ago"</pre>
+    </div>
+
+    <h3 class="sub-title">Ceph Issues</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — Ceph Troubleshooting</span>
+      </div>
+      <pre><span class="cm"># Check health warnings</span>
+ceph health detail
+
+<span class="cm"># Restart a specific OSD (OSD 5)</span>
+systemctl restart ceph-osd@5
+
+<span class="cm"># Mark OSD as out before removing</span>
+ceph osd out 5
+ceph osd down 5
+ceph osd rm 5
+ceph osd crush remove osd.5
+
+<span class="cm"># Check slow OSD requests</span>
+ceph daemon osd.0 dump_ops_in_flight
+
+<span class="cm"># Fix clock skew warning</span>
+apt install -y chrony
+systemctl enable chrony
+systemctl restart chrony
+timedatectl status
+
+<span class="cm"># Full Ceph reset (DANGEROUS — wipes Ceph!)</span>
+<span class="cm"># pveceph purge</span></pre>
+    </div>
+
+    <h3 class="sub-title">ZFS Issues</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — ZFS Troubleshooting</span>
+      </div>
+      <pre><span class="cm"># Pool showing degraded</span>
+zpool status -v
+
+<span class="cm"># Clear ZFS errors after fixing</span>
+zpool clear zfs-raidz2
+
+<span class="cm"># Import a pool that wasn't imported</span>
+zpool import zfs-raidz2
+
+<span class="cm"># Export pool before moving to another node</span>
+zpool export zfs-raidz2
+
+<span class="cm"># Force import if needed</span>
+zpool import -f zfs-raidz2
+
+<span class="cm"># Check for ZFS errors in syslog</span>
+dmesg | grep -i zfs
+journalctl | grep -i zfs</pre>
+    </div>
+
+    <h3 class="sub-title">NFS Issues</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — NFS Troubleshooting</span>
+      </div>
+      <pre><span class="cm"># NFS mount hanging / stale</span>
+umount -f -l /mnt/pve/nfs-backups
+
+<span class="cm"># Check NFS server exports</span>
+showmount -e 10.0.0.20
+
+<span class="cm"># Check NFS mounts on client</span>
+mount | grep nfs
+
+<span class="cm"># Restart NFS server</span>
+systemctl restart nfs-kernel-server
+
+<span class="cm"># Check RPC status</span>
+rpcinfo -p 10.0.0.20
+
+<span class="cm"># Test NFS performance</span>
+dd if=/dev/zero of=/mnt/pve/nfs-backups/testfile bs=1M count=1000 oflag=direct</pre>
+    </div>
+
+    <h3 class="sub-title">LVM Issues</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="dots"><span class="dot-r"></span><span class="dot-y"></span><span class="dot-g"></span></div>
+        <span class="code-label">bash — LVM Troubleshooting</span>
+      </div>
+      <pre><span class="cm"># LVM not seeing disks</span>
+pvscan --cache
+vgscan
+lvscan
+
+<span class="cm"># Fix LVM after disk replacement</span>
+vgchange -ay vg-pve
+
+<span class="cm"># Thin pool overprovisioned</span>
+lvs -a -o +devices
+<span class="cm"># Resize thin pool</span>
+lvextend -L +500G vg-pve/thin-pool
+
+<span class="cm"># Repair a VG</span>
+vgck vg-pve
+vgreduce --removemissing vg-pve</pre>
+    </div>
+
+    <!-- Quick Reference Summary -->
+    <h3 class="sub-title">Storage Quick Reference</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Storage</th>
+          <th>Type</th>
+          <th>Shared?</th>
+          <th>Snapshots</th>
+          <th>Live Migration</th>
+          <th>Best For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ceph RBD</strong></td>
+          <td><span class="tag tag-purple">Distributed</span></td>
+          <td>✅ Yes</td>
+          <td>✅ Yes</td>
+          <td>✅ Yes</td>
+          <td>VM disks, HA</td>
+        </tr>
+        <tr>
+          <td><strong>NFS</strong></td>
+          <td><span class="tag tag-blue">Network</span></td>
+          <td>✅ Yes</td>
+          <td>❌ No</td>
+          <td>✅ Yes</td>
+          <td>ISOs, Backups</td>
+        </tr>
+        <tr>
+          <td><strong>ZFS RAID-Z2</strong></td>
+          <td><span class="tag tag-green">Local</span></td>
+          <td>❌ No</td>
+          <td>✅ Yes</td>
+          <td>❌ No*</td>
+          <td>High IOPS, local</td>
+        </tr>
+        <tr>
+          <td><strong>LVM-Thin</strong></td>
+          <td><span class="tag tag-orange">Local</span></td>
+          <td>❌ No</td>
+          <td>✅ Yes</td>
+          <td>❌ No*</td>
+          <td>Speed, local VMs</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:12px;color:var(--muted);margin-top:4px;">* Offline migration with storage migration is possible</p>
+
+    <div class="box box-success" style="margin-top:40px;">
+      <span class="box-icon">🎉</span>
+      <div>
+        <strong>Cluster Setup Complete!</strong> You now have a fully operational 5-node Proxmox cluster
+        with Ceph, NFS, ZFS RAID-Z2, and LVM storage. Access the Web UI at
+        <code>https://10.0.0.11:8006</code> to manage the entire cluster.
+      </div>
+    </div>
+
+    <div style="margin-top:60px;padding-top:30px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:12px;">
+      <p><strong>Proxmox VE 5-Node Cluster Command Reference</strong></p>
+      <p>Innspark Infrastructure Team · Generated September 2026</p>
+      <p style="margin-top:8px;">Proxmox VE 8.x · Ceph Reef · ZFS 2.x · NFS v4</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Print Button (visible on screen, hidden when printing) -->
+<div style="position:fixed;bottom:30px;right:30px;z-index:1000;" class="no-print">
+  <button onclick="window.print()" style="
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(249,115,22,0.4);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+  ">🖨️ Print / Save PDF</button>
+</div>
+
+<style>
+  @media print {
+    .no-print { display: none !important; }
+    body { background: #fff !important; color: #111 !important; font-size: 12px; }
+    .cover { color: #fff; page-break-after: always; }
+    .code-block { page-break-inside: avoid; }
+    pre { color: #222; background: #f5f5f5 !important; }
+    .code-header { background: #e5e5e5 !important; }
+    .box-info { background: #e0f2fe !important; color: #0c4a6e; }
+    .box-warn { background: #fff7ed !important; color: #7c2d12; }
+    .box-danger { background: #fef2f2 !important; color: #7f1d1d; }
+    .box-success { background: #f0fdf4 !important; color: #14532d; }
+    .box-purple { background: #faf5ff !important; color: #581c87; }
+    td, th { border: 1px solid #ddd; }
+    .chapter { page-break-before: always; padding-top: 30px; }
+    .arch-diagram { background: #f8f8f8 !important; color: #333 !important; border: 1px solid #ddd; }
+    .storage-card { background: #f8f8f8 !important; border: 1px solid #ddd; }
+  }
+</style>
+
+</body>
+</html>

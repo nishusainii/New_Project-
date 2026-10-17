@@ -1,0 +1,390 @@
+A useful Proxmox dashboard should answer three questions immediately: Is the cluster healthy? What is affected? Where is the bottleneck?
+ For your environment, keep cluster, node, storage, VM/LXC, and network/service views separate rather than putting every metric on one crowded page.
+
+1. Use one dashboard with focused pages
+
+Zabbix dashboards can contain multiple pages, and pages can rotate as a slideshow. Widgets can display summaries, maps, graphs, gauges, host availability, problems, and other views.
+
+Recommended structure:
+
+Proxmox Infrastructure Dashboard
+├── 01 - Operations Overview
+├── 02 - Cluster and Nodes
+├── 03 - Storage
+├── 04 - VMs and LXC
+├── 05 - Network and Multi-WAN
+├── 06 - Critical Services
+└── 07 - Capacity and Trends
+
+
+Avoid creating one enormous dashboard. Each page should support a specific operational decision.
+
+2. Page 1: Operations Overview
+
+This should be your primary NOC-style page.
+
+Top row: health summary
+
+Use compact widgets for:
+
+Cluster quorum
+Online Proxmox nodes
+Active critical problems
+Available storage
+Running VMs
+Running containers
+Zabbix server health
+
+Suitable widgets include:
+
+Item value
+Gauge
+Host availability
+Problems by severity
+
+Middle row: current impact
+
+Add a Problems widget filtered to:
+
+Host groups:
+- Proxmox Cluster
+- Proxmox Nodes
+- Proxmox Storage
+- Critical VMs
+- Critical Services
+
+Minimum severity:
+High
+
+
+Recommended columns:
+
+Time
+Severity
+Host
+Problem
+Duration
+Acknowledged
+
+
+Use event tags to filter meaningful problems:
+
+platform=proxmox
+environment=production
+
+Bottom row: infrastructure state
+
+Add:
+
+Cluster or infrastructure map
+Top CPU consumers
+Top memory consumers
+Highest storage utilization
+Recent operational events
+
+Keep this page focused on active incidents, not long-term graphs.
+
+3. Page 2: Cluster and Nodes
+
+Create one clearly separated section per Proxmox node:
+
+PVE01 | PVE02 | PVE03
+
+
+For each node, display:
+
+Availability
+CPU utilization
+Load average
+Memory utilization
+Swap utilization
+Root filesystem utilization
+Uptime
+Network traffic
+Current problems
+
+Recommended layout:
+
+              PVE01       PVE02       PVE03
+Availability   Value       Value       Value
+CPU            Gauge       Gauge       Gauge
+Memory         Gauge       Gauge       Gauge
+Root FS        Gauge       Gauge       Gauge
+Load           Graph       Graph       Graph
+
+
+Use identical widget dimensions and thresholds for each node. This makes unusual behavior visually obvious.
+
+Suggested visualization choices
+Item value: quorum, node state, uptime
+Gauge: current CPU, RAM, root filesystem
+Graph: load, CPU and memory history
+Host card: host identity, availability and problem context
+Problems: node-specific active faults
+
+Zabbix supports dynamic dashboard parameters, including selecting a host through a dashboard or another compatible widget and using it to update related widgets. The Override host feature can provide a host to compatible widgets.
+
+A scalable design is:
+
+Host navigator: select pve01, pve02 or pve03
+        |
+        +--> CPU graph
+        +--> Memory graph
+        +--> Interface graph
+        +--> Filesystem widgets
+        +--> Host problems
+
+
+This avoids duplicating an entire page for every node.
+
+4. Page 3: Storage
+
+Storage needs its own page because storage problems often affect multiple VMs simultaneously.
+
+Separate it by backend:
+
+Local ZFS
+Shared Storage
+Ceph
+NFS
+Proxmox Backup Server
+
+
+Recommended widgets:
+
+Capacity
+Total size
+Used percentage
+Available space
+Storage growth trend
+Health
+Storage availability
+ZFS pool state
+Ceph health, if applicable
+Failed or degraded disks
+SMART health
+Disk temperature
+Backup storage availability
+Performance
+Read throughput
+Write throughput
+Disk latency
+IOPS
+I/O wait
+
+Use gauges only for current utilization. Use time-series graphs for latency, throughput, and growth.
+
+Suggested colors:
+
+Normal   : Green
+Warning  : Amber at 80%
+High     : Orange at 90%
+Critical : Red at 95%
+Unknown  : Gray
+
+
+These values are recommended starting points, not universal thresholds. Adjust them based on storage growth rate, workload, and operational headroom.
+
+5. Page 4: VMs and LXC Containers
+
+Do not show every guest with every metric. That becomes unreadable as your environment grows.
+
+Use ranked views:
+
+Top 10 VM CPU
+Top 10 VM memory
+Top 10 VM network traffic
+Top disk consumers
+Stopped guests
+Guests with active problems
+
+
+Separate operationally important guests:
+
+Critical Infrastructure
+├── Squid Proxy
+├── VPN
+├── DNS
+├── DHCP
+├── Authentication
+└── Monitoring
+
+
+Show for each critical guest:
+
+Power state
+Agent availability
+CPU
+Memory
+Disk
+Primary service status
+Active problem count
+
+Use a Problems widget limited to VM/LXC events and tags such as:
+
+component=vm
+component=lxc
+
+
+If planned shutdowns are common, distinguish intentional and unexpected stopped states through maintenance periods, tags, or monitoring policy. Otherwise, the dashboard will continually display noise.
+
+6. Page 5: Network and Multi-WAN
+
+For your multi-WAN environment, give interfaces and external connectivity a dedicated page.
+
+Organize by uplink:
+
+kv1 | kv2 | kv3 | ... | kv9
+
+
+For each WAN, display:
+
+Interface status
+Inbound bandwidth
+Outbound bandwidth
+Utilization percentage
+Gateway latency
+Packet loss
+Errors and drops
+Internet probe state
+
+Also include:
+
+vmbr0
+Cluster/Corosync interface
+Storage/Ceph interface
+Management interface
+
+
+Use:
+
+Item values for interface state and packet loss
+Graphs for traffic and latency
+Top hosts/items for bandwidth ranking
+Map for physical or logical path visualization
+
+Do not combine throughput from interfaces with different line speeds into one percentage graph unless each item is normalized correctly.
+
+7. Page 6: Critical Services
+
+This page bridges virtualization health and user-facing services.
+
+Recommended dependency view:
+
+Proxmox Node
+   └── VM/LXC
+        └── OS availability
+             └── Squid/VPN/DNS service
+                  └── End-to-end service test
+
+
+For Squid, show:
+
+VM availability
+squid.service state
+Proxy port availability
+Request/error rate
+Authentication failures
+Cache/storage utilization
+Upstream connectivity
+
+For VPN, show:
+
+VM availability
+VPN process/service
+Tunnel state
+Tunnel interface traffic
+Remote endpoint reachability
+
+Because you are using trigger dependencies, a node-down problem should remain the actionable root cause while dependent VM and application failures are suppressed from notification noise.
+
+8. Page 7: Capacity and Trends
+
+Use this page for planning rather than incident response.
+
+Recommended periods:
+
+Last 24 hours
+Last 7 days
+Last 30 days
+
+
+Track:
+
+Cluster CPU trend
+Cluster memory trend
+Storage growth
+VM count and resource allocation
+Backup duration and size
+WAN utilization
+Zabbix queue and data-collection health
+
+The dashboard time-period selector controls the time range displayed in graph widgets, so operators can change the analysis window without rebuilding graphs.
+
+9. Configure sensible refresh intervals
+
+Not every widget requires rapid refresh. Zabbix permits widget refresh intervals to be set by the dashboard designer, and individual users can override them. User-specific refresh settings take priority and remain preserved if the widget default changes.
+
+Suggested starting points:
+
+Cluster state and Problems : 30-60 seconds
+Node resource values       : 1 minute
+Network traffic            : 1 minute
+Storage health             : 2-5 minutes
+SMART and inventory        : 15-60 minutes
+Capacity trends            : 5-15 minutes
+
+
+These are design recommendations. Set collection intervals according to the urgency of the metric and the load on your Zabbix server and Proxmox API.
+
+10. Naming and tagging standard
+
+Use predictable widget names:
+
+[CLUSTER] Quorum
+[NODE] CPU utilization
+[STORAGE] Capacity
+[VM] Stopped guests
+[NETWORK] WAN health
+[SERVICE] Squid availability
+
+
+Recommended event tags:
+
+platform=proxmox
+environment=production
+site=datacenter-name
+component=cluster|node|storage|vm|lxc|network|service
+service=squid|vpn|dns
+team=systems|network|storage
+
+
+Tags make dashboard filtering and notification routing much easier.
+
+11. Access and sharing
+
+Dashboard information is governed by the viewer's host permissions. Zabbix supports owned and shared dashboards, including dashboards shared with users or user groups.
+
+Use separate dashboard access:
+
+NOC              : Read-only shared operations dashboard
+System admins    : Full Proxmox and Linux dashboards
+Network admins   : Network, WAN, Squid and VPN pages
+Management       : Simplified availability and capacity view
+
+Final recommended first screen
++----------------------------------------------------------+
+| Quorum | Nodes Online | Critical Problems | Storage Free |
++----------------------------------------------------------+
+| Problems by Severity        | Proxmox Cluster Map        |
++----------------------------------------------------------+
+| PVE01 CPU/RAM | PVE02 CPU/RAM | PVE03 CPU/RAM           |
++----------------------------------------------------------+
+| Top CPU VMs   | Top Memory VMs | Storage Utilization     |
++----------------------------------------------------------+
+| WAN Status    | Squid Status   | VPN Status               |
++----------------------------------------------------------+
+
+
+Start with this operations page, then add the detailed pages. That keeps the primary dashboard clear enough to identify quorum, node, storage, 
+VM, Squid, VPN, or WAN trouble without scrolling through dozens of graphs.

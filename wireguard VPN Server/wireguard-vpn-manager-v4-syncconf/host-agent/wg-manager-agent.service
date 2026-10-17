@@ -1,0 +1,14 @@
+[Unit]
+Description=Restricted WireGuard syncconf agent
+After=network.target
+[Service]
+ExecStart=/usr/local/sbin/wg-manager-agent
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/etc/wireguard /var/backups/wireguard-manager
+RestrictAddressFamilies=AF_INET AF_UNIX
+[Install]
+WantedBy=multi-user.target

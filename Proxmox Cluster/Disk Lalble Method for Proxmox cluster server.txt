@@ -1,0 +1,230 @@
+You can give **physical tags/labels to each front disk bay** after blinking the locate LED. Use a printed adhesive label with the node, storage type, OSD or ZFS position, and slot number.
+
+## Recommended tag format
+
+<Node>-<Storage>-<ID>-S<Slot>
+
+Examples:
+
+PX22-CEPH-OSD0-S0  
+
+PX22-ZFS-R2-01-S4  
+
+PX22-SPARE-S11
+
+## prox22 labels
+
+Slot 0 -> PX22-CEPH-OSD0-S0  
+
+Slot 1 -> PX22-CEPH-OSD3-S1  
+
+Slot 2 -> PX22-CEPH-OSD6-S2  
+
+Slot 3 -> PX22-CEPH-OSD9-S3  
+
+Slot 4 -> PX22-ZFS-R2-01-S4  
+
+Slot 5 -> PX22-ZFS-R2-02-S5  
+
+Slot 6 -> PX22-ZFS-R2-03-S6  
+
+Slot 7 -> PX22-ZFS-R2-04-S7  
+
+Slot 8 -> PX22-ZFS-R2-05-S8  
+
+Slot 9 -> PX22-ZFS-R2-06-S9  
+
+Slot 10 -> PX22-ZFS-R2-07-S10  
+
+Slot 11 -> PX22-SPARE-S11  
+
+## prox23 labels
+
+Slot 0 -> PX23-CEPH-OSD1-S0  
+
+Slot 1 -> PX23-CEPH-OSD4-S1  
+
+Slot 2 -> PX23-CEPH-OSD7-S2  
+
+Slot 3 -> PX23-CEPH-OSD10-S3  
+
+Slot 4 -> PX23-ZFS-R2-01-S4  
+
+Slot 5 -> PX23-ZFS-R2-02-S5  
+
+Slot 6 -> PX23-ZFS-R2-03-S6  
+
+Slot 7 -> PX23-ZFS-R2-04-S7  
+
+Slot 8 -> PX23-ZFS-R2-05-S8  
+
+Slot 9 -> PX23-ZFS-R2-06-S9  
+
+Slot 10 -> PX23-ZFS-R2-07-S10  
+
+Slot 11 -> PX23-SPARE-S11
+
+## prox24 labels
+
+Slot 0 -> PX24-CEPH-OSD2-S0  
+
+Slot 1 -> PX24-CEPH-OSD5-S1  
+
+Slot 2 -> PX24-CEPH-OSD8-S2  
+
+Slot 3 -> PX24-CEPH-OSD11-S3  
+
+Slot 4 -> PX24-ZFS-R2-01-S4  
+
+Slot 5 -> PX24-ZFS-R2-02-S5  
+
+Slot 6 -> PX24-ZFS-R2-03-S6  
+
+Slot 7 -> PX24-ZFS-R2-04-S7  
+
+Slot 8 -> PX24-ZFS-R2-05-S8  
+
+Slot 9 -> PX24-ZFS-R2-06-S9  
+
+Slot 10 -> PX24-ZFS-R2-07-S10  
+
+Slot 11 -> PX24-SPARE-S11  
+
+## Safe tagging process
+
+Perform one server and one disk at a time.
+
+### 1. Start the locate LED
+
+Example for `prox22`, slot 4:
+
+ssh root@prox22  
+
+  
+
+PERC=/usr/local/sbin/perccli64  
+
+"$PERC" /c0/e252/s4 start locate
+
+### 2. Verify the physical bay
+
+Confirm that only the expected front bay is blinking.
+
+For this example:
+
+Server : prox22  
+
+Bay : Slot 4  
+
+Disk : /dev/sde  
+
+Serial : ZYDG62WJ  
+
+Role : ZFS RAIDZ2
+
+### 3. Attach the printed label
+
+Attach:
+
+PX22-ZFS-R2-01-S4
+
+Prefer attaching the label to the drive carrier handle without covering:
+
+- Activity LED
+- Fault LED
+- Locate LED
+- Release latch
+- Ventilation opening
+- Existing Dell serial label
+
+### 4. Stop the locate LED
+
+"$PERC" /c0/e252/s4 stop locate
+
+### 5. Continue with the next slot
+
+"$PERC" /c0/e252/s5 start locate
+
+After labeling:
+
+"$PERC" /c0/e252/s5 stop locate  
+
+``
+
+## Interactive labeling loop
+
+Run locally on each node. This blinks only one disk at a time:
+
+PERC=/usr/local/sbin/perccli64  
+
+  
+
+for slot in {0..11}; do  
+
+echo  
+
+echo "=========================================="  
+
+echo "Locating $(hostname) enclosure 252 slot $slot"  
+
+echo "=========================================="  
+
+  
+
+"$PERC" /c0/e252/s"$slot" start locate  
+
+  
+
+read -r -p "Apply the correct label, then press Enter: "  
+
+  
+
+"$PERC" /c0/e252/s"$slot" stop locate  
+
+done  
+
+Do not exit the script while an LED is blinking. If you interrupt it, stop the current locate LED manually:
+
+PERC=/usr/local/sbin/perccli64  
+
+"$PERC" /c0/e252/s4 stop locate
+
+Replace `s4` with the slot that was blinking.
+
+## Recommended label contents for maintenance
+
+If you have enough label space, use two lines:
+
+PX22-ZFS-R2-01-S4  
+
+SN: ZYDG62WJ
+
+For Ceph:
+
+PX22-CEPH-OSD0-S0  
+
+SN: ZYDGFEW6
+
+For the reserved disk:
+
+PX22-SPARE-S11  
+
+SN: ZYDFW4AP
+
+The serial number is important because `/dev/sda`, `/dev/sde`, and similar Linux names can change after reboot. The permanent physical identification should use:
+
+Host + PERC slot + serial number + storage role
+
+## Color-tag recommendation
+
+For quicker physical identification:
+
+Blue label : Ceph OSD  
+
+Green label : ZFS RAIDZ2  
+
+Yellow label : Reserved/spare  
+
+Red label : Failed or do-not-use disk
+
+Do not mark the reserved slot as a ZFS hot spare unless you actually add `/dev/sdl` to the pool with `zpool add ... spare`. Currently, label it only as **RESERVED**, not as an active spare.

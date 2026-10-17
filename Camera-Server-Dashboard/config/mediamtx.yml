@@ -1,0 +1,92 @@
+# MediaMTX Gateway Configuration - Auto-generated
+api: true
+apiAddress: 127.0.0.1:9997
+
+rtsp: true
+rtspAddress: :8554
+
+hls: true
+hlsAddress: :8888
+hlsAllowOrigins: ["*"]
+
+webrtc: true
+webrtcAddress: :8889
+webrtcAllowOrigins: ["*"]
+
+logLevel: info
+logDestinations: [stdout]
+
+paths:
+  cam101:
+    source: rtsp://admin:admin123@192.168.1.101:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam102:
+    source: rtsp://admin:admin123@192.168.1.102:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam103:
+    source: rtsp://admin:admin123@192.168.1.103:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam104:
+    source: rtsp://admin:admin123@192.168.1.104:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam105:
+    source: rtsp://admin:admin123@192.168.1.105:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam106:
+    source: rtsp://admin:admin123@192.168.1.106:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam201:
+    source: rtsp://admin:admin123@192.168.1.107:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam202:
+    source: rtsp://admin:admin123@192.168.1.108:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam203:
+    source: rtsp://admin:admin123@192.168.1.109:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam204:
+    source: rtsp://admin:admin123@192.168.1.110:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam205:
+    source: rtsp://admin:admin123@192.168.1.111:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam206:
+    source: rtsp://admin:admin123@192.168.1.112:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam301:
+    source: rtsp://admin:admin123@192.168.1.113:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam302:
+    source: rtsp://admin:admin123@192.168.1.114:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam303:
+    source: rtsp://admin:admin123@192.168.1.115:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam304:
+    source: rtsp://admin:admin123@192.168.1.116:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam305:
+    source: rtsp://admin:admin123@192.168.1.117:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam306:
+    source: rtsp://admin:admin123@192.168.1.118:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam401:
+    source: rtsp://admin:admin123@192.168.1.119:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam402:
+    source: rtsp://admin:admin123@192.168.1.120:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam403:
+    source: rtsp://admin:admin123@192.168.1.121:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam404:
+    source: rtsp://admin:admin123@192.168.1.122:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam405:
+    source: rtsp://admin:admin123@192.168.1.123:554/h264Preview_01_main
+    sourceOnDemand: yes
+  cam406:
+    source: rtsp://admin:admin123@192.168.1.124:554/h264Preview_01_main
+    sourceOnDemand: yes
+  all_others:

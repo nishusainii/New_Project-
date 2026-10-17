@@ -1,0 +1,57 @@
+{
+  "scenario": "01_dual_node_hardware_shutdown",
+  "cluster": "cisai-pve",
+  "cluster_ip": "10.31.6.172",
+  "timestamp_start": "2026-09-19T04:54:06Z",
+  "nodes_shutdown": ["prox23 (10.31.6.173)", "prox24 (10.31.6.174)"],
+  "pre_state": {
+    "ceph_health": "HEALTH_OK",
+    "osds_up": 12,
+    "vms_running": 3,
+    "quorum_votes": 3
+  },
+  "fault_phase_timings": {
+    "t0_shutdown_issued":        "10:24:06",
+    "t_prox23_offline_sec":      11,
+    "t_ceph_first_warn_sec":     34,
+    "t_ceph_degraded_sec":       39,
+    "t_osds_lost":               4,
+    "t_pgs_degraded":            29,
+    "t_vm_migration_triggered":  11,
+    "t_prox24_offline_sec":      140,
+    "t_quorum_lost_sec":         140,
+    "t_vms_stopped_sec":         540,
+    "t_all_nodes_down":          "both prox23+prox24 DOWN by T+2m20s"
+  },
+  "ha_behavior": {
+    "ha_master_node": "prox22",
+    "fencing_triggered": true,
+    "vm9001_action": "stayed on prox22 (already local)",
+    "vm9002_action": "migrated prox24 → prox22 at T+11s",
+    "vm9003_action": "migrated prox24 → prox22",
+    "vms_on_survivor_at_peak": 3,
+    "vms_status_no_quorum": "stopped (quorum lost — safe Proxmox behavior)"
+  },
+  "recovery_phase_timings": {
+    "recovery_monitoring_start": "2026-09-19T05:04:16Z",
+    "t_prox24_online_sec":       44,
+    "t_quorum_restored_sec":     44,
+    "t_prox23_online_sec":       57,
+    "t_vms_restarted_sec":       161,
+    "t_ceph_healthy_sec":        305,
+    "t_total_recovery_sec":      305
+  },
+  "observations": [
+    "prox23 went offline immediately at T+11s",
+    "prox24 stayed up briefly — HA triggered live migration of vm:9002 before shutdown",
+    "Ceph WARN at T+34s with 4 OSDs lost (prox23 host)",
+    "Quorum maintained at 2/3 (prox22+prox24) until prox24 shut down at ~T+140s",
+    "After quorum loss (1/3 votes), Proxmox correctly STOPPED VMs — zero data corruption, no split-brain",
+    "HA fencing armed → standby after quorum lost (correct safe behavior)",
+    "Recovery: prox24 returned in 44s, immediately restoring cluster Quorum (2/3 votes)",
+    "prox23 returned at 57s, restoring full 3/3 votes",
+    "All 3 VMs automatically recovered and running by T+161s (2m41s)",
+    "Ceph achieved full HEALTH_OK (all 12 OSDs up, 0 degraded PGs) by T+305s (5m05s)"
+  ],
+  "result": "PASS"
+}

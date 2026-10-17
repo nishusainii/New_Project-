@@ -1,0 +1,88 @@
+Name: Nishu Saini
+ Date: 17/09/2026
+ Login Time: 09:19 AM
+ Logout Time: 07:10 PM
+
+ Today’s Work Summary
+
+09:20 AM to 11:00 AM
+
+Ubuntu 24.04 LTS VDI Golden Template (Proxmox VE)
+
+-Investigated requirements and implemented a modular, phase-based VDI deployment approach.
+-Resolved DNS connectivity issues by migrating Proxmox DNS to the internal resolver (10.31.4.2).
+-Diagnosed NFS read-only storage issues and migrated VM storage to SSD-backed local-lvm.
+-Downloaded and provisioned the Ubuntu 24.04 LTS cloud image.
+-Built a Proxmox VM using Q35 architecture, OVMF (UEFI), VirtIO storage, and QEMU Guest Agent.
+-Configured Cloud-Init for automated deployment and DHCP-based networking.
+-Installed and optimized a lightweight XFCE desktop environment for VDI usage.
+-Reduced desktop resource consumption to approximately 350-400 MB idle RAM.
+-Configured TigerVNC remote access services and automated XFCE session startup.
+-Enabled systemd-managed TigerVNC services for persistent VDI sessions.
+-Eliminated PolicyKit authentication prompts for improved user experience.
+-Automated VNC profile creation for future users through /etc/skel.
+-Hardened and optimized the operating system before template creation.
+-Cleaned Cloud-Init data, SSH keys, package caches, and machine identifiers.
+-Successfully sealed and generalized the Ubuntu image for cloning.
+-Converted VM 9051 into a reusable Ubuntu 24.04 Golden Template.
+-Created and validated a production test clone (VM 201).
+-Verified desktop accessibility through both TigerVNC and Apache Guacamole.
+-Produced deployment guides, runbooks, verification scripts, and automation tooling.
+-Delivered a production-ready Ubuntu VDI Golden Template solution.
+
+11:00 AM TO 1:00 PM
+
+SARG Dashboard Fleet Enhancement & Automation
+
+-Investigated and resolved broken SARG dashboard styling issues.
+-Corrected CSS configuration and Apache asset mappings.
+-Implemented Apache aliases for dashboard resources and branding assets.
+-Prevented SARG processes from overwriting the custom landing page.
+-Enhanced SARG wrapper scripts with backup and report-preservation mechanisms.
+-Recovered and processed historical Squid logs from compressed archives.
+-Generated missing historical reports for 13 and 14 September 2026.
+-Implemented a rolling 5-day reporting framework.
+-Modified dashboard logic to eliminate duplicate traffic calculations.
+-Added user-friendly date navigation and report-switching controls.
+-Implemented synchronization across all dashboard instances.
+-Deployed updates across four enterprise Squid proxy servers.
+-Validated reporting consistency and operational health across the fleet.
+-Automated dashboard refresh cycles via cron jobs every 10 minutes.
+-Enabled automated report retention and daily archive management.
+-Produced comprehensive operational and fleet documentation.
+
+01:00 PM to 01:45 PM
+
+Lunch break
+
+1:45 PM TO 4:00 PM 
+
+Apache Guacamole VDI Platform Deployment
+
+-Evaluated abcdesktop.io, Apache Guacamole, and rustguac solutions.
+-Selected Apache Guacamole as the enterprise VDI gateway platform.
+-Architected a production-grade Guacamole environment using Docker Compose.
+-Deployed Guacamole, guacd, PostgreSQL, Nginx, and supporting services.
+-Integrated Active Directory and LDAP authentication.
+-Implemented TOTP-based Multi-Factor Authentication (MFA).
+-Configured secure TLS-enabled reverse proxy services through Nginx.
+-Optimized WebSocket handling and remote session performance.
+-Enabled dynamic display resizing and cross-platform desktop access.
+-Configured Windows NLA and optimized Ubuntu connection profiles.
+-Implemented Fail2ban protection and administrative hardening controls.
+-Enabled session recording, auditing, and compliance monitoring.
+-Automated backup and recovery procedures.
+-Produced detailed deployment, operations, and support documentation.
+
+4:00 PM To 7:10 PM 
+
+Windows 10/11 Enterprise VDI Template Development
+
+-Built Windows 10/11 Enterprise VDI Golden Templates on Proxmox VE.
+-Configured modern virtual hardware standards including UEFI, VirtIO, and vTPM 2.0.
+-Developed automation scripts for template optimization and preparation.
+-Removed unnecessary consumer applications and bloatware.
+-Optimized operating systems for enhanced VDI performance.
+-Automated Sysprep and image-sealing procedures.
+-Implemented clone uniqueness verification and validation processes.
+-Produced complete Windows VDI deployment and support documentation.

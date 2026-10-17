@@ -1,0 +1,40 @@
+Nishu Saini,
+
+Date: 13/08/2026
+Login: 08:43AM
+Logout: 6:40 PM
+
+Work Completed for the Day
+
+    9:00 Am to 11:00 AM 
+	
+    - Learned an overview of the SIEM application from Pranav, including how it works, what it monitors, how it analyzes logs, and how its agent-based architecture functions. Also gained a better understanding of its overall workflow.
+    - Also gained an understanding of UEBA (User and Entity Behavior Analytics), including how it analyzes user behavior patterns, detects anomalies, and helps identify potential security threats.
+      
+	 11:00 AM to 1 PM
+	 
+	 Document given by Girish - CISAI Internet Filtering Solution.
+    -  Learned about the CISAI Internet Filtering Solution and its firewall capabilities. Gained an understanding of packet filtering, firewall rule creation, security policy configuration, website and traffic blocking, 
+      allowlisting and denylisting, user management, and role-based access control and log forwarding. Also explored how filtering rules and access policies are applied to regulate network traffic and provide controlled internet access to users.
+
+     1PM to 2 PM 
+
+    - Lunch break.
+	
+     2PM to 3PM 
+	 
+	- Learning about understanding CISAI ITMS Ticket Tools told by Girish.
+	 
+	 3PM to  4 PM
+	 
+	-  Again go through document CISAI Internet Filtering Solution.
+	 
+	 4:00PM To 4:30 PM 
+	 
+	- Meeting with Jishnu sir 
+	
+	 4:30 PM To  6:35
+	 
+	- Work on squid proxy . 
+	 
+	 Thank You

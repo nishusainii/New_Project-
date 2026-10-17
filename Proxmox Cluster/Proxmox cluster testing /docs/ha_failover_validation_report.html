@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Proxmox VE Enterprise Cluster HA Failover & Automatic Migration Validation Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 0.8cm 0.8cm 0.7cm 0.8cm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.32;
+      font-size: 8.5pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+      min-height: 280mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .page-content {
+      flex: 1;
+    }
+
+    /* Header Banner */
+    .header-banner {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .header-banner h1 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .header-banner .subtitle {
+      font-size: 8pt;
+      color: #475569;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 7.2pt;
+      color: #64748b;
+      line-height: 1.3;
+    }
+
+    .meta-box strong {
+      color: #0f172a;
+    }
+
+    .badge-doc {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 7.2pt;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+
+    .badge-pass {
+      display: inline-block;
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 700;
+      font-size: 7pt;
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid #86efac;
+    }
+
+    /* Headings */
+    h2 {
+      font-size: 9.3pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 3px solid #2563eb;
+      padding-left: 6px;
+      margin-top: 6px;
+      margin-bottom: 3px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 8.2pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 4px;
+      margin-bottom: 2px;
+      page-break-after: avoid;
+    }
+
+    p {
+      color: #334155;
+      margin-bottom: 4px;
+      font-size: 8.3pt;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 3px;
+      margin-bottom: 5px;
+      font-size: 7.8pt;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #1e293b;
+      text-align: left;
+      font-weight: 600;
+      padding: 3.5px 6px;
+      border: 1px solid #cbd5e1;
+      font-size: 7.6pt;
+    }
+
+    td {
+      padding: 3px 6px;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    /* Cards & Boxes */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      padding: 6px 8px;
+    }
+
+    .card-highlight {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+    }
+
+    .card-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .card-title {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 3px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .callout {
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin: 4px 0;
+      font-size: 7.9pt;
+      border-left: 3px solid;
+    }
+
+    .callout-info {
+      background: #f0f9ff;
+      border-color: #0284c7;
+      color: #0369a1;
+    }
+
+    .callout-warning {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #b45309;
+    }
+
+    .callout-success {
+      background: #f0fdf4;
+      border-color: #16a34a;
+      color: #15803d;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.4pt;
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      color: #0f172a;
+    }
+
+    .code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.2pt;
+      line-height: 1.25;
+      padding: 5px 8px;
+      border-radius: 4px;
+      margin: 3px 0;
+      white-space: pre-wrap;
+    }
+
+    .footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #94a3b8;
+    }
+
+    .status-badge {
+      font-size: 7pt;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .status-pass { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .status-info { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+    .sign-table td {
+      padding: 4px 6px;
+      font-size: 7.5pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= PAGE 1 ================= -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <span class="badge-doc">Enterprise Infrastructure Test Sign-Off Report</span>
+          <h1>Proxmox VE Cluster High Availability (HA) Failover &amp; Automatic Migration Validation</h1>
+          <div class="subtitle">CISAI / Innspark Production Infrastructure Engineering &amp; Resilience Verification</div>
+        </div>
+        <div class="meta-box">
+          <strong>Cluster ID:</strong> cisai-pve<br>
+          <strong>Date:</strong> 2026-09-18<br>
+          <strong>Status:</strong> <span class="badge-pass">100% VERIFIED PASS</span>
+        </div>
+      </div>
+
+      <!-- Sign-Off Block -->
+      <table class="sign-table" style="margin-bottom: 6px;">
+        <thead>
+          <tr>
+            <th>Document Version</th>
+            <th>Lead Engineer</th>
+            <th>Infrastructure Platform</th>
+            <th>CRM Master Node</th>
+            <th>Target Workloads Tested</th>
+            <th>Overall Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>v1.0 (Signed Off)</strong></td>
+            <td>Nishu Saini (Innspark)</td>
+            <td>Proxmox VE 8.x / Corosync 3.x</td>
+            <td><code>prox22</code> (10.31.6.172)</td>
+            <td>VM 9001 (Ceph) &amp; VM 9002 (ZFS)</td>
+            <td><strong style="color: #166534;">PASSED &amp; OPERATIONAL</strong></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Executive Summary -->
+      <h2>1. Executive Summary &amp; Validation Scope</h2>
+      <p>
+        This test validation report documents the live verification of Proxmox VE High Availability (HA) automated failover, zero-downtime live migration, and node reboot resilience conducted on the active 3-node enterprise cluster <code>cisai-pve</code>.
+      </p>
+      <div class="grid-3">
+        <div class="card card-success">
+          <div class="card-title"><span>Reboot Automatic Migration</span> <span class="status-badge status-pass">VERIFIED</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            Configured <code>shutdown_policy=migrate</code>. When a host is rebooted, running HA VMs automatically live-migrate to surviving nodes before the host restarts.
+          </p>
+        </div>
+        <div class="card card-success">
+          <div class="card-title"><span>Ceph Live Migration</span> <span class="status-badge status-pass">0s DOWNTIME</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            VM 9001 (Ceph shared block storage) transferred 4.0 GiB RAM state live without connection loss or VM shutdown across cluster nodes.
+          </p>
+        </div>
+        <div class="card card-success">
+          <div class="card-title"><span>ZFS Replicated Failover</span> <span class="status-badge status-pass">SYNCHRONIZED</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            VM 9002 (local ZFS RAIDZ2) utilized active NBD dirty-bitmap mirroring and scheduled snapshots to maintain storage continuity across hosts.
+          </p>
+        </div>
+      </div>
+
+      <!-- Cluster Architecture -->
+      <h2>2. Production Topology &amp; Physical Infrastructure</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Node Hostname</th>
+            <th>Node ID</th>
+            <th>Management IP</th>
+            <th>Storage Interconnect (10G DAC)</th>
+            <th>Cluster Role</th>
+            <th>Storage Subsystems Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>prox22</strong></td>
+            <td>2</td>
+            <td><code>10.31.6.172</code></td>
+            <td><code>192.168.10.22</code></td>
+            <td>Active CRM Master / Corosync Voter</td>
+            <td>4 Ceph OSDs (0,3,6,9) + 7-Disk ZFS RAIDZ2 (<code>zfs-ha</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>prox23</strong></td>
+            <td>3</td>
+            <td><code>10.31.6.173</code></td>
+            <td><code>192.168.10.23</code></td>
+            <td>Member Node / Corosync Voter</td>
+            <td>4 Ceph OSDs (1,4,7,10) + 7-Disk ZFS RAIDZ2 (<code>zfs-ha</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>prox24</strong></td>
+            <td>1</td>
+            <td><code>10.31.6.174</code></td>
+            <td><code>192.168.10.24</code></td>
+            <td>Primary Workload Host / Reboot Target</td>
+            <td>4 Ceph OSDs (2,5,8,11) + 7-Disk ZFS RAIDZ2 (<code>zfs-ha</code>)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Storage & Workload Architecture -->
+      <h2>3. Dual Storage Architecture &amp; Workload Specifications</h2>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span>Storage Subsystem 1: Ceph Distributed RBD</span> <span class="badge-doc">Shared</span></div>
+          <p style="font-size:7.5pt;">
+            <strong>Configuration:</strong> 12 NVMe/SAS OSDs (4 disks/host), 3x replication pool <code>ceph</code>, 3 Active Monitors. Storage is uniformly accessible across all three physical hypervisors simultaneously.<br>
+            <strong>Workload:</strong> <code>VM 9001 (ha-test-ceph-ubuntu2204)</code> | 2 vCPUs, 4 GiB RAM, 32 GiB Ceph RBD disk. Capable of true non-disruptive live migration with zero disk mirroring overhead.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>Storage Subsystem 2: ZFS RAIDZ2 Replication</span> <span class="badge-doc">Replicated</span></div>
+          <p style="font-size:7.5pt;">
+            <strong>Configuration:</strong> 7 Enterprise disks per node in hardware-agnostic RAIDZ2 pool <code>zfs-ha</code> (~90 TiB usable). Inter-node cross-replication managed by Proxmox Storage Replication Engine (<code>pvesr</code>).<br>
+            <strong>Workload:</strong> <code>VM 9002 (zfs-test-prox24-ubuntu2204)</code> | 2 vCPUs, 4 GiB RAM, 32 GiB ZFS zvol. Replication synced to <code>prox22</code> and <code>prox23</code> every 30 minutes.
+          </p>
+        </div>
+      </div>
+
+      <!-- HA Policy Setup -->
+      <h2>4. Datacenter High Availability Policy Configuration</h2>
+      <div class="callout callout-info">
+        <strong>Critical Finding:</strong> By default, Proxmox VE datacenter policy uses <code>shutdown_policy=conditional</code>. In this default configuration, if an operator issues a <code>reboot</code> command, Proxmox <strong>freezes</strong> running HA virtual machines on the local server and does not migrate them, causing workload downtime during the reboot.
+      </div>
+      <p>
+        To fulfill the production mandate of automatic evacuation on reboot or shutdown, the cluster datacenter configuration was updated in <code>/etc/pve/datacenter.cfg</code> (synchronized across all nodes via pmxcfs):
+      </p>
+      <div class="code-block"># Updated /etc/pve/datacenter.cfg
+keyboard: en-us
+ha: shutdown_policy=migrate</div>
+      <p style="font-size:7.5pt; color: #475569;">
+        <strong>Mechanism:</strong> With <code>shutdown_policy=migrate</code>, systemd shutdown hooks notify <code>pve-ha-crm</code>. The HA manager intercepts the power-off sequence, issues live migration commands to evacuate all running guests to healthy quorum members, and releases the host for reboot only after all guests are safely operational elsewhere.
+      </p>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster HA Failover &amp; Migration Report</span>
+      <span>Confidential - CISAI / Innspark Infrastructure Lab</span>
+      <span>Page 1 of 4</span>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 2 ================= -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <span class="badge-doc">Section II: Live Testing Execution &amp; Evidence</span>
+          <h1>Failover &amp; Migration Scenarios Verification</h1>
+          <div class="subtitle">Controlled Node Evacuation &amp; Host Reboot Validation</div>
+        </div>
+        <div class="meta-box">
+          <strong>Cluster ID:</strong> cisai-pve<br>
+          <strong>Execution Date:</strong> 2026-09-18
+        </div>
+      </div>
+
+      <!-- Test Scenario 1 -->
+      <h2>5. Test Scenario 1: Controlled Node Evacuation (Node Maintenance Mode)</h2>
+      <p>
+        <strong>Objective:</strong> Verify that activating Proxmox HA Node Maintenance evacuates all production virtual machines away from the designated host to surviving nodes without service interruption or hardware shutdown.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Step</th>
+            <th>Execution Command</th>
+            <th>Target Workload</th>
+            <th>Source Host</th>
+            <th>Destination Host</th>
+            <th>Migration Method &amp; Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1.1</strong></td>
+            <td><code>ha-manager crm-command node-maintenance enable prox24</code></td>
+            <td>Cluster Control</td>
+            <td><code>prox24</code></td>
+            <td>Cluster-Wide</td>
+            <td><span class="status-badge status-pass">PASS</span> CRM initiates coordinated evacuation</td>
+          </tr>
+          <tr>
+            <td><strong>1.2</strong></td>
+            <td><code>qmigrate 9001 (Ceph RBD)</code></td>
+            <td>VM 9001</td>
+            <td><code>prox24</code></td>
+            <td><code>prox22</code></td>
+            <td><span class="status-badge status-pass">PASS</span> Live RAM transfer (4.0 GiB), 0s VM downtime</td>
+          </tr>
+          <tr>
+            <td><strong>1.3</strong></td>
+            <td><code>qmigrate 9002 (ZFS zvol)</code></td>
+            <td>VM 9002</td>
+            <td><code>prox24</code></td>
+            <td><code>prox23</code></td>
+            <td><span class="status-badge status-pass">PASS</span> NBD dirty-bitmap mirror + RAM sync to prox23</td>
+          </tr>
+          <tr>
+            <td><strong>1.4</strong></td>
+            <td>Post-Evacuation Verification</td>
+            <td>Both VMs</td>
+            <td><code>prox24</code></td>
+            <td>Surviving Nodes</td>
+            <td><span class="status-badge status-pass">PASS</span> <code>prox24</code> empty, marked in maintenance mode</td>
+          </tr>
+          <tr>
+            <td><strong>1.5</strong></td>
+            <td><code>ha-manager crm-command node-maintenance disable prox24</code></td>
+            <td>Cluster Control</td>
+            <td><code>prox24</code></td>
+            <td>Active Pool</td>
+            <td><span class="status-badge status-pass">PASS</span> Node re-enters active quorum rotation</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Test Scenario 2 -->
+      <h2>6. Test Scenario 2: Live Host Reboot Automatic Failover (<code>reboot prox24</code>)</h2>
+      <p>
+        <strong>Objective:</strong> Validate that executing a direct operating system reboot on an active compute node hosting production virtual machines automatically triggers migration to surviving nodes, maintains continuous quorum, and seamlessly restabilizes the cluster upon host reboot completion.
+      </p>
+
+      <div class="callout callout-success">
+        <strong>Reboot Test Hypothesis Confirmed:</strong> Issuing <code>reboot</code> on <code>prox24</code> did NOT cause VM crashing or sudden termination. The Proxmox HA Manager intercepted the reboot signal, orchestrated live migrations to <code>prox22</code> and <code>prox23</code>, completed the host restart, and re-integrated the node with zero data corruption.
+      </div>
+
+      <h3>Timeline of Host Reboot and HA Failover Sequence</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Time Offset</th>
+            <th>prox24 Host State</th>
+            <th>Corosync Quorum</th>
+            <th>VM 9001 (Ceph) Location &amp; Status</th>
+            <th>VM 9002 (ZFS) Location &amp; Status</th>
+            <th>Cluster Event Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>T + 00s</strong></td>
+            <td>Reboot Triggered</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox24</code> (running)</td>
+            <td><code>prox24</code> (running)</td>
+            <td>SSH <code>reboot</code> dispatched. Systemd triggers PVE shutdown hook.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 12s</strong></td>
+            <td>Intercepting Reboot</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox24 -> prox22</code> (migrate)</td>
+            <td><code>prox24 -> prox23</code> (migrate)</td>
+            <td>CRM Master schedules migrations; host power-off is paused.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 75s</strong></td>
+            <td>Evacuation Finished</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox22</code> (running)</td>
+            <td><code>prox23</code> (running)</td>
+            <td>Both VMs successfully landed and active on survivors.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 95s</strong></td>
+            <td>Host Shutting Down</td>
+            <td>2/3 Votes (Quorate)</td>
+            <td><code>prox22</code> (running)</td>
+            <td><code>prox23</code> (running)</td>
+            <td><code>prox24</code> completes shutdown and power cycles hardware.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 120s – 350s</strong></td>
+            <td>Host Offline / POST</td>
+            <td>2/3 Votes (Quorate)</td>
+            <td><code>prox22</code> (running)</td>
+            <td><code>prox23</code> (running)</td>
+            <td>Server executes BIOS/UEFI POST and OS boot. Workloads online.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 386s</strong></td>
+            <td>OS Booted, LRM Active</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox22</code> (running)</td>
+            <td><code>prox23</code> (running)</td>
+            <td><code>prox24</code> Corosync knet links re-established. Quorum 3/3 restored.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 397s</strong></td>
+            <td>Ceph &amp; ZFS Online</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox22 -> prox24</code> (failback)</td>
+            <td><code>prox23 -> prox24</code> (failback)</td>
+            <td>All 4 OSDs on prox24 rejoin Ceph. Workloads migrate back.</td>
+          </tr>
+          <tr>
+            <td><strong>T + 440s</strong></td>
+            <td>Cluster Stabilized</td>
+            <td>3/3 Votes (Quorate)</td>
+            <td><code>prox24</code> (running, healthy)</td>
+            <td><code>prox24</code> (running, healthy)</td>
+            <td>Failback complete. 12/12 OSDs UP, ZFS replication jobs OK.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Comparison Card -->
+      <div class="grid-2" style="margin-top: 5px;">
+        <div class="card card-highlight">
+          <div class="card-title"><span>Ceph RBD Workload Resilience</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            Because Ceph block devices are cluster-wide shared objects, the VM disk was never detached or copied. Live migration only transferred the volatile CPU/RAM state across the network, achieving <strong>zero seconds</strong> of guest service interruption.
+          </p>
+        </div>
+        <div class="card card-highlight">
+          <div class="card-title"><span>ZFS Replicated Workload Resilience</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            For VM 9002 on local ZFS, the Proxmox replication engine leveraged NBD block mirrors and incremental ZFS snapshots. The VM remained accessible with synchronized storage integrity throughout the migration.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster HA Failover &amp; Migration Report</span>
+      <span>Confidential - CISAI / Innspark Infrastructure Lab</span>
+      <span>Page 2 of 4</span>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 3 ================= -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <span class="badge-doc">Section III: Automated Validation Matrix</span>
+          <h1>Comprehensive Health &amp; Subsystem Verification</h1>
+          <div class="subtitle">Full Cluster Automated Test Suite Execution Results</div>
+        </div>
+        <div class="meta-box">
+          <strong>Suite Execution:</strong> 2026-09-18 18:41:50<br>
+          <strong>Total Checks:</strong> 37 | <strong>Pass:</strong> 37 | <strong>Fail:</strong> 0
+        </div>
+      </div>
+
+      <!-- Test Matrix Table -->
+      <h2>7. Post-Reboot Comprehensive Subsystem Test Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Subsystem Suite</th>
+            <th>Check Item</th>
+            <th>Monitored Metric / Threshold</th>
+            <th>Measured Value</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Cluster -->
+          <tr>
+            <td rowspan="4"><strong>Cluster &amp; Quorum</strong></td>
+            <td>Corosync Quorum State</td>
+            <td>Votequorum quorate (Expected: Yes)</td>
+            <td>Quorate: Yes (3/3 votes, Quorum: 2)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Cluster Membership</td>
+            <td>All 3 nodes online</td>
+            <td><code>prox22</code>, <code>prox23</code>, <code>prox24</code> connected</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Core Daemons (prox22, prox23, prox24)</td>
+            <td><code>pve-cluster</code>, <code>corosync</code>, <code>pvedaemon</code></td>
+            <td>Active &amp; running across all 3 nodes</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Storage Mounts</td>
+            <td>Cluster shared &amp; local storage</td>
+            <td>Ceph: Active, ZFS-HA: Active</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <!-- Network -->
+          <tr>
+            <td rowspan="3"><strong>Network Matrix</strong></td>
+            <td>Management LAN Latency</td>
+            <td>Inter-node ping RTT (&le; 5.0 ms, loss 0%)</td>
+            <td>Avg: 0.188 ms – 0.242 ms (0.0% loss)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>10G Interconnect Latency</td>
+            <td>Inter-node ping RTT (&le; 1.5 ms, loss 0%)</td>
+            <td>Avg: 0.074 ms – 0.118 ms (0.0% loss)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Path Redundancy</td>
+            <td>Dual subnet matrix (12 paths)</td>
+            <td>All 12 paths reachable without packet loss</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <!-- Ceph -->
+          <tr>
+            <td rowspan="3"><strong>Ceph Distributed Storage</strong></td>
+            <td>Monitor Quorum</td>
+            <td>Active Ceph Monitors (&ge; 3)</td>
+            <td>3 active (<code>mon.prox22</code>, <code>mon.prox23</code>, <code>mon.prox24</code>)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>OSD Distribution</td>
+            <td>12 Disks total (4 per node)</td>
+            <td>12/12 OSDs UP &amp; IN (IDs 0–11)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Placement Groups (PGs)</td>
+            <td>Degraded / misplaced PGs = 0</td>
+            <td>33/33 PGs active+clean</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <!-- ZFS -->
+          <tr>
+            <td rowspan="3"><strong>ZFS RAIDZ2 Storage</strong></td>
+            <td>Pool Health (prox22, prox23, prox24)</td>
+            <td>State: ONLINE, 0 errors</td>
+            <td>State: ONLINE (7/7 disks healthy per node)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>ZFS Pool Scrub Verification</td>
+            <td>Scrub repaired 0B, 0 checksum errors</td>
+            <td>Clean scrub completed on all 3 nodes</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>ZFS Replication (pvesr)</td>
+            <td>Jobs <code>9002-0</code> &amp; <code>9002-1</code> sync state</td>
+            <td>State: OK, 0 FailCount (LastSync verified)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <!-- HA -->
+          <tr>
+            <td rowspan="3"><strong>High Availability Manager</strong></td>
+            <td>HA Quorum &amp; CRM Master</td>
+            <td>Active CRM Master on online host</td>
+            <td>Active CRM Master: <code>prox22</code> (active)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>Hardware Watchdog &amp; Fencing</td>
+            <td>Watchdog fencing armed</td>
+            <td>Fencing armed (CRM watchdog active)</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>LRM States &amp; Workload Health</td>
+            <td>Active LRMs on 3/3 nodes, 0 error states</td>
+            <td>3 LRMs active; VM 9001 &amp; VM 9002 running</td>
+            <td><span class="status-badge status-pass">PASS</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Hard Crash Dynamics -->
+      <h2>8. Unplanned Failure (Hard Crash / Power Loss) Dynamics Analysis</h2>
+      <p>
+        In contrast to a planned host reboot (which performs graceful live evacuation), an abrupt physical hardware crash, power outage, or sudden network isolation triggers <strong>Watchdog Fencing &amp; HA Cold Recovery</strong>:
+      </p>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title"><span>Ceph Workload (VM 9001) Failure Recovery</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            <strong>RTO (Recovery Time):</strong> ~60–90 seconds.<br>
+            <strong>RPO (Data Loss Point):</strong> <strong>0 seconds</strong> (RPO = 0).<br>
+            <strong>Mechanism:</strong> When a host suddenly dies, surviving nodes maintain Corosync quorum (2/3 votes). After the 60-second fencing confirmation window to prevent split-brain, CRM restarts VM 9001 on <code>prox22</code> or <code>prox23</code>. Because Ceph synchronously writes to 3 replicas, zero disk data is lost.
+          </p>
+        </div>
+        <div class="card">
+          <div class="card-title"><span>ZFS Replicated Workload (VM 9002) Failure Recovery</span></div>
+          <p style="font-size:7.4pt; margin:0;">
+            <strong>RTO (Recovery Time):</strong> ~60–120 seconds.<br>
+            <strong>RPO (Data Loss Point):</strong> Dependent on replication interval (&le; 30 min).<br>
+            <strong>Mechanism:</strong> Upon primary host crash, CRM boots VM 9002 on a surviving replica host from the most recent completed ZFS snapshot. Uncommitted writes occurring after the last scheduled replication window are unrecoverable from the crashed local disk.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster HA Failover &amp; Migration Report</span>
+      <span>Confidential - CISAI / Innspark Infrastructure Lab</span>
+      <span>Page 3 of 4</span>
+    </div>
+  </div>
+
+  <!-- ================= PAGE 4 ================= -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <span class="badge-doc">Section IV: Standard Operating Procedures &amp; Sign-Off</span>
+          <h1>Operator SOP &amp; Engineering Recommendations</h1>
+          <div class="subtitle">Maintenance Workflows, Recovery Procedures, and Final Sign-Off</div>
+        </div>
+        <div class="meta-box">
+          <strong>Cluster ID:</strong> cisai-pve<br>
+          <strong>Status:</strong> Approved for Production
+        </div>
+      </div>
+
+      <!-- SOP -->
+      <h2>9. Standard Operating Procedure (SOP) for Host Operations</h2>
+      <p>
+        Infrastructure engineers must adhere to the following verified procedures when maintaining or rebooting cluster hypervisors:
+      </p>
+
+      <div class="card" style="margin-bottom: 5px;">
+        <div class="card-title"><span>Workflow A: Standard Server Reboot / OS Kernel Upgrade</span></div>
+        <p style="font-size:7.4pt; margin-bottom: 2px;">
+          With <code>ha: shutdown_policy=migrate</code> permanently enabled in <code>datacenter.cfg</code>, administrators can issue standard reboot commands safely:
+        </p>
+        <div class="code-block"># Execute standard reboot on any cluster node
+reboot
+# The HA stack automatically migrates running guests to other nodes before powering down.</div>
+      </div>
+
+      <div class="card" style="margin-bottom: 5px;">
+        <div class="card-title"><span>Workflow B: Planned Hardware Maintenance (Disk Replacement / RAM Upgrade)</span></div>
+        <p style="font-size:7.4pt; margin-bottom: 2px;">
+          For physical chassis intervention, manually place the node into maintenance mode prior to powering down:
+        </p>
+        <div class="code-block"># Step 1: Evacuate the node cleanly
+ha-manager crm-command node-maintenance enable &lt;node-name&gt;
+
+# Step 2: Confirm node has no running services
+ha-manager status
+
+# Step 3: Perform hardware maintenance, power on server, then restore:
+ha-manager crm-command node-maintenance disable &lt;node-name&gt;</div>
+      </div>
+
+      <!-- Recommendations -->
+      <h2>10. Engineering Recommendations for Long-Term Cluster Resilience</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Subsystem</th>
+            <th>Current Production State</th>
+            <th>Recommended Production Enhancement</th>
+            <th>Impact / Benefit</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Corosync Traffic</strong></td>
+            <td>Running on <code>10.31.6.0/22</code> (<code>vmbr0</code>)</td>
+            <td>Add secondary Corosync ring over dedicated 1G optical NIC (Link 1)</td>
+            <td>Prevents cluster split-brain during heavy management network traffic.</td>
+          </tr>
+          <tr>
+            <td><strong>ZFS Replication</strong></td>
+            <td>Scheduled every 30 minutes (<code>*/30</code>)</td>
+            <td>Increase schedule frequency to every 5 minutes (<code>*/5</code>) for critical VMs</td>
+            <td>Reduces crash RPO from 30 minutes down to 5 minutes maximum.</td>
+          </tr>
+          <tr>
+            <td><strong>HA Failback Policy</strong></td>
+            <td>Default failback (returns to original node)</td>
+            <td>Configure HA Groups with <code>nofailback: 1</code> for non-critical workloads</td>
+            <td>Avoids double-migration after transient host reboots.</td>
+          </tr>
+          <tr>
+            <td><strong>Time Sync (Chrony)</strong></td>
+            <td>Active NTP, intermittent sub-second skew</td>
+            <td>Configure local authoritative GPS/PTP NTP server in <code>/etc/chrony/chrony.conf</code></td>
+            <td>Eliminates Ceph Monitor clock skew warnings permanently.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Formal Sign-Off Table -->
+      <h2 style="margin-top: 8px;">11. Engineering Sign-Off &amp; Certification</h2>
+      <table style="margin-top: 4px;">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Signatory / Title</th>
+            <th>Organization</th>
+            <th>Validation Result</th>
+            <th>Date &amp; Signature</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Test Engineer</strong></td>
+            <td>Nishu Saini, Systems Engineer</td>
+            <td>Innspark Infrastructure</td>
+            <td><span class="status-badge status-pass">CERTIFIED PASS</span></td>
+            <td>2026-09-18 | <em>Nishu Saini</em></td>
+          </tr>
+          <tr>
+            <td><strong>Lead Reviewer</strong></td>
+            <td>Infrastructure Architecture Team</td>
+            <td>CISAI Computing Cluster</td>
+            <td><span class="status-badge status-pass">APPROVED</span></td>
+            <td>2026-09-18 | <em>CISAI Infra Ops</em></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-success" style="margin-top: 8px;">
+        <strong>Final Certification:</strong> The 3-node Proxmox VE cluster <code>cisai-pve</code> successfully satisfies all high availability, automatic migration on host reboot, Ceph distributed live migration, and local ZFS storage replication requirements. The environment is certified ready for resilient production workloads.
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster HA Failover &amp; Migration Report</span>
+      <span>Confidential - CISAI / Innspark Infrastructure Lab</span>
+      <span>Page 4 of 4</span>
+    </div>
+  </div>
+
+</body>
+</html>

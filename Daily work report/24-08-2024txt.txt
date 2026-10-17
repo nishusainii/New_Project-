@@ -1,0 +1,77 @@
+Nishu Saini,
+Date: 24/08/2026
+Login: 09:51AM
+Logout:  PM
+
+Today's Work Summary
+
+Date: 24/08/2026
+
+Today’s Work Tasks
+
+
+*09:00 AM - 10:00 AM
+
+-Reviewed bandwidth-monitoring requirements for the Squid proxy server, covering real-time, historical, physical-interface, VLAN, user, and IP-based usage.
+-Evaluated bandwidth-monitoring tools, including bmon, nload, and vnStat, and identified their monitoring scope and limitations.
+-Reviewed the Ubuntu proxy/gateway server configuration, including interfaces, IP address, default gateway, and routing status.
+
+
+*10:00 AM - 1:20 PM
+-Analyzed FortiClient SSL-VPN logs and identified connectivity failures to the FortiGate gateway on TCP port 4433.
+-Verified that the FortiGate SSL-VPN service and its login endpoints were available through the Squid proxy path.
+-Confirmed successful Squid HTTP CONNECT tunnels by reviewing TCP_TUNNEL/200 entries in the Squid access log.
+-Tested and removed unsuccessful manual-routing and DNAT workarounds that were incompatible with Squid’s HTTP CONNECT listener.
+-Installed and configured OpenFortiVPN 1.17.1 as an alternative Linux SSL-VPN client.
+-Resolved OpenFortiVPN proxy parsing issues and configured it to use the Squid proxy correctly.
+-Verified the FortiGate certificate identity and added its trusted SHA-256 certificate digest to the OpenFortiVPN configuration.
+-Created a restricted Squid ACL that allows only an approved client IP to connect to the designated FortiGate IP and TCP port 4433.
+-Validated and reloaded the Squid configuration while keeping regular proxy access protected by authentication.
+-Successfully established the OpenFortiVPN connection through the restricted Squid HTTP CONNECT tunnel.
+-Created and configured a systemd service for automatic OpenFortiVPN startup, restart, logging, and non-interactive operation.
+-Designed a secure multi-client onboarding process using individual client /32 IP entries and separate FortiGate VPN credentials.
+-Prepared a centralized approved-client list at /etc/squid/openfortivpn_clients.txt.
+-Created a professional SOP covering the architecture, installation, Squid ACLs, certificate validation, systemd service, monitoring, troubleshooting, rollback, and multi-client security.
+
+1:20 PM to 2:10 PM 
+
+-Lunch break.
+
+
+2:10 PM to 4:10 PM 
+
+-Reviewed Linux client network settings and verified its IP address, default gateway, active route, and Internet traffic path.
+-Analyzed the client-to-server routing design and evaluated policy-based routing and a client-facing server interface as possible solutions.
+-Configured and verified nftables forwarding and source NAT/masquerade rules for selected client traffic.
+-Used nftables counters and tcpdump to confirm that client transit traffic was not reaching the Ubuntu proxy server.
+-Performed connectivity and routing tests using curl, Netcat, OpenSSL, ip route, tracepath, and tcpdump.
+
+4:10 PM to 5:30PM
+
+-Compared the operational use of multiple bandwidth-monitoring tools.
+-nload: Reviewed for simple, real-time incoming and outgoing bandwidth monitoring.
+-bmon: Reviewed for real-time monitoring of multiple physical and virtual network interfaces.
+-vnStat: Reviewed for maintaining persistent hourly, daily, monthly, and historical interface statistics.
+-Netdata: Reviewed as a web-based application for infrastructure and multi-interface monitoring.
+-ntopng: Reviewed for detailed traffic-flow, host, protocol, VLAN, and top-talker analysis.
+Identified vnStat, bmon, Netdata, and ntopng as suitable options for different monitoring requirements in the server’s multi-NIC and VLAN environment
+
+5:30 PM to 7:00  PM 
+
+-Reviewed the installation of nload using the Ubuntu package manager.
+-Reviewed how to monitor all detected network interfaces.
+-Reviewed how to monitor a specific physical, VLAN, or virtual network interface.
+-Reviewed how to display multiple interfaces simultaneously.
+-Reviewed how to switch between available network interfaces.
+-Reviewed how to display bandwidth in Mbps or MB/s.
+-Reviewed how to adjust the screen refresh interval.
+-Reviewed the following bandwidth values displayed by nload:
+          1.Current transfer rate
+          2.Average transfer rate
+          3.Minimum transfer rate
+          4.Maximum transfer rate
+          5.Total transferred data
+-Confirmed that nload provides real-time interface-level bandwidth monitoring.
+-Confirmed that nload does not maintain persistent historical records after the monitoring session ends.
+-Confirmed that nload does not provide Squid user-wise, client IP-wise, or website-wise bandwidth statistics.
+

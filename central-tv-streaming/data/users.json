@@ -1,0 +1,14 @@
+[
+  {
+    "username": "admin",
+    "password": "admin123",
+    "role": "admin",
+    "description": "Full System Administrator (Display fleet, network discovery, channels, media, live broadcast)"
+  },
+  {
+    "username": "streamer",
+    "password": "streamer123",
+    "role": "streamer",
+    "description": "Content Operator (Upload videos, playlist control, live presenter stream)"
+  }
+]

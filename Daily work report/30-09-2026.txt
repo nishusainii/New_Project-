@@ -1,0 +1,30 @@
+Name: Nishu Saini
+Date: 30/09/2026
+Login Time: 09:15 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:15 AM to 09:45 AM
+
+Juniper TAC Support Coordination & 3rd-Party Service Provider LOA Alignment (Case #2026-0923-938239)
+
+- Re-engaged with Juniper Customer Care Lead (Angelica T) regarding Case Reference ID `2026-0923-938239` for the Juniper EX2300-C compact switch (Serial Number: `HV0217520242`).
+- Confirmed compliance classification under Juniper's framework as an on-site 3rd-Party IT service & network infrastructure management provider operating directly under Amrita Vishwa Vidyapeetham (Amritapuri Campus).
+- Reaffirmed that Juniper's internal account management team is actively coordinating the formal Letter of Authorization (LOA) directly with Amrita Vishwa Vidyapeetham.
+- Clarified individual software download licensing compliance: Re-confirmed that individual profile `hareesh@innspark.in` will receive direct software download entitlement upon LOA clearance (avoiding group mailbox restrictions on `itsupport@innspark.in`).
+- Status: In Progress / Actively Tracking Institutional LOA Clearance & Software Portal Unlock.
+
+09:45 AM to 12:00 PM
+
+Palo Alto NGFW Training: Core Architecture, Deployment Modes & Hardware Platform
+
+Key Technical Learnings:
+
+- Proxy Architectures (Explicit vs. Transparent): Understood dual-socket TCP termination mechanics, Explicit Proxy redirection via PAC/WPAD browser settings, Transparent Proxy interception using WCCP / Policy-Based Routing (PBR), and traditional proxy hardware scaling limits.
+- Stateful Inspection & Session Table Architecture: Studied TCP 3-way handshake tracking and in-memory Session State Table lookups (5-Tuple: Source/Destination IP, Source/Destination Port, Protocol + TCP state flags), along with dynamic Fast-Path forwarding for established return traffic.
+- Firewall Deployment Modes: Explored Layer 3 Routed Mode (routing, NAT, default gateway), Layer 2 Virtual Wire (V-Wire / Transparent "Bump-in-the-Wire" mode allowing inline inspection with zero IP/MAC redesign for instant deployment), and TAP Mode (passive SPAN monitoring).
+- Evolution of Firewall Technology: Traced progression from 1st Gen Stateless Packet Filters to 2nd Gen Stateful Inspection to 4th Gen UTM and 5th Gen Single-Pass NGFW, including Nir Zuk's industry contributions.
+- UTM Bottlenecks vs. Palo Alto SP3 Engine: Analyzed performance penalties in traditional UTM multi-pass engines (repeated packet disassembly/reassembly) versus Palo Alto's Single-Pass Parallel Processing (SP3) uniform signature matching matrix and Control Plane vs. Data Plane hardware separation.
+- Hardware Platform & Port Matrix: Studied hardware sizing across Branch (PA-220/400), Enterprise (PA-500/800/3200), and Data Center Chassis (PA-5200/7000); reviewed port roles (MGT 192.168.1.1, Console 9600-8-N-1, HA1 Heartbeat, HA2 Session Sync, HSCI) and front panel LED diagnostics (PWR, STS, ALM, HA).
+- Virtual Systems (VSYS) Multi-Tenancy: Understood logical firewall virtualization, independent rulebases, Inter-VSYS internal routing, Shared Gateways, multi-tenant RBAC administration, and resource allocation limits.

@@ -1,0 +1,107 @@
+Name: Nishu Saini
+ Date: 01/09/2026
+ Login: 08:55 AM
+ Logout: 07: 38PM
+ 
+ Today's Work Summary
+
+9:00 AM to 1: 20 PM
+
+-Ceph Storage Validation and Recovery Testing
+-Updated and deployed Ceph Validation Suite v3.0 with automated health, performance, controlled-failure, recovery, cleanup, evidence collection, and reporting functions.
+-Verified the final Ceph cluster status:
+            HEALTH_OK
+            Three monitors in quorum
+            36 OSDs up and in
+            33 placement groups active+clean
+-Completed RADOS write, sequential-read, and random-read performance testing.
+-Corrected the FIO workload to use the libaio I/O engine with a queue depth of 32.
+-Recorded approximately:
+          30.4k IOPS
+          119 MiB/s bandwidth
+          4.21 ms average completion latency
+          Zero FIO errors
+-Completed a controlled failure and recovery test for osd.5.
+Verified cluster recovery to HEALTH_OK in approximately 21 seconds.
+-Completed a controlled monitor failure test on prox24.
+-Confirmed monitor quorum was maintained and full recovery completed in approximately 10 seconds.
+-Conducted controlled network-partition testing between prox23 and prox24.
+-Verified that:
+          Monitor quorum was maintained.
+          All OSDs remained up and in.
+          All placement groups returned to active+clean.
+         Temporary slow-operation and heartbeat warnings cleared.
+         The cluster returned to HEALTH_OK.
+-Confirmed bidirectional connectivity with 0% packet loss and stable sub-millisecond latency.
+-Classified the network-partition test as:
+-Functional recovery passed with delayed health-warning clearance
+-Final technical status: Resolved
+
+1:20 PM To 2:00 PM 
+
+- Lunch break.
+
+2:00 PM To 4:00 PM
+
+-Verified that the following Proxmox HA services were active and enabled on prox22, prox23, and prox24:
+     pve-ha-lrm
+     pve-ha-crm
+-Confirmed that corosync and pve-cluster were active across all three nodes.
+-Verified:
+        HA quorum: OK
+        HA master: prox22
+        Fencing: Armed
+        CRM watchdog: Active
+-Confirmed that VM 900 was registered with Proxmox HA and remained in the started state.
+-Created Proxmox HA Validation Suite v1.0 for prechecks, migration, relocation, maintenance evacuation, node-failure monitoring, and final validation.
+-Created a combined Proxmox HA report generator.
+-Preserved logs, reports, configurations, VM information, cluster status, and validation evidence.
+squid proxy 
+-nftables Firewall Configuration
+-Reviewed the active inet filter and ip nat nftables rules.
+-Attempted to authorize client IP 10.40.4.66 across the required firewall processing paths.
+-Identified and corrected an nftables command-quoting issue involving rule comments.
+-Removed temporary unrestricted rules created for 10.40.4.66.
+-Updated /etc/nftables.conf with the intended restricted-access configuration.
+-Added flush ruleset to prevent duplicate firewall rules during configuration reload.
+
+Squid Proxy Configuration
+-Added client IP 10.40.4.66 to the Squid allowed_ips source ACL.
+-Reviewed the complete list of permitted Squid client IP addresses.
+-Prepared commands and a reusable script for creating individual client log directories under:
+   /var/log/squid/clients/
+-Defined appropriate directory ownership and permissions for the Squid service account.
+-Reviewed Squid NCSA username and password management.
+
+4:00 To 7:40 PM 
+
+Network Cabling and RJ45 Work
+
+-Wired an RJ45 wall socket using a Cat6 keystone jack.
+-Prepared two Cat6 LAN cables for network connectivity.
+-Completed the required Cat6 cable termination work.
+
+Windows and VPN Client Installation
+
+-Installed Windows 11 on a desktop PC.
+-Completed the required Windows operating-system setup.
+-Installed the Check Point SSL VPN client software on a laptop.
+-Prepared the laptop for secure SSL VPN connectivity through the Check Point firewall.
+
+Final Status
+
+-Ceph health and capacity validation: PASS
+-RADOS performance validation: PASS
+-RBD/FIO performance validation: PASS
+-Controlled OSD failure and recovery: PASS
+-Controlled monitor failure and recovery: PASS
+-Network-partition functional recovery: PASS with recovery-time exception
+-Final Ceph state: HEALTH_OK
+-Proxmox HA control-plane readiness: PASS
+-nftables restricted-access configuration: Completed
+-Squid client-access configuration: Completed
+-RJ45 keystone jack wiring: Completed
+-Two Cat6 LAN cables prepared: Completed
+-Windows 11 installation on desktop PC: Completed
+-Check Point SSL VPN client installation on laptop: Completed
+-Validation evidence and documentation: Completed

@@ -1,0 +1,349 @@
+
+
+
+Troubleshooting Summary: Squid Multi-WAN / ISP Traffic Verification
+1. Verified Squid Listening Ports
+
+Checked active Squid proxy ports:
+
+netstat -tnlp | grep squid
+
+
+Found Squid listening on:
+
+8848
+8855
+8858
+8859
+8860
+8868
+8878
+8888
+8898
+8899
+
+2. Verified Active Client Connections
+
+Checked active connections to proxy ports:
+
+ss -tn | grep :8860
+ss -tn | grep :8859
+ss -tn | grep :8878
+
+
+Observed multiple client systems connected to Squid, confirming users were actively using the proxy.
+
+3. Checked Squid Access Logs
+
+Reviewed CONNECT requests and client activity:
+
+grep CONNECT /var/log/squid/access.log
+
+
+Verified traffic was flowing through Squid.
+
+4. Captured WAN Traffic
+
+Performed packet captures:
+
+tcpdump -ni kv1 host 8.8.8.8
+tcpdump -ni kv2 host 8.8.8.8
+
+
+Observed DNS and Internet traffic on active WAN links.
+
+5. Verified Squid Outbound Connections
+
+Checked outbound Squid sessions:
+
+ss -tnp | grep squid
+lsof -iTCP -nP | grep squid
+
+
+Confirmed Squid was creating Internet connections using multiple source IPs:
+
+192.168.14.30
+192.168.16.30
+192.168.12.30
+192.168.1.30
+192.168.4.30
+192.168.19.30
+
+6. Reviewed Squid WAN Mapping Configuration
+
+Verified tcp_outgoing_address configuration:
+
+tcp_outgoing_address 192.168.14.30 proxy8860
+tcp_outgoing_address 192.168.16.30 proxy8859
+tcp_outgoing_address 192.168.12.30 proxy8878
+tcp_outgoing_address 192.168.18.30 proxy8855
+tcp_outgoing_address 192.168.8.30  proxy8868
+tcp_outgoing_address 192.168.1.30  proxy8888
+tcp_outgoing_address 192.168.4.30  proxy8898
+tcp_outgoing_address 192.168.19.30 proxy8858
+tcp_outgoing_address 192.168.5.30  proxy8848
+tcp_outgoing_address 192.168.1.31 proxy8899
+
+
+Confirmed each proxy port is mapped to a dedicated ISP/WAN interface.
+
+7. Checked Interface Traffic Statistics
+
+Monitored WAN interfaces:
+
+ip -s link show kv1
+ip -s link show kv2
+...
+
+
+Traffic observed on:
+
+kv1
+kv2
+kv3
+kv6
+kv7
+kv8
+
+
+No traffic observed on:
+
+kv4
+kv5
+kv9
+
+8. Investigated Inactive WAN Links
+
+Tested gateway connectivity:
+
+ping 192.168.18.1
+ping 192.168.8.1
+ping 192.168.5.1
+
+
+Results:
+
+192.168.18.1 unreachable
+192.168.8.1 unreachable
+192.168.5.1 unreachable
+
+
+No ARP responses were received from these gateways.
+
+9. Identified Root Cause
+
+Confirmed that the ISPs associated with:
+
+kv4  -> 192.168.18.x
+kv5  -> 192.168.8.x
+kv9  -> 192.168.5.x
+
+
+had unpaid bills and services were suspended.
+
+Therefore:
+
+Gateway unreachable
+No RX traffic
+No Squid outbound traffic
+
+
+is expected behavior.
+
+Final Conclusion
+
+✅ Squid configuration is correct.
+
+✅ tcp_outgoing_address is functioning properly.
+
+✅ Traffic is being routed separately through:
+
+kv1 (8860)
+kv2 (8859)
+kv3 (8878)
+kv6 (8888)
+kv7 (8898)
+kv8 (8858)
+
+
+✅ Multi-WAN traffic separation is working as designed.
+
+✅ Issue resolved.
+
+❌ kv4, kv5, and kv9 are inactive due to ISP service suspension (unpaid bills), not because of a Squid or Linux configuration issue.
+
+
+
+Script Work Summary
+Created a production Bash script named proxy_health1.sh for Squid multi-WAN health monitoring.
+Added proxy-port mappings for kv1 through kv9, including source IP and gateway details.
+Added checks for:
+Current connections per proxy port
+Unique clients per proxy port
+Squid listening-port status
+Gateway reachability through the mapped NIC
+Daily RX/TX bandwidth from vnStat
+Squid service status
+Added report sections for:
+System Health
+Daily Bandwidth Summary
+Top Utilized Links
+Overall Proxy and Multi-WAN Status
+Unavailable interfaces
+Corrected ss output-field handling so connection and client counts display properly.
+Replaced emojis with plain text such as UP, DOWN, ACTIVE, and UNAVAILABLE to maintain correct terminal alignment.
+Added SSH client/server detection so the report can be started from a client computer and executed remotely on the Squid server.
+Configured SSH parameters for:
+Server: 10.31.1.159
+User: nishu
+Remote script: /home/nishu/proxy_health1.sh
+Added support for SSH-key or password authentication.
+Identified and corrected file issues:
+Invalid shebang: w#!/usr/bin/env bash
+Incorrect .bak remote path
+HTML-encoded operators such as &gt;, &lt;, and &amp;
+Server script ownership and execution permissions
+Added syntax validation using:
+bash -n /home/nishu/proxy_health.sh
+
+Configured the same script to exist on both the client and proxy server, allowing the client to fetch the complete live report through SSH.
+
+
+
+
+
+
+SARG Dashboard and Graph Customization Summary
+
+The SARG interface was modernized while keeping the generated reporting data intact.
+
+Dashboard improvements completed
+Added an external stylesheet named sarg-dashboard.css.
+Confirmed Apache serves the stylesheet successfully with HTTP 200 OK.
+Corrected the stylesheet URL to:
+/assets/sarg-dashboard.css
+
+Replaced the oversized full-width blue banner with a compact centered dashboard card.
+Created a modern logo/branding section.
+Improved the front-page report list with:
+Centered card layout
+Blue gradient column headings
+Alternating row colors
+Row hover highlighting
+Larger FILE/PERIOD links
+Better spacing for creation date, users, bytes, and average values
+Converted the report navigation into one horizontal row:
+Top Sites
+Sites & Users
+Downloads
+Denied Accesses
+Authentication Failures
+Removed unwanted empty navigation boxes.
+Preserved proper table rows and columns across all detailed report pages.
+Added the missing GRAPH header.
+Split the combined IN-CACHE-OUT heading into:
+IN-CACHE
+OUT-CACHE
+Kept the following columns correctly aligned:
+NUM
+GRAPH
+USERID
+CONNECT
+BYTES
+%BYTES
+IN-CACHE
+OUT-CACHE
+ELAPSED TIME
+MILLISEC
+%TIME
+
+Typography and color updates
+
+The detailed report data uses 14px bold text with selected metric colors:
+
+CONNECT: purple
+BYTES: orange
+%BYTES: red
+IN-CACHE: green
+OUT-CACHE: amber
+ELAPSED TIME: blue
+MILLISEC: violet
+%TIME: cyan
+USERID: larger, clearer link text
+GRAPH header: compact 12px text
+
+The TOTAL and AVERAGE footer rows remain neutral to avoid excessive highlighting.
+
+CSS cleanup
+
+The earlier stylesheet had grown substantially because it contained many repeated theme versions and conflicting rules.
+
+The cleaned stylesheet:
+
+Consolidates the intended design into one stylesheet
+Removes duplicate V2, V3, V4, V5, menu, banner, and table rules
+Avoids broad rules that hide valid empty SARG cells or rows
+Preserves native table structure
+Keeps menu-specific flex styling isolated from report tables
+Has balanced braces and comments
+Contains no encoded &gt; or &lt; CSS operators
+
+A modern consolidated stylesheet was created as sarg-dashboard-modern.css.
+
+Current graph status
+
+The visible graph is a static image generated by SARG. The current graph contains:
+
+A gray 3D chart area
+Daily axis labels from 01 through 31
+A large bar on day 25
+A displayed value of 133G
+A vertical BYTES axis
+A title containing the organization dashboard name, period, and user address
+
+SARG produces HTML reports and relies on GD-related graph generation in packaged builds, so the graph itself is rendered as an image rather than as a browser-native interactive chart.
+
+What CSS can improve on graph pages
+
+CSS can modernize:
+
+The graph image container
+Graph page spacing
+Chart image size
+Border radius
+Shadow
+Background card
+Responsiveness
+Graph and date/time icon buttons
+Hover effects
+GRAPH column alignment
+What CSS cannot change
+
+CSS cannot modify pixels inside the graph image, including:
+
+Internal bar colors
+Gray gridlines
+3D chart style
+Axis labels
+Data labels
+Graph title
+Scale calculation
+Bar geometry
+Values plotted by SARG
+
+Changing those elements requires modifying SARG graph-generation settings or generating a replacement chart from the underlying report data.
+
+
+Planned the deployment of the Pulse infrastructure monitoring tool on a Linux VM.
+Confirmed that Pulse should be installed as a native systemd service, without using Docker.
+Downloaded the Pulse v6.3.1 Linux AMD64 release package manually.
+Investigated the installation failure caused by the VM being unable to download the release archive directly from GitHub.
+Stored the Pulse installer and release files under /opt/pulse-install.
+Reviewed the install.sh script and identified its built-in --archive option for installing from a local release package.
+Used the locally downloaded Pulse archive with the installer instead of modifying the script’s download section.
+Completed the Pulse v6.3.1 installation successfully on the VM.
+Reviewed the post-installation steps, including checking the systemd service, port 7655, logs, and retrieving the bootstrap token.
+Identified the next configuration task: open the Pulse web interface, create the administrator account, and register the first host from Settings → Infrastructure → Install on a host.
+Current Status
+
+Pulse is installed successfully. Initial web setup and monitored-host enrollment are pending.

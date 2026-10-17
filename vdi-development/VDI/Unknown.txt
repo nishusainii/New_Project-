@@ -1,0 +1,142 @@
+
+
+### Production Deployment Guide for Scenario A
+
+  In Scenario A, your Host OS runs the WireGuard kernel tunnel (wg0) listening on port 443 UDP, and the WireGate container acts strictly
+  as the Web Management Control Center.
+  ──────
+  ### How the Container Works with Host WireGuard (Scenario A)
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │ HOST OS (Linux Kernel)                                                 │
+    │                                                                        │
+    │   Active WireGuard:    wg0 (172.29.250.1/24, UDP 443)                  │
+    │   Firewall:            NFTables (table inet wiregate)                  │
+    │   Host Config Path:    /etc/wireguard/wg0.conf (chmod 0600)            │
+    │                                                                        │
+    │   ┌──────────────────────────────────────────────────────────────┐     │
+    │   │ WireGate Web UI Container (network_mode: host)               │     │
+    │   │                                                              │     │
+    │   │ • Mounts /etc/wireguard/wg0.conf (reads & writes directly)   │     │
+    │   │ • Web UI binds to http://127.0.0.1:8000                      │     │
+    │   │ • Executes: bash -c 'wg syncconf wg0 <(wg-quick strip wg0)' │     │
+    │   │ • Does NOT touch or collide with UDP 443                     │     │
+    │   └──────────────────────────────────────────────────────────────┘     │
+    └────────────────────────────────────────────────────────────────────────┘
+  1. network_mode: host: The container shares the host network namespace. It does not create a second WireGuard tunnel and does not
+  conflict with host UDP 443.
+  2. Direct Host Kernel Sync: When you add, pause, or remove a peer in the Web UI, the container executes:
+    bash -c 'wg syncconf wg0 <(wg-quick strip /etc/wireguard/wg0.conf)'
+  (or /usr/local/bin/wgreload if present), which synchronizes the host's wg0 interface directly with zero downtime.
+  3. NFTables Direct Sync: WireGuard ACLs and rules are applied directly into the host's kernel packet filtering table (table inet
+  wiregate).
+  4. 1-Click Import: WireGate includes an Import from /etc/wireguard/wg0.conf feature that reads your existing production file so you
+  never have to re-enter existing peers.
+  ──────
+  ### Step-by-Step Production Setup Instructions
+
+  #### Step 1: Clone / Copy the Project to Your Production Server
+
+  On your production server (where /etc/wireguard/wg0.conf lives):
+    cd /opt
+    # Copy or git clone this repository into /opt/wiregate
+    cd /opt/wiregate
+  #### Step 2: Configure Environment (.env)
+
+  Create your production .env file:
+
+    cp .env.example .env
+    chmod 600 .env
+
+  Ensure the following settings are defined:
+
+    # Administrator Web UI Credentials
+    ADMIN_USERNAME=admin
+    ADMIN_PASSWORD=Set-A-Very-Secure-Password-Here
+    APP_SECRET=Generate-A-Random-32-Byte-Secret-Key
+    
+    # Execution Mode: 'direct' applies changes to host kernel wg0
+    WG_EXECUTION_MODE=direct
+    WG_INTERFACE=wg0
+    WG_CONFIG_PATH=/etc/wireguard/wg0.conf
+    
+    # Production Network Settings
+    WG_DEFAULT_ADDRESS=172.29.250.1/24
+    WG_DEFAULT_PORT=443
+    WG_DEFAULT_MTU=1420
+    WG_DEFAULT_ENDPOINT=YOUR_SERVER_PUBLIC_IP_OR_DOMAIN
+
+  #### Step 3: Verify docker-compose.yml
+
+  The docker-compose.yml is already pre-configured for Scenario A:
+
+    services:
+      wiregate:
+        build:
+          context: .
+          dockerfile: Dockerfile
+        container_name: wiregate-manager
+        restart: unless-stopped
+        network_mode: host
+        cap_add:
+          - NET_ADMIN
+        volumes:
+          - ./data:/data
+          - /etc/wireguard:/etc/wireguard
+          - /usr/local/bin/wgreload:/usr/local/bin/wgreload:ro
+        env_file:
+          - .env
+
+  #### Step 4: Backup Existing Production Config (Safety First)
+
+    sudo mkdir -p /var/backups/wireguard
+    sudo cp -a /etc/wireguard/wg0.conf /var/backups/wireguard/wg0.conf.$(date +%Y%m%d_%H%M%S).bak
+    sudo chmod 600 /var/backups/wireguard/*.bak
+
+  #### Step 5: Start the Container
+
+    docker compose up -d --build
+
+  Verify the container logs:
+
+    docker compose logs -f
+
+  You should see:
+
+    INFO: Uvicorn running on http://0.0.0.0:8000
+
+  #### Step 6: Import Existing Production Peers into the UI
+
+  1. Open your browser and navigate to http://<SERVER_IP>:8000 (or access via SSH port forward: ssh -L 8000:127.0.0.1:8000 user@server).
+  2. Log in with your admin credentials.
+  3. Click ⚙️ Server Setup in the left sidebar.
+  4. Click the 📥 Import from /etc/wireguard/wg0.conf button in the top right.
+  5. All your existing production peers, public keys, and IP allocations (172.29.250.x) will instantly appear under 👥 Peer Clients.
+  ──────
+  ### Verification Checklist
+
+   Test                             | Command                           | Expected Output
+  ----------------------------------|-----------------------------------|---------------------------------------------------------------
+   Check Host Tunnel                | sudo wg show wg0                  | Host tunnel shows existing peers and port 443 UDP.
+   Add a Test Peer                  | Add Test-Client via Web UI        | Web UI allocates 172.29.250.x/32 and displays QR code.
+   Verify Syncconf                  | sudo wg show wg0 peers            | New peer appears in host kernel without any connection drops.
+   Verify File Permissions          | ls -l /etc/wireguard/wg0.conf     | Permissions remain -rw------- (0600).
+   Check NFTables ACL               | sudo nft list table inet wiregate | Host kernel displays active ACLs and client isolation rules.
+  ──────
+  ### Emergency Rollback
+
+  If you ever wish to stop the UI and return to manual file editing:
+
+    docker compose down
+    sudo cp /var/backups/wireguard/wg0.conf.*.bak /etc/wireguard/wg0.conf
+    sudo bash -c 'wg syncconf wg0 <(wg-quick strip /etc/wireguard/wg0.conf)'
+
+
+
+
+
+
+
+
+
+    

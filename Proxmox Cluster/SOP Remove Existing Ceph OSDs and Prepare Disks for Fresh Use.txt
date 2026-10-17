@@ -1,0 +1,620 @@
+
+
+Below is the complete CLI-only process you followed on **prox24** and **prox23**. It includes identification, safety checks, OSD shutdown, disk cleanup, and final validation.
+
+> **Warning:** This procedure permanently deletes all Ceph data from `/dev/sda` through `/dev/sdl`. In your environment, `/dev/sdm` is the Proxmox OS disk and must never be included.
+
+---
+
+## 1. Confirm the correct server
+
+hostname
+
+Expected on each server:
+
+prox23  
+
+``
+
+or:
+
+prox24
+
+---
+
+## 2. Identify the Proxmox OS disk
+
+echo "Root filesystem:"  
+
+findmnt -no SOURCE /  
+
+  
+
+echo  
+
+echo "EFI filesystem:"  
+
+findmnt -no SOURCE /boot/efi 2>/dev/null || true
+
+Your confirmed results were:
+
+Root filesystem: /dev/mapper/pve-root  
+
+EFI filesystem: /dev/sdm2
+
+Display the OS disk structure:
+
+lsblk -f /dev/sdm
+
+Confirmed layout:
+
+/dev/sdm Proxmox OS disk  
+
+/dev/sdm2 EFI partition  
+
+/dev/sdm3 LVM physical volume  
+
+pve-root Root filesystem  
+
+pve-data Local LVM-thin storage  
+
+pve-swap Swap
+
+---
+
+## 3. Inspect all disks and LVM configuration
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN  
+
+  
+
+pvs  
+
+vgs  
+
+lvs
+
+You confirmed:
+
+/dev/sda through /dev/sdl : Ceph BlueStore LVM disks  
+
+/dev/sdm : Proxmox operating-system disk  
+
+``
+
+---
+
+## 4. Display the existing Ceph OSD mapping
+
+ceph-volume lvm list
+
+For a compact disk-to-OSD mapping:
+
+ceph-volume lvm list |  
+
+awk '  
+
+/^====== osd./ {  
+
+gsub(/=/, "", $0)  
+
+osd=$1  
+
+}  
+
+/^[[:space:]]+osd fsid/ {  
+
+fsid=$3  
+
+}  
+
+/^[[:space:]]+devices/ {  
+
+print $2, osd, fsid  
+
+}'
+
+---
+
+## 5. Save the existing disk and OSD inventory
+
+This backup preserves configuration evidence and disk mappings. It does not back up Ceph data.
+
+BACKUP_DIR="/root/ceph-before-zap-$(hostname -s)-$(date +%F-%H%M%S)"  
+
+mkdir -p "$BACKUP_DIR"  
+
+  
+
+hostname > "$BACKUP_DIR/hostname.txt"  
+
+  
+
+ceph-volume lvm list </span>  
+
+> "$BACKUP_DIR/ceph-volume-lvm-list.txt"  
+
+  
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN </span>  
+
+> "$BACKUP_DIR/lsblk.txt"  
+
+  
+
+pvs -o+pv_uuid </span>  
+
+> "$BACKUP_DIR/pvs.txt"  
+
+  
+
+vgs -o+vg_uuid </span>  
+
+> "$BACKUP_DIR/vgs.txt"  
+
+  
+
+lvs -a -o+devices,lv_tags </span>  
+
+> "$BACKUP_DIR/lvs.txt"  
+
+  
+
+ceph -s </span>  
+
+> "$BACKUP_DIR/ceph-status.txt" 2>&1 || true  
+
+  
+
+ceph osd tree </span>  
+
+> "$BACKUP_DIR/ceph-osd-tree.txt" 2>&1 || true  
+
+  
+
+echo "Inventory saved in: $BACKUP_DIR"
+
+---
+
+## 6. Automatically extract the local OSD IDs
+
+This method avoids using OSD IDs from another Proxmox node.
+
+mapfile -t OSD_IDS < <(  
+
+ceph-volume lvm list |  
+
+sed -n 's/^====== osd.[0−9]\+[0-9]\+.*$/\1/p'  
+
+)
+
+Display the detected IDs:
+
+echo "Detected local OSDs:"  
+
+printf 'osd.%s\n' "${OSD_IDS[@]}"  
+
+  
+
+echo  
+
+echo "Total OSDs detected: ${#OSD_IDS[@]}"
+
+In your case, the expected count was:
+
+Total OSDs detected: 12  
+
+``
+
+If the count is not correct, do not continue until the mapping is checked.
+
+---
+
+## 7. Stop and disable all local OSD services
+
+for id in "${OSD_IDS[@]}"; do  
+
+echo "Stopping osd.${id}"  
+
+systemctl stop "ceph-osd@${id}.service"  
+
+systemctl disable "ceph-osd@${id}.service" 2>/dev/null || true  
+
+done  
+
+`
+
+Validate every service:
+
+for id in "${OSD_IDS[@]}"; do  
+
+printf "osd.%-3s : " "$id"  
+
+systemctl is-active "ceph-osd@${id}.service" 2>/dev/null || true  
+
+done  
+
+Expected state:
+
+inactive
+
+Check that no OSD process remains:
+
+pgrep -a ceph-osd ||  
+
+echo "No ceph-osd processes are running"
+
+Ceph refuses to zap a device if its associated OSD service is still running. [[docs.ceph.com]](https://docs.ceph.com/en/latest/ceph-volume/lvm/zap/)
+
+---
+
+## 8. Define the target disk list explicitly
+
+TARGET_DISKS=(  
+
+/dev/sda  
+
+/dev/sdb  
+
+/dev/sdc  
+
+/dev/sdd  
+
+/dev/sde  
+
+/dev/sdf  
+
+/dev/sdg  
+
+/dev/sdh  
+
+/dev/sdi  
+
+/dev/sdj  
+
+/dev/sdk  
+
+/dev/sdl  
+
+)
+
+Do not use this unsafe pattern:
+
+/dev/sd?
+
+It would also match `/dev/sdm`, which is the Proxmox OS disk.
+
+---
+
+## 9. Reconfirm that the OS disk is excluded
+
+ROOT_SOURCE="$(findmnt -no SOURCE /)"  
+
+ROOT_REAL="$(readlink -f "$ROOT_SOURCE")"  
+
+  
+
+echo "Root source: $ROOT_SOURCE"  
+
+  
+
+lsblk -s -o NAME,PATH,SIZE,TYPE,MOUNTPOINTS "$ROOT_REAL"
+
+Display the targets:
+
+lsblk -d -o NAME,PATH,SIZE,MODEL,SERIAL,WWN </span>  
+
+"${TARGET_DISKS[@]}"
+
+Check whether any selected disk has a mounted filesystem:
+
+for disk in "${TARGET_DISKS[@]}"; do  
+
+echo  
+
+echo "===== $disk ====="  
+
+lsblk -o NAME,PATH,SIZE,FSTYPE,MOUNTPOINTS "$disk"  
+
+done
+
+Your results showed Ceph BlueStore and LVM metadata, but no ordinary mounted filesystem.
+
+---
+
+## 10. Permanently remove the old Ceph structures
+
+for disk in "${TARGET_DISKS[@]}"; do  
+
+echo  
+
+echo "===== Zapping $disk ====="  
+
+ceph-volume lvm zap "$disk" --destroy  
+
+done
+
+The successful result for each disk was:
+
+Zapping successful for: <Raw Device: /dev/sdX>
+
+This operation:
+
+1. Unmounted the Ceph OSD directory.
+2. Removed BlueStore metadata.
+3. Removed the `osd-block-*` logical volume.
+4. Removed the associated `ceph-*` volume group.
+5. Removed the LVM PV label.
+6. Cleared the beginning of the disk.
+
+The `--destroy` option is designed to remove Ceph-created LVs and VGs from a raw device so that it can be reused. [[docs.ceph.com]](https://docs.ceph.com/en/latest/ceph-volume/lvm/zap/)
+
+---
+
+## 11. Refresh the kernel and LVM state
+
+udevadm settle  
+
+partprobe || true  
+
+pvscan --cache
+
+Your expected result was:
+
+PV /dev/sdm3 online
+
+Only the Proxmox OS PV should remain.
+
+---
+
+## 12. Validate LVM cleanup
+
+echo "===== Physical volumes ====="  
+
+pvs  
+
+  
+
+echo  
+
+echo "===== Volume groups ====="  
+
+vgs  
+
+  
+
+echo  
+
+echo "===== Logical volumes ====="  
+
+lvs
+
+Your validated final LVM layout was:
+
+PV VG  
+
+/dev/sdm3 pve
+
+Only these Proxmox logical volumes remained:
+
+pve/root  
+
+pve/data  
+
+pve/swap
+
+There were no:
+
+ceph-* volume groups  
+
+osd-block-* logical volumes  
+
+Ceph physical volumes
+
+---
+
+## 13. Validate the cleaned raw disks
+
+lsblk -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN </span>  
+
+/dev/sd{a..m}
+
+The expected condition for `/dev/sda` through `/dev/sdl` is:
+
+TYPE disk  
+
+FSTYPE blank  
+
+MOUNTPOINTS blank  
+
+Child LVs none
+
+The OS disk `/dev/sdm` must retain its partitions and LVM structure.
+
+---
+
+## 14. Check for residual signatures
+
+The following inspection is read-only:
+
+for disk in /dev/sd{a..l}; do  
+
+echo  
+
+echo "===== $disk ====="  
+
+wipefs --no-act "$disk"  
+
+done
+
+Your output displayed only the disk headings, which confirmed:
+
+No LVM signatures  
+
+No filesystem signatures  
+
+No partition-table signatures  
+
+No residual Ceph signatures
+
+No additional `wipefs --all` or `sgdisk --zap-all` command was required.
+
+---
+
+## 15. Validate that Ceph LVM metadata is gone
+
+ceph-volume lvm list
+
+Your successful result was:
+
+No valid Ceph lvm devices found
+
+Check the processes again:
+
+pgrep -a ceph-osd ||  
+
+echo "No ceph-osd processes are running"
+
+Your successful result was:
+
+No ceph-osd processes are running
+
+---
+
+## 16. Validate the Proxmox operating system
+
+echo "Root filesystem:"  
+
+findmnt -no SOURCE /  
+
+  
+
+echo  
+
+echo "EFI filesystem:"  
+
+findmnt -no SOURCE /boot/efi  
+
+  
+
+echo  
+
+echo "OS disk:"  
+
+lsblk -f /dev/sdm
+
+Expected:
+
+Root: /dev/mapper/pve-root  
+
+EFI: /dev/sdm2
+
+Check Proxmox services:
+
+systemctl is-active pve-cluster  
+
+systemctl is-active pvedaemon  
+
+systemctl is-active pveproxy
+
+Your results were:
+
+active  
+
+active  
+
+active
+
+Check Proxmox storage:
+
+pvesm status
+
+You confirmed:
+
+local active  
+
+local-lvm active  
+
+vm-rbd active
+
+---
+
+## 17. Final completion status
+
+### prox23
+
+Host : prox23  
+
+Cleaned disks : /dev/sda through /dev/sdl  
+
+Number of disks : 12  
+
+Disk capacity : 18.2 TB each  
+
+Old BlueStore metadata : Removed  
+
+Old Ceph LVs : Removed  
+
+Old Ceph VGs : Removed  
+
+Old Ceph PVs : Removed  
+
+Residual signatures : None  
+
+Local OSD processes : None  
+
+Proxmox OS disk : /dev/sdm  
+
+Proxmox OS condition : Healthy  
+
+Ready for fresh OSD creation : Yes
+
+### prox24
+
+Host : prox24  
+
+Cleaned disks : /dev/sda through /dev/sdl  
+
+Number of disks : 12  
+
+Disk capacity : 18.2 TB each  
+
+Old BlueStore metadata : Removed  
+
+Old Ceph LVs : Removed  
+
+Old Ceph VGs : Removed  
+
+Old Ceph PVs : Removed  
+
+Residual signatures : None  
+
+Local OSD processes : None  
+
+Proxmox OS disk : /dev/sdm  
+
+Proxmox OS condition : Healthy  
+
+Ready for fresh OSD creation : Yes
+
+## Final result
+
+Both `prox23` and `prox24` now have:
+
+/dev/sda through /dev/sdl : Clean and ready for fresh Ceph OSDs  
+
+/dev/sdm : Safe Proxmox operating-system disk
+
+Before creating new OSDs, verify which Ceph cluster the nodes currently reference:
+
+hostname  
+
+pvecm status  
+
+ceph fsid  
+
+ceph -s  
+
+ceph mon dump
+
+This prevents the cleaned disks from accidentally being added to the wrong Ceph cluster.

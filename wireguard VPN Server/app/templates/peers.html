@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+
+{% block title %}Peer Clients · WireGuard Control Center{% endblock %}
+{% block page_heading %}WireGuard Peer Management{% endblock %}
+{% block page_subheading %}Manage client cryptographic keys, automatic IPAM address allocation, and live connection telemetry{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-secondary" onclick="location.reload()" title="Refresh telemetry">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+  <span>Refresh</span>
+</button>
+{% if user.role == 'admin' %}
+<button class="btn btn-secondary" onclick="handleAutoImportPeers()" id="btnAutoImportPeers" title="Auto-scan host wg0.conf, backups, and live kernel to import all client peers">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  <span>Auto-Import Peers</span>
+</button>
+<button class="btn btn-primary" onclick="openModal('addPeerModal')">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  <span>+ Add Client Peer</span>
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <!-- Search & Toolbar -->
+  <div class="peer-toolbar">
+    <div class="search-box">
+      <span class="search-icon">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </span>
+      <input type="text" id="peerSearchInput" placeholder="Search by client name, IP, or device..." oninput="filterPeers(this.value)">
+    </div>
+
+    <!-- View Switcher (Cards vs Table) -->
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <div class="view-switcher">
+        <button id="viewBtnCards" class="view-btn active" onclick="switchPeerView('cards')">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          Cards
+        </button>
+        <button id="viewBtnTable" class="view-btn" onclick="switchPeerView('table')">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+          Table
+        </button>
+      </div>
+
+      <div style="font-size: 0.85rem; color: var(--text-sub);">
+        <strong style="color: var(--text-main);" id="toolbarPeerCount">{{ peers|length }}</strong> clients (<span style="color: var(--success);" id="toolbarActiveCount">{{ active_peers }}</span> online)
+      </div>
+    </div>
+  </div>
+
+  {% if peers %}
+  <!-- 1. Peer Cards Grid View -->
+  <div id="peersCardView" class="peer-grid">
+    {% for p in peers %}
+    <div class="peer-card {% if not p.enabled %}disabled{% endif %}"
+         id="peer-card-{{ p.id }}"
+         data-name="{{ p.name|lower }}"
+         data-ip="{{ p.allowed_ips }}"
+         data-device="{{ p.device_type|lower }}"
+         data-id="{{ p.id }}">
+      <div class="peer-card-top">
+        <div class="peer-identity">
+          <div class="peer-avatar">
+            {% if p.device_type == 'phone' %}
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+            {% elif p.device_type == 'desktop' %}
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            {% elif p.device_type == 'server' %}
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+            {% elif p.device_type == 'router' %}
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="2" y="14" width="20" height="8" rx="2"></rect><path d="M6 18h.01M10 18h.01"></path><path d="M6 6a6 6 0 0 1 12 0"></path><path d="M8.5 9a3.5 3.5 0 0 1 7 0"></path></svg>
+            {% else %}
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
+            {% endif %}
+          </div>
+          <div class="peer-name">
+            <h4>{{ p.name }}</h4>
+            <div style="display: flex; gap: 0.35rem; align-items: center; margin-top: 0.25rem;">
+              <span class="peer-ip">{{ p.allowed_ips }}</span>
+              <span class="tunnel-tag {{ p.tunnel_mode }}">{{ p.tunnel_mode|upper }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="peer-status-badge-{{ p.id }}">
+          {% if not p.enabled %}
+          <span class="badge badge-danger"><span class="badge-dot"></span> Disabled</span>
+          {% elif p.is_active %}
+          <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+          {% else %}
+          <span class="badge badge-muted"><span class="badge-dot"></span> Offline</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="peer-details">
+        <div class="peer-detail-row">
+          <span>Latest Handshake</span>
+          <strong id="peer-handshake-{{ p.id }}">{{ p.handshake }}</strong>
+        </div>
+        <div class="peer-detail-row">
+          <span>Transferred (Rx / Tx)</span>
+          <strong id="peer-rxtx-{{ p.id }}">{{ p.rx }} / {{ p.tx }}</strong>
+        </div>
+        <div class="peer-detail-row" style="grid-column: span 2;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Public Key</span>
+            <span class="device-badge">{{ p.device_type|title }}</span>
+          </div>
+          <code style="font-size: 0.72rem; color: var(--text-sub); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.2rem;">
+            {{ p.public_key }}
+          </code>
+        </div>
+      </div>
+
+      <div class="peer-actions">
+        <div style="display: flex; gap: 0.35rem;">
+          {% if p.has_private_key %}
+          <button class="btn btn-secondary btn-sm" onclick="showQRCode({{ p.id }}, '{{ p.name }}', '{{ p.tunnel_mode }}')" title="Scan QR Code">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="3" height="3"></rect><line x1="17" y1="21" x2="21" y2="21"></line><line x1="21" y1="17" x2="21" y2="21"></line></svg>
+            <span>QR Code</span>
+          </button>
+          <button type="button" onclick="downloadDirectPeerConfig({{ p.id }}, '{{ p.name|e }}')" class="btn btn-secondary btn-sm" title="Download .conf file">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download</span>
+          </button>
+          {% else %}
+          <span style="font-size: 0.75rem; color: var(--text-sub); align-self: center;">External Key</span>
+          {% endif %}
+        </div>
+
+        {% if user.role == 'admin' %}
+        <div style="display: flex; gap: 0.35rem; align-items: center;">
+          <button class="btn btn-secondary btn-sm" onclick="openEditPeerModal({{ p.id }}, '{{ p.name|e }}', '{{ p.allowed_ips }}', '{{ p.device_type }}', '{{ p.tunnel_mode }}', '{{ p.endpoint or '' }}', {{ p.keepalive or 25 }})" title="Edit Client Peer">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Edit</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="togglePeer({{ p.id }})" title="{% if p.enabled %}Disable Peer{% else %}Enable Peer{% endif %}">
+            {% if p.enabled %}
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+            <span>Pause</span>
+            {% else %}
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <span>Resume</span>
+            {% endif %}
+          </button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deletePeer({{ p.id }}, '{{ p.name }}')" title="Delete Peer">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+        {% else %}
+        <span class="badge" style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); padding: 0.2rem 0.5rem;">Read-Only</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- 2. Peer Table View -->
+  <div id="peersTableView" class="peer-table-container" style="display: none;">
+    <table class="peer-table">
+      <thead>
+        <tr>
+          <th>Device & Peer Name</th>
+          <th>Tunnel Mode</th>
+          <th>Assigned IP</th>
+          <th>Status</th>
+          <th>Latest Handshake</th>
+          <th>Transfer (Rx / Tx)</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in peers %}
+        <tr id="peer-row-{{ p.id }}"
+            data-name="{{ p.name|lower }}"
+            data-ip="{{ p.allowed_ips }}"
+            data-device="{{ p.device_type|lower }}">
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <span class="user-avatar" style="width: 32px; height: 32px; background: var(--bg-card); color: var(--primary); border: 1px solid var(--border);">
+                {% if p.device_type == 'phone' %}
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                {% elif p.device_type == 'desktop' %}
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                {% elif p.device_type == 'server' %}
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                {% elif p.device_type == 'router' %}
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="2" y="14" width="20" height="8" rx="2"></rect><path d="M6 18h.01M10 18h.01"></path><path d="M6 6a6 6 0 0 1 12 0"></path><path d="M8.5 9a3.5 3.5 0 0 1 7 0"></path></svg>
+                {% else %}
+                <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"></rect><line x1="2" y1="20" x2="22" y2="20"></line></svg>
+                {% endif %}
+              </span>
+              <div>
+                <strong style="color: var(--text-main); display: block;">{{ p.name }}</strong>
+                <span style="font-size: 0.72rem; color: var(--text-sub);">{{ p.device_type|title }} · {{ p.public_key[:12] }}...</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="tunnel-tag {{ p.tunnel_mode }}">{{ p.tunnel_mode|upper }}</span>
+          </td>
+          <td>
+            <span class="peer-ip">{{ p.allowed_ips }}</span>
+          </td>
+          <td id="peer-row-status-{{ p.id }}">
+            {% if not p.enabled %}
+            <span class="badge badge-danger"><span class="badge-dot"></span> Disabled</span>
+            {% elif p.is_active %}
+            <span class="badge badge-success"><span class="badge-dot"></span> Active</span>
+            {% else %}
+            <span class="badge badge-muted"><span class="badge-dot"></span> Offline</span>
+            {% endif %}
+          </td>
+          <td id="peer-row-handshake-{{ p.id }}" style="font-size: 0.8rem; color: var(--text-muted);">
+            {{ p.handshake }}
+          </td>
+          <td id="peer-row-rxtx-{{ p.id }}" style="font-size: 0.8rem; font-family: monospace; color: var(--primary);">
+            {{ p.rx }} / {{ p.tx }}
+          </td>
+          <td style="text-align: right;">
+            <div style="display: inline-flex; gap: 0.35rem;">
+              {% if p.has_private_key %}
+              <button class="btn btn-secondary btn-sm" onclick="showQRCode({{ p.id }}, '{{ p.name }}', '{{ p.tunnel_mode }}')" title="QR Code">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="3" height="3"></rect><line x1="17" y1="21" x2="21" y2="21"></line><line x1="21" y1="17" x2="21" y2="21"></line></svg>
+                <span>QR</span>
+              </button>
+              <button type="button" onclick="downloadDirectPeerConfig({{ p.id }}, '{{ p.name|e }}')" class="btn btn-secondary btn-sm" title="Download .conf">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+              {% endif %}
+              {% if user.role == 'admin' %}
+              <button class="btn btn-secondary btn-sm" onclick="openEditPeerModal({{ p.id }}, '{{ p.name|e }}', '{{ p.allowed_ips }}', '{{ p.device_type }}', '{{ p.tunnel_mode }}', '{{ p.endpoint or '' }}', {{ p.keepalive or 25 }})" title="Edit Client Peer">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>Edit</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="togglePeer({{ p.id }})" title="Toggle status">
+                {% if p.enabled %}
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                {% else %}
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                {% endif %}
+              </button>
+              <button class="btn btn-danger btn-sm btn-icon" onclick="deletePeer({{ p.id }}, '{{ p.name }}')" title="Delete peer">
+                <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </button>
+              {% else %}
+              <span class="badge" style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); padding: 0.2rem 0.5rem;">Read-Only</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="searchEmpty" class="empty-state" style="display: none;">
+    <div class="empty-state-icon">
+      <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </div>
+    <h3>No matching clients found</h3>
+    <p>Try searching for a different name, device type, or IP address.</p>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">
+      <svg class="svg-icon svg-icon-xl" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+    </div>
+    <h3>No VPN Clients Configured</h3>
+    <p>Get started by clicking <b>Add New Peer</b> to create your first WireGuard client configuration.</p>
+    <button class="btn btn-primary" style="margin-top: 1rem;" onclick="openModal('addPeerModal')">
+      <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      <span>Add First Peer</span>
+    </button>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal: Add New Peer -->
+<div id="addPeerModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Add New WireGuard Client</h3>
+      <button class="btn-close" onclick="closeModal('addPeerModal')">&times;</button>
+    </div>
+
+    <form onsubmit="handleAddPeer(event)">
+      <div class="form-group">
+        <label for="peerName">Client / Device Name *</label>
+        <input type="text" id="peerName" name="name" placeholder="e.g. Nishu-MacBook, Production-DB, Mobile-01" required autofocus>
+        <div class="form-help">A descriptive name to easily identify this device.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-group">
+          <label for="peerDeviceType">Device Type</label>
+          <select id="peerDeviceType" name="device_type">
+            <option value="laptop" selected>Laptop / PC</option>
+            <option value="phone">Phone / Tablet</option>
+            <option value="desktop">Workstation</option>
+            <option value="server">Server / VM</option>
+            <option value="router">Router / Gateway</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="peerTunnelMode">Routing Mode</label>
+          <select id="peerTunnelMode" name="tunnel_mode">
+            <option value="full" selected>Full Tunnel (0.0.0.0/0)</option>
+            <option value="split">Split Tunnel (VPN Subnet)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="peerIp">Client VPN IP (CIDR)</label>
+        <input type="text" id="peerIp" name="allowed_ips" value="{{ next_ip }}" placeholder="172.29.250.11/32">
+        <div class="form-help">Auto-assigned next free address from IPAM pool (assigned starting after .10).</div>
+
+      </div>
+
+      <div class="form-group">
+        <label for="peerPubKey">Client Public Key (Optional)</label>
+        <input type="text" id="peerPubKey" name="public_key" placeholder="Leave blank to auto-generate Curve25519 keypair">
+        <div class="form-help">Leave empty to let WireGuard generate client keys & QR code automatically.</div>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+        <input type="checkbox" id="generatePsk" name="generate_psk" style="width: auto;" checked>
+        <label for="generatePsk" style="margin-bottom: 0; cursor: pointer;">
+          Enable Pre-Shared Key (PSK) for Post-Quantum Security
+        </label>
+      </div>
+
+      <input type="hidden" name="keepalive" value="25">
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addPeerModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create & View QR Code</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: QR Code & Config Exporter -->
+<div id="qrModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 600px;">
+    <div class="modal-header">
+      <h3 id="qrPeerTitle">Peer Configuration</h3>
+      <button class="btn-close" onclick="closeModal('qrModal')">&times;</button>
+    </div>
+
+    <!-- Live Tunnel Mode Selector in QR modal -->
+    <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+      <div class="segmented-control" style="max-width: 320px; width: 100%;">
+        <label>
+          <input type="radio" name="qrTunnelMode" value="full" checked onchange="handleQrModeSwitch('full')">
+          <span>Full Tunnel</span>
+        </label>
+        <label>
+          <input type="radio" name="qrTunnelMode" value="split" onchange="handleQrModeSwitch('split')">
+          <span>Split Tunnel</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="qr-container">
+      <div class="qr-box" id="qrCodeBox"></div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); text-align: center;">
+        Scan with the official WireGuard app on your mobile device, or download the configuration file below.
+      </p>
+      <textarea id="configText" class="config-preview" readonly></textarea>
+    </div>
+
+    <div class="form-actions" style="justify-content: space-between;">
+      <button id="copyBtn" class="btn btn-secondary" onclick="copyConfig()">
+        <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <span>Copy Config</span>
+      </button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="downloadBtn" type="button" class="btn btn-primary" onclick="downloadCurrentPeerConfig()">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Download .conf</span>
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('qrModal')">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit Client Peer -->
+<div id="editPeerModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="editPeerModalTitle">Edit Client Peer</h3>
+      <button class="btn-close" onclick="closeModal('editPeerModal')">&times;</button>
+    </div>
+
+    <form onsubmit="handleUpdatePeer(event)">
+      <input type="hidden" id="editPeerId" name="peer_id">
+
+      <div class="form-group">
+        <label for="editPeerName">Client / Device Name *</label>
+        <input type="text" id="editPeerName" name="name" placeholder="e.g. Kapil, Girish, Work-Laptop" required>
+        <div class="form-help">A descriptive name to easily identify this device.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-group">
+          <label for="editPeerDeviceType">Device Type</label>
+          <select id="editPeerDeviceType" name="device_type">
+            <option value="laptop">Laptop / PC</option>
+            <option value="phone">Phone / Tablet</option>
+            <option value="desktop">Workstation</option>
+            <option value="server">Server / VM</option>
+            <option value="router">Router / Gateway</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="editPeerTunnelMode">Routing Mode</label>
+          <select id="editPeerTunnelMode" name="tunnel_mode">
+            <option value="full">Full Tunnel (0.0.0.0/0)</option>
+            <option value="split">Split Tunnel (VPN Subnet)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="editPeerIp">Client VPN IP (CIDR) *</label>
+        <input type="text" id="editPeerIp" name="allowed_ips" placeholder="172.29.250.x/32" required>
+        <div class="form-help">Assigned IP address inside the WireGuard subnet.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+        <div class="form-group">
+          <label for="editPeerEndpoint">Endpoint (Optional)</label>
+          <input type="text" id="editPeerEndpoint" name="endpoint" placeholder="e.g. 203.0.113.5:51820">
+          <div class="form-help">Client static public endpoint (if known).</div>
+        </div>
+
+        <div class="form-group">
+          <label for="editPeerKeepalive">Persistent Keepalive (s)</label>
+          <input type="number" id="editPeerKeepalive" name="keepalive" min="0" max="3600" value="25">
+          <div class="form-help">Seconds between keepalive packets (0 to disable).</div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editPeerModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btnSaveEditPeer">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openEditPeerModal(id, name, allowedIps, deviceType, tunnelMode, endpoint, keepalive) {
+  document.getElementById('editPeerId').value = id;
+  document.getElementById('editPeerName').value = name || '';
+  document.getElementById('editPeerIp').value = allowedIps || '';
+  document.getElementById('editPeerDeviceType').value = (deviceType || 'laptop').toLowerCase();
+  document.getElementById('editPeerTunnelMode').value = (tunnelMode || 'full').toLowerCase();
+  document.getElementById('editPeerEndpoint').value = endpoint || '';
+  document.getElementById('editPeerKeepalive').value = keepalive !== undefined ? keepalive : 25;
+  document.getElementById('editPeerModalTitle').textContent = `Edit Client Peer - ${name || id}`;
+  openModal('editPeerModal');
+}
+
+async function handleUpdatePeer(event) {
+  event.preventDefault();
+  const form = event.target;
+  const btn = document.getElementById('btnSaveEditPeer');
+  const peerId = document.getElementById('editPeerId').value;
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="svg-icon svg-icon-sm spin" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg><span>Saving...</span>`;
+
+  const payload = {
+    name: form.name.value.trim(),
+    device_type: form.device_type.value,
+    tunnel_mode: form.tunnel_mode.value,
+    allowed_ips: form.allowed_ips.value.trim(),
+    endpoint: form.endpoint.value.trim() || null,
+    keepalive: parseInt(form.keepalive.value || 25, 10)
+  };
+
+  try {
+    const resp = await fetch(`/api/peers/${peerId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) {
+      location.reload();
+    } else {
+      alert(`Error updating peer: ${data.detail || data.message || ('HTTP ' + resp.status)}`);
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
+async function handleAutoImportPeers() {
+  const btn = document.getElementById("btnAutoImportPeers");
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<svg class="svg-icon svg-icon-sm spin" viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg><span>Auto-Importing...</span>`;
+
+  try {
+    const res = await fetch('/api/server/auto-import', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      alert(data.message || "All peers scanned and imported successfully!");
+      location.reload();
+    } else {
+      alert(`Auto-Import Failed: ${data.detail || data.message || ('HTTP ' + res.status)}`);
+      btn.innerHTML = origHtml;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+    btn.innerHTML = origHtml;
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}
+

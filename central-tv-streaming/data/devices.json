@@ -1,0 +1,28 @@
+{
+  "tv-53rwja": {
+    "id": "tv-53rwja",
+    "name": "TV Display (tv-53r)",
+    "site": "Headquarters",
+    "ip": "10.31.1.59",
+    "currentChannel": "ch-signage",
+    "volume": 100,
+    "lastSeen": "2026-10-08T11:14:11.714Z",
+    "currentVideo": "1790862555412_NDR_Promo_video__1920_x_1080_px__final.mp4",
+    "currentVideoIndex": 1,
+    "totalVideos": 5,
+    "playbackMode": "signage"
+  },
+  "tv-zsvy54": {
+    "id": "tv-zsvy54",
+    "name": "TV Display (tv-zsv)",
+    "site": "Headquarters",
+    "ip": "10.31.93.195",
+    "currentChannel": "ch-signage",
+    "volume": 100,
+    "lastSeen": "2026-10-08T11:14:08.474Z",
+    "currentVideo": "1790862555412_NDR_Promo_video__1920_x_1080_px__final.mp4",
+    "currentVideoIndex": 1,
+    "totalVideos": 5,
+    "playbackMode": "signage"
+  }
+}

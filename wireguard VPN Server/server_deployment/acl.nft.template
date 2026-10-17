@@ -1,0 +1,6 @@
+# WireGuard Client Access Control List (ACL)
+# Format: flush-left statements without leading spaces
+# Each rule can have an optional descriptive comment header
+
+# Admin / Gateway Self-Access
+ip saddr 172.29.250.2 ip daddr 10.31.0.0/16 accept

@@ -1,0 +1,307 @@
+
+ System: CISAI Squid Proxy Server
+ Objective: Add Airtel ISP as a third outbound WAN link and integrate it into the existing Squid multi-WAN proxy infrastructure.
+
+1. Initial Environment Verification
+
+Verified existing network interfaces and VLAN configuration:
+
+ip addr show
+
+
+Existing VLANs identified:
+
+vlan13 -> 192.168.18.30/24
+vlan18 -> 192.168.5.30/24
+
+
+Verified Squid configuration:
+
+sudo cat /etc/squid/squid.conf
+
+
+Confirmed proxy listeners:
+
+8855 -> Jio1
+8848 -> Jio2
+
+2. Created New VLAN Interface (Airtel)
+
+Created VLAN 19 on parent interface:
+
+sudo ip link add link enx207bd26aee32 name vlan19 type vlan id 19
+
+
+Assigned IP address:
+
+sudo ip addr add 192.168.21.10/24 dev vlan19
+
+
+Enabled interface:
+
+sudo ip link set vlan19 up
+
+
+Verified:
+
+ip addr show vlan19
+
+
+Result:
+
+192.168.21.10/24
+
+3. Tested Airtel Network
+
+Verified gateway connectivity:
+
+ping -c 4 192.168.21.1
+
+
+Result:
+
+0% packet loss
+
+
+Confirmed Layer-3 connectivity.
+
+4. Modified Squid Configuration
+
+Created configuration backup:
+
+sudo cp -a /etc/squid/squid.conf \
+/etc/squid/squid.conf.$(date +%F-%H%M%S).bak
+
+
+Edited:
+
+sudo vim /etc/squid/squid.conf
+
+
+Added new listener:
+
+http_port 10.31.1.24:8894 name=airtel
+
+
+Added ACL:
+
+acl airtel myportname airtel
+
+
+Added source IP binding:
+
+tcp_outgoing_address 192.168.21.10 airtel
+
+5. Resolved Squid Configuration Error
+
+Initial error:
+
+acl airtel myportnam airtel
+
+
+Squid validation failed:
+
+sudo squid -k parse
+
+
+Error:
+
+invalid ACL type 'myportnam'
+
+
+Corrected ACL:
+
+acl airtel myportname airtel
+
+
+Revalidated:
+
+sudo squid -k parse
+
+
+Result:
+
+No errors found
+
+6. Restarted Squid Service
+sudo systemctl restart squid
+
+
+Verified:
+
+sudo systemctl status squid
+
+
+Verified listening ports:
+
+ss -tulpn | grep squid
+
+
+Expected:
+
+8855
+8848
+8894
+
+7. Tested Airtel Proxy Path
+
+Performed outbound proxy test:
+
+curl -4 -x http://nishu:12345@10.31.1.24:8894 ifconfig.me/ip
+
+
+Result:
+
+223.185.26.222
+
+
+Confirmed Airtel ISP routing.
+
+8. Tested Existing Jio Proxy Paths
+
+Port 8855:
+
+curl -4 -x http://nishu:12345@10.31.1.24:8855 ifconfig.me/ip
+
+
+Result:
+
+152.59.222.96
+
+
+Port 8848:
+
+curl -4 -x http://nishu:12345@10.31.1.24:8848 ifconfig.me/ip
+
+
+Result:
+
+152.58.217.254
+
+
+Port 8894:
+
+curl -4 -x http://nishu:12345@10.31.1.24:8894 ifconfig.me/ip
+
+
+Result:
+
+223.185.26.222
+
+
+Confirmed successful 3-ISP separation.
+
+9. Verified VLAN19 Persistence
+
+Checked NetworkManager:
+
+nmcli connection show | grep vlan19
+
+
+Result:
+
+vlan19
+
+
+Checked autoconnect:
+
+nmcli connection show vlan19 | grep autoconnect
+
+
+Result:
+
+connection.autoconnect: yes
+
+
+Verified generated Netplan file:
+
+sudo cat /etc/netplan/90-NM-30ca6dad-dd7d-4dce-a513-baa07e98a8c9.yaml
+
+
+Confirmed stored parameters:
+
+192.168.21.10/24
+192.168.21.1
+VLAN ID 19
+
+10. Updated Netplan Policy Routing
+
+Edited:
+
+sudo vim /etc/netplan/99-squid-vlans.yaml
+
+
+Added Airtel routing section:
+
+vlan19:
+  id: 19
+  link: enx207bd26aee32
+  mtu: 1500
+  addresses:
+    - 192.168.21.10/24
+  routes:
+    - to: default
+      via: 192.168.21.1
+      table: 103
+  routing-policy:
+    - from: 192.168.21.10
+      table: 103
+      priority: 102
+
+
+Validated:
+
+sudo netplan generate
+
+
+Applied:
+
+sudo netplan apply
+
+11. Added Named Routing Table
+
+Edited:
+
+sudo nano /etc/iproute2/rt_tables
+
+
+Added:
+
+103 airtel
+
+12. Verified Policy Routing
+
+Executed:
+
+ip rule show
+
+
+Final result:
+
+100: from 192.168.18.30 lookup jio1
+101: from 192.168.5.30 lookup jio2
+102: from 192.168.21.10 lookup airtel
+
+
+Confirmed all WAN paths have dedicated routing tables.
+
+Final Outcome
+
+✅ VLAN19 (Airtel) created and operational
+ ✅ Squid listener added on port 8894
+ ✅ Source-IP routing configured
+ ✅ Airtel ISP verified externally
+ ✅ Existing Jio1 and Jio2 paths validated
+ ✅ Netplan configuration updated
+ ✅ Policy-Based Routing (PBR) configured
+ ✅ Routing table airtel (103) created
+ ✅ Configuration persistence verified
+ ✅ Multi-WAN Squid Proxy environment fully operational
+
+Final ISP Mapping
+Port 8855 -> Jio1   -> 152.59.222.96
+Port 8848 -> Jio2   -> 152.58.217.254
+Port 8894 -> Airtel -> 223.185.26.222
+
+
+Status: ✅ Successfully Completed and Ready for Production Use.

@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block title %}Overview · WireGuard Control Center{% endblock %}
+
+{% block page_heading %}
+<div class="soc-breadcrumb">/OVERVIEW</div>
+<div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+  <span style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.01em;">WireGuard Enterprise Command Center</span>
+  <span class="badge badge-success">
+    <span class="live-dot" style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 8px var(--success); margin-right: 4px;"></span>
+    KERNEL LINK ONLINE
+  </span>
+  <span class="soc-sub-badge" style="font-weight: 600;">
+    {{ iface.name|upper }} · {{ iface.address }}
+  </span>
+  <span class="soc-sub-badge" style="font-weight: 600;">
+    {{ fw_caps.mode|upper if fw_caps else 'DIRECT' }} · {{ fw_caps.netns|upper if fw_caps else 'HOST' }} NETNS
+  </span>
+</div>
+{% endblock %}
+
+{% block page_subheading %}
+Real-time tunnel telemetry, mesh routing distribution, cryptographic health & zero-trust access control
+{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-secondary btn-sm" onclick="handleAutoImportFromOverview()" id="btnAutoImportOv" title="Auto-scan host and kernel to import all peers">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  <span>Auto-Import Peers</span>
+</button>
+<a href="/peers" class="btn btn-primary btn-sm">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+  <span>+ Add Client Peer</span>
+</a>
+<a href="/firewall" class="btn btn-secondary btn-sm" title="Open Firewall & ACLs">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+  <span>Firewall & ACLs</span>
+</a>
+<a href="/server" class="btn btn-secondary btn-sm" title="Configure WireGuard Server Interface">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+  <span>Server Setup</span>
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="soc-dashboard-wrap">
+
+  <!-- 1. TOP EXECUTIVE TELEMETRY KPI CARDS (5-CARD GRID) -->
+  <div class="ov-kpi-grid">
+    <!-- KPI 1: Managed Peers -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Total Peers</span>
+        <svg class="svg-icon svg-icon-xs soc-cyan" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <div class="soc-kpi-value soc-cyan" id="metricTotalPeers">{{ total_peers }}</div>
+      <div class="soc-kpi-sub" id="metricEnabledPeers">{{ enabled_peers }} enabled · {{ total_peers - enabled_peers }} disabled</div>
+      <div style="margin-top: 0.5rem; height: 3px; background: rgba(255, 255, 255, 0.08); border-radius: 2px; overflow: hidden;">
+        <div style="height: 100%; width: {{ (enabled_peers / total_peers * 100)|round if total_peers > 0 else 0 }}%; background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></div>
+      </div>
+    </div>
+
+    <!-- KPI 2: Active Encrypted Tunnels -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Active Tunnels</span>
+        <svg class="svg-icon svg-icon-xs soc-green" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+      </div>
+      <div class="soc-kpi-value soc-green" id="metricActivePeers">{{ active_peers }}</div>
+      <div class="soc-kpi-sub">Handshake &lt; 3 mins</div>
+      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.35rem; font-size: 0.72rem; color: #34d399;">
+        <span class="live-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px #34d399;"></span>
+        <span>Cryptographically Verified</span>
+      </div>
+    </div>
+
+    <!-- KPI 3: Ingress Traffic (RX) -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Tunnel Ingress (Rx)</span>
+        <svg class="svg-icon svg-icon-xs soc-purple" viewBox="0 0 24 24"><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+      </div>
+      <div class="soc-kpi-value soc-purple" id="metricTotalRx">{{ total_rx }}</div>
+      <div class="soc-kpi-sub">Inbound Client Payload</div>
+      <div style="margin-top: 0.5rem; font-size: 0.72rem; color: var(--text-sub); font-family: monospace;">
+        ChaCha20 Decrypted
+      </div>
+    </div>
+
+    <!-- KPI 4: Egress Traffic (TX) -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Tunnel Egress (Tx)</span>
+        <svg class="svg-icon svg-icon-xs soc-blue" viewBox="0 0 24 24"><polyline points="17 14 12 9 7 14"></polyline><line x1="12" y1="9" x2="12" y2="21"></line></svg>
+      </div>
+      <div class="soc-kpi-value soc-blue" id="metricTotalTx">{{ total_tx }}</div>
+      <div class="soc-kpi-sub">Outbound Server Payload</div>
+      <div style="margin-top: 0.5rem; font-size: 0.72rem; color: var(--text-sub); font-family: monospace;">
+        Masqueraded / NAT Routed
+      </div>
+    </div>
+
+    <!-- KPI 5: Zero-Trust Posture -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Zero-Trust Posture</span>
+        <svg class="svg-icon svg-icon-xs soc-amber" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div class="soc-kpi-value soc-amber" style="font-size: 1.35rem; font-family: monospace;">
+        {{ policy.default_forward_policy|upper }}
+      </div>
+      <div class="soc-kpi-sub">
+        Isolation: <strong style="color: {{ '#34d399' if policy.client_isolation else '#f87171' }};">{{ 'ON' if policy.client_isolation else 'OFF' }}</strong> · {{ acls_count }} ACLs
+      </div>
+      <div style="margin-top: 0.5rem; font-size: 0.72rem; color: #38bdf8;">
+        NFTables Protected
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. REAL-TIME THROUGHPUT & CRYPTOGRAPHIC MESH ARCHITECTURE -->
+  <div style="display: grid; grid-template-columns: 1.65fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;" class="ov-dual-grid">
+    <!-- Real-Time Bandwidth Stream Waveform -->
+    <div class="soc-glass-panel" style="padding: 1.25rem 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="svg-icon svg-icon-sm soc-cyan" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0;">Live Tunnel Throughput Waveform ({{ iface.name }})</h3>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+            Bidirectional packet flow telemetry streamed directly from Linux kernel WireGuard counters
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <!-- Graph Type Switcher Controls -->
+          <div class="view-switcher" style="padding: 2px;">
+            <button type="button" id="btnGraphArea" class="view-btn active" onclick="setGraphType('area')" title="Smooth Gradient Waveform Area">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24" style="margin-right: 2px;"><path d="M2 20 Q 7 8, 12 14 T 22 4 L 22 20 Z" fill="currentColor" opacity="0.3"></path><path d="M2 20 Q 7 8, 12 14 T 22 4" fill="none" stroke="currentColor" stroke-width="2"></path></svg>
+              Area
+            </button>
+            <button type="button" id="btnGraphLine" class="view-btn" onclick="setGraphType('line')" title="Crisp Dual Line Graph">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24" style="margin-right: 2px;"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+              Line
+            </button>
+            <button type="button" id="btnGraphBar" class="view-btn" onclick="setGraphType('bar')" title="Comparative Dual Bar Chart">
+              <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24" style="margin-right: 2px;"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+              Bar
+            </button>
+          </div>
+
+          <!-- Instantaneous Live Bandwidth Rate -->
+          <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-input); padding: 0.25rem 0.6rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-size: 0.75rem; font-family: monospace;">
+            <div style="display: flex; align-items: center; gap: 0.35rem; color: #38bdf8;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #38bdf8;"></span>
+              <span id="liveRxSpeed">Rx: 0 B/s</span>
+            </div>
+            <span style="color: var(--border);">|</span>
+            <div style="display: flex; align-items: center; gap: 0.35rem; color: #c084fc;">
+              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #c084fc;"></span>
+              <span id="liveTxSpeed">Tx: 0 B/s</span>
+            </div>
+          </div>
+
+          <span class="soc-sub-badge" style="font-family: monospace;">LIVE 5s</span>
+        </div>
+      </div>
+
+      <!-- Cyber SVG Waveform Graph -->
+      <div class="soc-chart-container" style="height: 180px; width: 100%; position: relative;">
+        <svg viewBox="0 0 600 180" preserveAspectRatio="none" style="width: 100%; height: 100%;">
+          <defs>
+            <linearGradient id="rxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45"></stop>
+              <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0"></stop>
+            </linearGradient>
+            <linearGradient id="txGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#c084fc" stop-opacity="0.35"></stop>
+              <stop offset="100%" stop-color="#c084fc" stop-opacity="0.0"></stop>
+            </linearGradient>
+          </defs>
+          <!-- Horizontal Grid Lines -->
+          <line class="chart-grid-line" x1="0" y1="25" x2="600" y2="25" stroke-width="1" stroke-dasharray="3,3"></line>
+          <line class="chart-grid-line" x1="0" y1="70" x2="600" y2="70" stroke-width="1" stroke-dasharray="3,3"></line>
+          <line class="chart-grid-line" x1="0" y1="115" x2="600" y2="115" stroke-width="1" stroke-dasharray="3,3"></line>
+          <line class="chart-grid-line" x1="0" y1="160" x2="600" y2="160" stroke-width="1"></line>
+
+          <!-- Y-Axis Scale Markers -->
+          <text id="yScaleTop" x="8" y="20" fill="var(--text-sub)" font-size="9" font-family="monospace" opacity="0.75">100 KB/s</text>
+          <text id="yScaleMid" x="8" y="65" fill="var(--text-sub)" font-size="9" font-family="monospace" opacity="0.75">50 KB/s</text>
+          <text id="yScaleBot" x="8" y="155" fill="var(--text-sub)" font-size="9" font-family="monospace" opacity="0.75">0 B/s</text>
+
+          <!-- Dynamic Graph Content Group (populated by setGraphType / updateThroughputWaveform) -->
+          <g id="svgGraphContent">
+            <!-- Ingress Area & Path -->
+            <path id="svgRxArea" d="M 0 160 Q 60 135 120 105 T 240 80 T 360 55 T 480 30 T 600 40 L 600 160 L 0 160 Z" fill="url(#rxGrad)"></path>
+            <path id="svgRxLine" d="M 0 160 Q 60 135 120 105 T 240 80 T 360 55 T 480 30 T 600 40" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"></path>
+
+            <!-- Egress Area & Path -->
+            <path id="svgTxArea" d="M 0 160 Q 60 145 120 130 T 240 110 T 360 90 T 480 70 T 600 75 L 600 160 L 0 160 Z" fill="url(#txGrad)"></path>
+            <path id="svgTxLine" d="M 0 160 Q 60 145 120 130 T 240 110 T 360 90 T 480 70 T 600 75" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="4,2" stroke-linecap="round"></path>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Telemetry Spec Bar -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); font-size: 0.78rem;">
+        <div>
+          <span style="color: var(--text-sub); font-size: 0.7rem; text-transform: uppercase;">Kernel Driver:</span>
+          <div style="color: #34d399; font-weight: 600; font-family: monospace;">wireguard.ko fast path</div>
+        </div>
+        <div>
+          <span style="color: var(--text-sub); font-size: 0.7rem; text-transform: uppercase;">Tunnel MTU:</span>
+          <div style="color: var(--text-main); font-weight: 600; font-family: monospace;">{{ iface.mtu }} B (Clamped)</div>
+        </div>
+        <div>
+          <span style="color: var(--text-sub); font-size: 0.7rem; text-transform: uppercase;">Total Ingress:</span>
+          <div style="color: #38bdf8; font-weight: 600; font-family: monospace;">{{ total_rx }}</div>
+        </div>
+        <div>
+          <span style="color: var(--text-sub); font-size: 0.7rem; text-transform: uppercase;">Total Egress:</span>
+          <div style="color: #c084fc; font-weight: 600; font-family: monospace;">{{ total_tx }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cryptographic Architecture & Mesh Security -->
+    <div class="soc-glass-panel" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="svg-icon svg-icon-sm soc-purple" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0;">Cryptographic Suite</h3>
+          </div>
+          <span class="soc-sub-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">NOISE_IKPSK2</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.65rem; font-size: 0.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+            <span style="color: var(--text-muted);">Key Exchange</span>
+            <code style="color: #38bdf8; font-size: 0.78rem;">Curve25519 (ECDH 256)</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+            <span style="color: var(--text-muted);">Symmetric Cipher</span>
+            <code style="color: #34d399; font-size: 0.78rem;">ChaCha20-Poly1305</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+            <span style="color: var(--text-muted);">Message Hashing</span>
+            <code style="color: #c084fc; font-size: 0.78rem;">BLAKE2s (128-bit MAC)</code>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+            <span style="color: var(--text-muted);">Perfect Forward Secrecy</span>
+            <span style="color: #34d399; font-weight: 600; font-size: 0.78rem;">180s Auto-Rekey</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0;">
+            <span style="color: var(--text-muted);">Lateral Peer Isolation</span>
+            <span class="verdict-badge {{ 'drop' if policy.client_isolation else 'accept' }}" style="font-size: 0.68rem;">
+              {{ 'ENFORCED (DROP)' if policy.client_isolation else 'PERMISSIVE' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="soc-sub-panel" style="margin-top: 1rem; padding: 0.75rem; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-xs soc-cyan" style="flex-shrink: 0;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Zero plaintext packets across the physical transport. Encapsulated in UDP 443.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PRODUCTION WIREGUARD INTERFACE SPECIFICATIONS (wg0) -->
+  <div class="soc-glass-panel" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.65rem;">
+        <div class="soc-iface-card active" style="padding: 0.35rem 0.75rem; cursor: default;">
+          <span class="soc-iface-name" style="font-size: 0.85rem;">
+            <span class="live-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #34d399; box-shadow: 0 0 6px #34d399;"></span>
+            {{ iface.name }}
+          </span>
+        </div>
+        <div>
+          <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin: 0;">Production Host Tunnel Gateway</h3>
+          <span style="font-size: 0.76rem; color: var(--text-muted);">Active Linux WireGuard interface configured for 24/7 zero-downtime routing</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem;">
+        <a href="/server" class="btn btn-secondary btn-sm">Configure Interface</a>
+        <a href="/api/server/config" download="wg0.conf" class="btn btn-secondary btn-sm">Export Server Config</a>
+      </div>
+    </div>
+
+    <!-- Interface Specifications Grid -->
+    <div class="soc-sub-panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem; padding: 1rem 1.25rem; font-size: 0.82rem;">
+      <div>
+        <span style="color: var(--text-sub); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">VPN IP / Subnet</span>
+        <div style="font-family: monospace; font-size: 0.92rem; font-weight: 700; color: #38bdf8; margin-top: 0.2rem;">{{ iface.address }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-sub); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">Listening Port</span>
+        <div style="font-family: monospace; font-size: 0.92rem; font-weight: 700; color: #34d399; margin-top: 0.2rem;">UDP {{ iface.listen_port }}</div>
+      </div>
+      <div>
+        <span style="color: var(--text-sub); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">Path MTU</span>
+        <div style="font-family: monospace; font-size: 0.92rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">{{ iface.mtu }} Bytes</div>
+      </div>
+      <div>
+        <span style="color: var(--text-sub); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">DNS Resolvers</span>
+        <div style="font-family: monospace; font-size: 0.92rem; font-weight: 700; color: var(--text-main); margin-top: 0.2rem;">{{ iface.dns or 'None (Client Default)' }}</div>
+      </div>
+      <div style="grid-column: span 2;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-sub); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;">Server Public Key (Curve25519)</span>
+          <button type="button" class="btn btn-ghost btn-xs" style="padding: 0 0.35rem; font-size: 0.7rem; color: #38bdf8;" onclick="copyToClipboard('{{ iface.public_key }}', this)">Copy Key</button>
+        </div>
+        <div style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted); word-break: break-all; margin-top: 0.2rem;">{{ iface.public_key }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MANAGED VPN PEERS & ACTIVE SESSIONS RAIL -->
+  <div class="soc-glass-panel" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg class="svg-icon svg-icon-sm soc-cyan" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0;">Managed VPN Peers & Active Sessions</h3>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+          Cryptographically authenticated client mesh nodes · {{ active_peers }} currently established
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <a href="/peers" class="btn btn-secondary btn-sm">Manage All Peers ({{ total_peers }}) →</a>
+      </div>
+    </div>
+
+    <!-- Live Peers Table -->
+    <div style="overflow-x: auto;">
+      <table class="soc-table">
+        <thead>
+          <tr>
+            <th>Peer / Client Device</th>
+            <th>Assigned IP</th>
+            <th>Cryptographic Status</th>
+            <th>Latest Handshake</th>
+            <th>Data Transferred (Rx / Tx)</th>
+            <th style="text-align: right;">Quick Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if peers %}
+          {% for p in peers %}
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center;">
+                  <svg class="svg-icon svg-icon-xs soc-cyan" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect></svg>
+                </div>
+                <div>
+                  <strong style="color: var(--text-main); font-size: 0.88rem;">{{ p.name }}</strong>
+                  <div style="font-size: 0.72rem; color: var(--text-sub); font-family: monospace;">{{ p.public_key[:16] }}...</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <code style="color: #38bdf8; font-weight: 700; font-size: 0.82rem;">{{ p.allowed_ips }}</code>
+            </td>
+            <td>
+              {% if not p.enabled %}
+              <span class="soc-status-pill drop" style="padding: 0.15rem 0.5rem; font-size: 0.72rem;">DISABLED</span>
+              {% elif p.is_active %}
+              <span class="soc-status-pill accept" style="padding: 0.15rem 0.5rem; font-size: 0.72rem;">
+                <span class="live-dot" style="width: 5px; height: 5px; border-radius: 50%; background: #34d399; box-shadow: 0 0 5px #34d399; margin-right: 4px;"></span>
+                ONLINE
+              </span>
+              {% else %}
+              <span class="soc-status-pill neutral" style="padding: 0.15rem 0.5rem; font-size: 0.72rem;">STANDBY</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size: 0.8rem; color: {{ '#34d399' if p.is_active else 'var(--text-sub)' }};">
+                {{ p.handshake }}
+              </span>
+            </td>
+            <td>
+              <span style="font-family: monospace; font-size: 0.8rem; color: var(--text-main);">
+                {{ p.rx }} <span style="color: var(--text-sub);">/</span> {{ p.tx }}
+              </span>
+            </td>
+            <td style="text-align: right;">
+              <a href="/peers" class="btn btn-secondary btn-xs" style="padding: 0.25rem 0.55rem; font-size: 0.74rem;">Inspect</a>
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-sub); padding: 2rem;">
+              No peers configured yet. Click "+ Add Client Peer" to register your first device.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. SECURITY POSTURE & AUDIT ACTIVITY (DUAL PANELS) -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;" class="ov-dual-grid">
+    <!-- Left: NFTables Zero-Trust Security Summary -->
+    <div class="soc-glass-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg class="svg-icon svg-icon-sm soc-amber" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0;">NFTables Security & Access Control</h3>
+        </div>
+        <a href="/firewall" class="btn btn-secondary btn-sm">SOC View →</a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.82rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid var(--border);">
+          <span style="color: var(--text-muted);">Forward Verdict Policy</span>
+          <span class="verdict-badge {{ policy.default_forward_policy }}" style="font-size: 0.7rem;">{{ policy.default_forward_policy|upper }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid var(--border);">
+          <span style="color: var(--text-muted);">Peer Lateral Isolation</span>
+          <span style="color: {{ '#34d399' if policy.client_isolation else '#f87171' }}; font-weight: 600;">
+            {{ 'ENABLED (Strict Zero-Trust)' if policy.client_isolation else 'DISABLED (Lateral Bridged)' }}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid var(--border);">
+          <span style="color: var(--text-muted);">Outbound Internet Masquerade</span>
+          <span style="color: {{ '#34d399' if policy.internet_access else '#f87171' }}; font-weight: 600;">
+            {{ 'ACTIVE (SNAT Enabled)' if policy.internet_access else 'DISABLED' }}
+          </span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0; border-bottom: 1px solid var(--border);">
+          <span style="color: var(--text-muted);">Configured ACL Rules</span>
+          <strong style="color: var(--text-main);">{{ acls_count }} active policies</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.45rem 0;">
+          <span style="color: var(--text-muted);">Pre-Mutation Snapshots</span>
+          <span style="color: #38bdf8; font-family: monospace;">{{ fw_backups_count }} Backups Available</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Operational Audit Activity -->
+    <div class="soc-glass-panel">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <svg class="svg-icon svg-icon-sm soc-cyan" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin: 0;">Recent Activity Log</h3>
+        </div>
+        <span class="soc-sub-badge" style="color: var(--cyan); border-color: rgba(56,189,248,0.3);">System Events</span>
+      </div>
+
+      {% if audits %}
+      <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+        {% for a in audits[:4] %}
+        <div class="soc-sub-panel" style="display: flex; justify-content: space-between; align-items: center; padding: 0.55rem 0.75rem; border-radius: 6px; font-size: 0.8rem;">
+          <div>
+            <span class="soc-sub-badge" style="margin-right: 0.45rem;">{{ a.action }}</span>
+            <span style="color: var(--text-main);">{{ a.details or a.target or '-' }}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-sub); font-family: monospace;">
+            {{ a.timestamp.strftime('%H:%M:%S') if a.timestamp else 'Recent' }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; color: var(--text-sub); padding: 2rem; font-size: 0.85rem;">
+        No operational audit events recorded yet.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+async function handleAutoImportFromOverview() {
+  const btn = document.getElementById("btnAutoImportOv");
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span>Importing...</span>`;
+
+  try {
+    const res = await fetch('/api/server/auto-import', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      alert(data.message || "All peers scanned and imported successfully!");
+      location.reload();
+    } else {
+      alert(`Auto-Import Failed: ${data.detail || data.message || ('HTTP ' + res.status)}`);
+      btn.innerHTML = origHtml;
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+    btn.innerHTML = origHtml;
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

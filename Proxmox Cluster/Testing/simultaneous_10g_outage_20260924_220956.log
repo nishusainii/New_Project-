@@ -1,0 +1,16 @@
+[2026-09-24 22:09:56] [HEADER] STARTING SIMULTANEOUS 3-NODE 10G TOTAL FABRIC OUTAGE TEST
+[2026-09-24 22:09:56] [SUCCESS] SSH Connected to Cluster Master prox22 via 192.168.99.1
+[2026-09-24 22:09:56] [STEP] STEP 1: CAPTURING PRE-FLIGHT BASELINE BEFORE OUTAGE
+[2026-09-24 22:09:57] [INFO] Baseline Quorum: Quorate:          Yes | Total votes:      3 | Flags:            Quorate
+[2026-09-24 22:09:57] [INFO] Baseline Ceph: health: HEALTH_WARN
+    osd: 12 osds: 4 up (since 10m), 8 in (since 16m); 16 remapped pgs
+[2026-09-24 22:09:57] [STEP] STEP 2: SIMULTANEOUS 10G FABRIC OUTAGE (ALL 3 NODES)
+[2026-09-24 22:09:57] [ACTION] Unplug the 10G SFP+/DAC optical cables SIMULTANEOUSLY from the rear of ALL THREE NODES (prox22, prox23, prox24).
+[2026-09-24 22:10:50] [WARN] TOTAL 10G FABRIC BLACKOUT ACTIVE! Holding 1-minute outage and capturing live telemetry...
+[2026-09-24 22:12:54] [STEP] STEP 3: RESTORING ALL 3 x 10G CABLES
+[2026-09-24 22:12:54] [RESTORE] Plug the 10G SFP+/DAC optical cables back into ALL THREE NODES (prox22, prox23, prox24).
+[2026-09-24 22:13:24] [SUCCESS] FULL 10G FABRIC RESTORED ACROSS ALL 3 NODES IN 3.05 SECONDS!
+[2026-09-24 22:13:30] [HEADER] GENERATING SIMULTANEOUS 10G OUTAGE EXECUTIVE REPORTS
+[2026-09-24 22:13:30] [SUCCESS] Markdown report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/simultaneous_10g_blackout_report_20260924_221330.md
+[2026-09-24 22:13:30] [SUCCESS] HTML report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/simultaneous_10g_blackout_report_20260924_221330.html
+[2026-09-24 22:13:30] [SUCCESS] PDF report generated: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/simultaneous_10g_blackout_report_20260924_221330.pdf

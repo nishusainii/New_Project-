@@ -1,0 +1,520 @@
+Complete Summary: OpenFortiVPN Through Squid Proxy
+
+You successfully configured this connection path:
+
+OpenFortiVPN client
+10.31.0.87
+      │
+      │ HTTP CONNECT
+      ▼
+Squid proxy
+10.31.212.14:8085
+      │
+      │ TLS tunnel
+      ▼
+FortiGate SSL VPN
+182.19.54.189:4433
+      │
+      ▼
+PPP VPN tunnel, normally ppp0
+
+1. Installed OpenFortiVPN
+
+The package was installed using APT:
+
+sudo apt update
+sudo apt install openfortivpn
+
+
+The installed version was verified:
+
+openfortivpn --version
+
+
+Result:
+
+openfortivpn 1.17.1
+
+2. Created the OpenFortiVPN configuration
+
+Configuration file:
+
+/etc/openfortivpn/config
+
+
+Final configuration:
+
+host = 182.19.54.189
+port = 4433
+username = VAPTUser
+password = YOUR_VPN_PASSWORD
+trusted-cert = 5c902a5bd7032d68d51ca06d24b1b268b2841319244ed3a9b7f7cd3db44b967d
+
+
+The password is required only for the automatic systemd background service. When connecting interactively, it can be removed so OpenFortiVPN prompts for it.
+
+File permissions were restricted:
+
+sudo chown root:root /etc/openfortivpn/config
+sudo chmod 600 /etc/openfortivpn/config
+
+
+Verification:
+
+sudo stat -c '%U %G %a %n' /etc/openfortivpn/config
+
+
+Expected:
+
+root root 600 /etc/openfortivpn/config
+
+3. Identified the authenticated proxy parsing problem
+
+Initially, the proxy environment contained credentials:
+
+https_proxy=http://nishu:PROXY_PASSWORD@10.31.212.14:8085
+
+
+OpenFortiVPN parsed this incorrectly:
+
+proxy_host: nishu
+proxy_port: PROXY_PASSWORD@10.31.212.14:8085
+
+
+This caused:
+
+getaddrinfo: Temporary failure in name resolution
+
+
+To avoid the parsing problem, OpenFortiVPN was configured with a proxy URL containing only the proxy host and port:
+
+https_proxy=http://10.31.212.14:8085
+HTTPS_PROXY=http://10.31.212.14:8085
+
+4. Changes made on the Squid proxy server
+
+Squid configuration file:
+
+/etc/squid/squid.conf
+
+
+The following ACLs were added:
+
+acl openfortivpn_client src 10.31.0.87/32
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+acl CONNECT method CONNECT
+
+
+Port 4433 was added to the permitted SSL ports:
+
+acl SSL_ports port 443
+acl SSL_ports port 4433
+
+
+The narrow no-auth rule was added:
+
+http_access allow openfortivpn_client fortigate_sslvpn fortigate_sslvpn_port CONNECT
+
+
+This rule allows proxy authentication bypass only when all four conditions match:
+
+Source IP:       10.31.0.87
+Destination IP:  182.19.54.189
+Destination port: 4433
+HTTP method:     CONNECT
+
+
+The normal authenticated proxy rule remains:
+
+http_access allow allowed_ips authenticated
+
+
+The final deny rule remains:
+
+http_access deny all
+
+Correct rule order
+
+The relevant Squid section should be ordered like this:
+
+acl authenticated proxy_auth REQUIRED
+
+acl allowed_ips src 10.31.0.140
+acl allowed_ips src 10.31.0.87
+acl allowed_ips src 10.31.1.124
+acl allowed_ips src 10.31.1.183
+
+acl openfortivpn_client src 10.31.0.87/32
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+
+acl SSL_ports port 443
+acl SSL_ports port 4433
+
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 1025-65535
+
+acl CONNECT method CONNECT
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+
+# Restricted OpenFortiVPN exception
+http_access allow openfortivpn_client fortigate_sslvpn fortigate_sslvpn_port CONNECT
+
+# Normal authenticated users
+http_access allow allowed_ips authenticated
+
+http_access deny all
+
+
+The exception was placed before the authenticated-user rule so OpenFortiVPN does not receive a proxy authentication challenge.
+
+5. Validated and reloaded Squid
+
+The Squid configuration was validated:
+
+sudo squid -k parse
+
+
+The parser successfully processed:
+
+acl openfortivpn_client src 10.31.0.87/32
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+http_access allow openfortivpn_client fortigate_sslvpn fortigate_sslvpn_port CONNECT
+
+
+Squid was then reloaded:
+
+sudo systemctl reload squid
+
+
+Service status was checked:
+
+sudo systemctl status squid --no-pager
+
+
+Logs were checked using:
+
+sudo journalctl -u squid -n 30 --no-pager
+
+6. Removed incorrect routing and DNAT workarounds
+
+During troubleshooting, a route had been added:
+
+182.19.54.189 via 10.31.212.14
+
+
+This attempted to use the Squid server as a Layer 3 gateway. That is not required for HTTP CONNECT proxying.
+
+The route was removed:
+
+sudo ip route del 182.19.54.189 via 10.31.212.14 dev enp5s0
+
+
+Routing was checked:
+
+ip route get 182.19.54.189
+
+
+A DNAT rule had also been tested:
+
+182.19.54.189:4433 -> 10.31.212.14:8085
+
+
+This caused TLS errors because raw SSL VPN traffic was sent directly to Squid's HTTP proxy port.
+
+NAT rules were inspected:
+
+sudo iptables -t nat -L OUTPUT --line-numbers -n
+
+
+The test DNAT rule was removed using its displayed line number:
+
+sudo iptables -t nat -D OUTPUT RULE_NUMBER
+
+
+The final working setup does not use client-side DNAT or a manual route to Squid.
+
+7. Verified the FortiGate through Squid
+
+The FortiGate /remote/info endpoint was tested through Squid:
+
+env -u http_proxy \
+-u HTTP_PROXY \
+-u https_proxy \
+-u HTTPS_PROXY \
+curl -vk \
+-x http://10.31.212.14:8085 \
+-H "User-Agent: FortiSSLVPN" \
+https://182.19.54.189:4433/remote/info
+
+
+Expected results:
+
+HTTP/1.1 200 Connection established
+
+
+followed by:
+
+HTTP/1.1 200 OK
+Content-Type: text/xml
+
+
+This confirmed:
+
+Client -> Squid -> FortiGate
+
+
+was working.
+
+8. Verified the FortiGate certificate through Squid
+
+The certificate chain was retrieved using:
+
+timeout 15 openssl s_client \
+-proxy 10.31.212.14:8085 \
+-connect 182.19.54.189:4433 \
+-servername 182.19.54.189 \
+-showcerts </dev/null
+
+
+The FortiGate certificate identity was:
+
+Subject CN: FG201FT922922456
+Issuer CN:  fortinet-subca2001
+
+
+The certificate chain produced this validation warning:
+
+self-signed certificate in certificate chain
+
+
+OpenFortiVPN calculated this leaf certificate digest:
+
+5c902a5bd7032d68d51ca06d24b1b268b2841319244ed3a9b7f7cd3db44b967d
+
+
+After verifying it, the digest was added to:
+
+/etc/openfortivpn/config
+
+
+as:
+
+trusted-cert = 5c902a5bd7032d68d51ca06d24b1b268b2841319244ed3a9b7f7cd3db44b967d
+
+9. Connected OpenFortiVPN manually through Squid
+
+The successful interactive connection command was:
+
+sudo env -i \
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+https_proxy=http://10.31.212.14:8085 \
+HTTPS_PROXY=http://10.31.212.14:8085 \
+openfortivpn -v
+
+
+The important debug values were:
+
+proxy_host: 10.31.212.14
+proxy_port: 8085
+server_addr: 10.31.212.14
+server_port: 8085
+gateway_addr: 182.19.54.189
+gateway_port: 4433
+
+
+These values confirmed that OpenFortiVPN was using Squid rather than connecting directly.
+
+10. Monitored the working connection
+
+On the client:
+
+sudo tcpdump -nn -i enp5s0 \
+'host 10.31.212.14 and port 8085'
+
+
+On the Squid server:
+
+sudo tail -f /var/log/squid/access.log
+
+
+Expected Squid entry:
+
+TCP_TUNNEL/200 CONNECT 182.19.54.189:4433
+
+
+Additional Squid packet capture:
+
+sudo tcpdump -nn -i any \
+'host 10.31.0.87 and port 8085 or host 182.19.54.189 and port 4433'
+
+
+The intended network flow is:
+
+10.31.0.87 -> 10.31.212.14:8085
+10.31.212.14 -> 182.19.54.189:4433
+
+11. Created the systemd service
+
+Systemd service file:
+
+/etc/systemd/system/openfortivpn-squid.service
+
+
+Service configuration:
+
+[Unit]
+Description=OpenFortiVPN through Squid Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="https_proxy=http://10.31.212.14:8085"
+Environment="HTTPS_PROXY=http://10.31.212.14:8085"
+
+ExecStart=/usr/bin/openfortivpn -c /etc/openfortivpn/config
+
+Restart=on-failure
+RestartSec=10
+
+User=root
+Group=root
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
+
+Systemd was reloaded:
+
+sudo systemctl daemon-reload
+
+
+The service was started:
+
+sudo systemctl start openfortivpn-squid.service
+
+
+Status was checked:
+
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+
+Logs were checked:
+
+sudo journalctl -u openfortivpn-squid.service -n 100 --no-pager
+
+12. Fixed systemd authentication failure
+
+The first systemd start showed:
+
+VPN account password:
+Connected to gateway.
+Could not authenticate to gateway.
+
+
+This happened because systemd does not have an interactive terminal and could not answer the VPN password prompt.
+
+For unattended service operation, this line was required in the root-only configuration:
+
+password = YOUR_VPN_PASSWORD
+
+
+The configuration file was secured:
+
+sudo chown root:root /etc/openfortivpn/config
+sudo chmod 600 /etc/openfortivpn/config
+
+
+The same non-interactive command can be tested manually:
+
+sudo env -i \
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+https_proxy=http://10.31.212.14:8085 \
+HTTPS_PROXY=http://10.31.212.14:8085 \
+/usr/bin/openfortivpn \
+-c /etc/openfortivpn/config \
+-v
+
+
+It should authenticate without displaying:
+
+VPN account password:
+
+13. Final service management commands
+Start the VPN
+sudo systemctl start openfortivpn-squid.service
+
+Check status
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+View live logs
+sudo journalctl -u openfortivpn-squid.service -f
+
+Stop the VPN
+sudo systemctl stop openfortivpn-squid.service
+
+Restart the VPN
+sudo systemctl restart openfortivpn-squid.service
+
+Enable VPN after reboot
+sudo systemctl enable openfortivpn-squid.service
+
+Disable VPN startup
+sudo systemctl disable openfortivpn-squid.service
+
+14. Verify the final VPN tunnel
+
+Check OpenFortiVPN process:
+
+pgrep -a openfortivpn
+
+
+Check VPN interface:
+
+ip -brief addr | grep -E 'ppp|tun'
+
+
+Normally:
+
+ip addr show ppp0
+
+
+Check VPN routes:
+
+ip route
+
+
+Check a known internal destination:
+
+ip route get INTERNAL_VPN_IP
+
+Final result
+
+The completed setup uses:
+
+OpenFortiVPN on 10.31.0.87
+        ↓
+Squid HTTP CONNECT on 10.31.212.14:8085
+        ↓
+FortiGate SSL VPN on 182.19.54.189:4433
+        ↓
+PPP VPN tunnel
+
+
+The main Squid change was a narrowly restricted no-auth CONNECT exception for the OpenFortiVPN client. The main OpenFortiVPN changes were the clean proxy environment, verified certificate pin, and a root-protected configuration containing non-interactive credentials for systemd.
+
+
+
+
+

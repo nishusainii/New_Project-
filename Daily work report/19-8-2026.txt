@@ -1,0 +1,67 @@
+Nishu Saini,
+Date: 19/08/2026
+Login: 09:15AM
+Logout: 7:50 PM
+
+Work Summary Report (19-Aug-2026)
+
+Squid Proxy Administration
+    • Reviewed and validated Squid proxy configuration for multi-ISP environment. 
+    • Verified proxy listening ports (8860, 8859, 8878, 8855, 8868, 8888, 8898, 8858, 8848, and 8899). 
+    • Reviewed ACL configuration, authentication policies, and per-port access controls. 
+    • Verified user-based access restrictions and domain-specific access policies. 
+Squid Logging & Monitoring
+    • Analyzed custom ispflow log format used for ISP-wise traffic monitoring. 
+    • Reviewed ISP-specific logs (kv1.log to kv9.log) and validated log generation. 
+    • Investigated Squid access logging format compatibility with SARG. 
+    • Added and tested standard Squid access log configuration for reporting purposes. 
+    • Verified collection of traffic from all configured proxy ports into centralized reporting logs. 
+SARG Reporting Setup
+    • Identified limitations of SARG with custom ispflow log format. 
+    • Configured standard Squid access logging for SARG integration. 
+    • Tested SARG log parsing using generated standard access logs. 
+    • Developed approach for organization-wide internet usage reporting. 
+    • Evaluated options for ISP-wise usage reporting. 
+Squid Cache Configuration
+    • Added disk cache configuration: 
+        ◦ Cache Directory: 10 GB 
+        ◦ Cache Memory: 1024 MB 
+        ◦ Maximum Object Size: 50 MB 
+    • Studied and documented: 
+        ◦ cache_dir structure 
+        ◦ Cache hierarchy (16 Ã— 256 directories) 
+        ◦ Cache memory allocation 
+        ◦ Object size controls 
+        ◦ Cache initialization process 
+Cache Validation & Performance Review
+    • Verified Squid configuration using configuration parsing commands. 
+    • Performed cache initialization testing. 
+    • Reviewed cache directory structure and cache storage planning. 
+    • Evaluated suitability of caching for HTTPS-dominant traffic environment. 
+    • Assessed cache usage implications for authenticated proxy deployments. 
+
+System Resource Assessment
+    • Verified server resource availability: 
+        ◦ 15 GB RAM available 
+        ◦ Low memory utilization 
+        ◦ Zero swap usage 
+    • Confirmed adequate resources for Squid caching and reporting services. 
+Log Analytics Development
+    • Developed commands for: 
+        ◦ Top users analysis 
+        ◦ Top websites analysis 
+        ◦ Client IP activity tracking 
+        ◦ Traffic pattern analysis 
+        ◦ Error and denied request monitoring 
+        ◦ ISP-wise log monitoring 
+Webmin Administration
+    • Performed Webmin-based server administration and configuration review. 
+    • Verified server service status and management interfaces through Webmin. 
+    • Reviewed Webmin integration for system monitoring and administration tasks. 
+    • Used Webmin for configuration verification and service management activities. 
+Outcome
+    • Successfully prepared Squid infrastructure for centralized reporting. 
+    • Verified multi-ISP proxy logging architecture. 
+    • Implemented and validated Squid caching configuration. 
+    • Confirmed server readiness for SARG-based reporting and monitoring. 
+    • Completed proxy, cache, logging, and Webmin administration tasks.

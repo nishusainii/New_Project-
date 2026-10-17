@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proxmox VE Cluster - Zero-Downtime Rolling Node Renaming SOP & Execution Runbook</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm 10mm 10mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 8pt;
+      color: #64748b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    @bottom-left {
+      content: "Innspark / CISAI Infrastructure • Proxmox VE Rolling Node Renaming SOP";
+      font-size: 8pt;
+      color: #64748b;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: #0f172a;
+    line-height: 1.35;
+    font-size: 8.5pt;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Header Card */
+  .header-card {
+    background: linear-gradient(135deg, #090d16 0%, #1e293b 55%, #0284c7 100%);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+  .header-card h1 {
+    margin: 0 0 4px 0;
+    font-size: 14pt;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .header-card .subtitle {
+    font-size: 9pt;
+    color: #bae6fd;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    font-size: 7.5pt;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .meta-item strong {
+    color: #38bdf8;
+    display: block;
+    margin-bottom: 1px;
+    text-transform: uppercase;
+    font-size: 6.5pt;
+    letter-spacing: 0.5px;
+  }
+
+  /* Section Styling */
+  .section-title {
+    font-size: 10.5pt;
+    font-weight: 800;
+    color: #0f172a;
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 3px;
+    margin-top: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title span.badge {
+    font-size: 7pt;
+    font-weight: 600;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #bae6fd;
+  }
+
+  /* Callout boxes */
+  .callout-info {
+    background: #f0fdf4;
+    border-left: 3px solid #16a34a;
+    padding: 6px 10px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+    font-size: 8pt;
+  }
+  .callout-warning {
+    background: #fffbeb;
+    border-left: 3px solid #d97706;
+    padding: 6px 10px;
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+    font-size: 8pt;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 7.8pt;
+  }
+  table th {
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 700;
+    text-align: left;
+    padding: 5px 8px;
+    border: 1px solid #cbd5e1;
+  }
+  table td {
+    padding: 4px 8px;
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  table tr:nth-child(even) {
+    background: #f8fafc;
+  }
+
+  /* Code blocks */
+  pre {
+    background: #0f172a;
+    color: #f8fafc;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 7.2pt;
+    line-height: 1.3;
+    margin: 4px 0 8px 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: 1px solid #1e293b;
+  }
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: #f1f5f9;
+    color: #0369a1;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 7.5pt;
+  }
+  pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+  }
+
+  .step-card {
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background: #ffffff;
+    page-break-inside: avoid;
+  }
+  .step-header {
+    font-weight: 700;
+    font-size: 8.8pt;
+    color: #0284c7;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .step-desc {
+    font-size: 7.8pt;
+    color: #475569;
+    margin-bottom: 6px;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header-card">
+  <h1>Proxmox VE Cluster - Zero-Downtime Rolling Node Renaming SOP</h1>
+  <div class="subtitle">Complete Technical Procedure, Architecture Strategy & Execution Command Runbook</div>
+  <div class="meta-grid">
+    <div class="meta-item">
+      <strong>Cluster</strong>
+      cisai-pve (3-Node High Availability)
+    </div>
+    <div class="meta-item">
+      <strong>Node Mapping</strong>
+      prox22, 23, 24 ➔ prox022, 023, 024
+    </div>
+    <div class="meta-item">
+      <strong>Workload Impact</strong>
+      0 seconds VM downtime (Live Migrated)
+    </div>
+    <div class="meta-item">
+      <strong>Ceph & Corosync Status</strong>
+      HEALTH_OK • Quorate (3/3 votes)
+    </div>
+  </div>
+</div>
+
+<!-- Executive Summary -->
+<div class="callout-info">
+  <strong>Execution Summary:</strong> Officially, Proxmox VE does not support in-place node renaming for clustered nodes due to hardcoded dependencies across Corosync, Ceph CRUSH hierarchies, pmxcfs cluster directories, and SSL certificates. This document outlines the rolling orchestration methodology used to safely rename all three physical hypervisors from <code>prox22, prox23, prox24</code> to <code>prox022, prox023, prox024</code> while maintaining 100% guest uptime for live production VMs.
+</div>
+
+<div class="section-title">
+  <span>1. Cluster Architecture & Initial Mapping</span>
+  <span class="badge">Baseline Environment</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Legacy Hostname</th>
+      <th>Target Hostname</th>
+      <th>Management IP</th>
+      <th>Initial Workloads & Storages</th>
+      <th>Ceph Daemons</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>prox22</strong></td>
+      <td><strong>prox022</strong></td>
+      <td><code>10.31.6.172</code></td>
+      <td>VM 100, 102, 106 (250GB local-lvm), 9001, 9002, 9004</td>
+      <td>mon.prox22, mgr.prox22, 4 OSDs (hdd)</td>
+    </tr>
+    <tr>
+      <td><strong>prox23</strong></td>
+      <td><strong>prox023</strong></td>
+      <td><code>10.31.6.173</code></td>
+      <td>VM 9003 (zfs-ha replicated pool)</td>
+      <td>mon.prox23, mgr.prox23, 4 OSDs (hdd)</td>
+    </tr>
+    <tr>
+      <td><strong>prox24</strong></td>
+      <td><strong>prox024</strong></td>
+      <td><code>10.31.6.174</code></td>
+      <td>VM 103 (150GB local-lvm), VM 104 (150GB local-lvm)</td>
+      <td>mon.prox24, mgr.prox24, 4 OSDs (hdd)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="section-title">
+  <span>2. Technical Strategy: Why Rolling Execution Works</span>
+  <span class="badge">Zero Downtime Principles</span>
+</div>
+
+<ul>
+  <li><strong>Dual-DNS Alias Resolution:</strong> Updating <code>/etc/hosts</code> with both old and new names across all nodes ensures that Corosync and SSH can resolve all peers continuously during the transition window.</li>
+  <li><strong>Ceph CRUSH Bucket Renaming:</strong> Running <code>ceph osd crush rename-bucket &lt;old&gt; &lt;new&gt;</code> updates the topology map instantly without triggering any data rebalancing or I/O degradation.</li>
+  <li><strong>Ceph Monitor/Manager Re-creation:</strong> Because Ceph requires 2 of 3 monitors for quorum, destroying 1 monitor at a time on the maintenance node allows the cluster to maintain quorum on the surviving 2 nodes.</li>
+  <li><strong>Corosync Version Incrementing:</strong> Incrementing <code>config_version</code> in <code>/etc/pve/corosync.conf</code> propagates the new nodelist across pmxcfs automatically.</li>
+  <li><strong>Preservation of Local LVM Volumes:</strong> Virtual machines with disks on <code>local-lvm</code> (e.g. VM 106 with 250GB) never leave their physical host. Only the VM configuration pointer in <code>/etc/pve/nodes/</code> moves to the new folder.</li>
+</ul>
+
+<div class="section-title">
+  <span>3. Pre-Flight Setup: Dual-DNS Synchronization</span>
+  <span class="badge">Step 0 • All Nodes</span>
+</div>
+
+<div class="step-card">
+  <div class="step-header">Execute on all 3 nodes (10.31.6.172, 10.31.6.173, 10.31.6.174)</div>
+  <div class="step-desc">Ensures seamless resolution for both legacy and new hostnames simultaneously.</div>
+  <pre><code>cat &lt;&lt; 'EOF' &gt; /etc/hosts
+127.0.0.1 localhost.localdomain localhost
+10.31.6.172 prox022 prox22
+10.31.6.173 prox023 prox23
+10.31.6.174 prox024 prox24
+
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+ff02::3 ip6-allhosts
+EOF</code></pre>
+</div>
+
+<div class="page-break"></div>
+
+<div class="section-title">
+  <span>4. Phase 1: Rolling Rename of Node 1 (prox23 ➔ prox023)</span>
+  <span class="badge">Node 1 Procedure</span>
+</div>
+
+<div class="step-card">
+  <div class="step-header">Step 1.1: Live-Migrate VM 9003 to prox24</div>
+  <div class="step-desc">Empties all workloads from prox23 before initiating maintenance.</div>
+  <pre><code>ha-manager migrate vm:9003 prox24</code></pre>
+
+  <div class="step-header">Step 1.2: Destroy Ceph MON & MGR on prox23</div>
+  <div class="step-desc">Run directly on 10.31.6.173. Quorum remains healthy (2/3 monitors online).</div>
+  <pre><code>pveceph mon destroy prox23
+pveceph mgr destroy prox23</code></pre>
+
+  <div class="step-header">Step 1.3: Rename Ceph CRUSH Host Bucket</div>
+  <div class="step-desc">Prevents placement group (PG) reshuffling and maintains OSD health.</div>
+  <pre><code>ceph osd crush rename-bucket prox23 prox023</code></pre>
+
+  <div class="step-header">Step 1.4: Place Node in HA Maintenance & Update Configs</div>
+  <div class="step-desc">Disables watchdog fencing and updates Corosync, Storage, and Replication.</div>
+  <pre><code>ha-manager crm-command node-maintenance enable prox23
+sed -i "s/prox23/prox023/g" /etc/pve/storage.cfg
+sed -i "s/prox23/prox023/g" /etc/pve/replication.cfg
+sed -i "s/name: prox23/name: prox023/g" /etc/pve/corosync.conf
+sed -i "s/config_version: 4/config_version: 5/g" /etc/pve/corosync.conf</code></pre>
+
+  <div class="step-header">Step 1.5: Set Hostname, Restart Services & Regenerate SSL (on 10.31.6.173)</div>
+  <div class="step-desc">Applies new hostname and rebuilds node certificates.</div>
+  <pre><code>hostnamectl set-hostname prox023
+echo prox023 &gt; /etc/hostname
+systemctl restart pve-cluster corosync
+pvecm updatecerts -f
+systemctl restart pvedaemon pveproxy pvestatd pve-ha-lrm pve-ha-crm</code></pre>
+
+  <div class="step-header">Step 1.6: Re-establish Ceph Daemons & Disable Maintenance</div>
+  <div class="step-desc">Rebuilds mon and mgr daemons under the new identity and restores HA.</div>
+  <pre><code>pveceph mon create
+pveceph mgr create
+ha-manager crm-command node-maintenance disable prox023
+rm -rf /etc/pve/nodes/prox23</code></pre>
+</div>
+
+<div class="section-title">
+  <span>5. Phase 2: Rolling Rename of Node 2 (prox24 ➔ prox024)</span>
+  <span class="badge">Node 2 Procedure</span>
+</div>
+
+<div class="step-card">
+  <div class="step-header">Step 2.1: Relocate Replicated Workload Back to prox023</div>
+  <pre><code>ha-manager migrate vm:9003 prox023</code></pre>
+
+  <div class="step-header">Step 2.2: Failover Ceph Active Manager & Destroy Daemons</div>
+  <div class="step-desc">If prox24 is active Ceph manager, trigger clean failover to standby.</div>
+  <pre><code>ceph mgr fail prox24
+# On 10.31.6.174:
+pveceph mon destroy prox24
+pveceph mgr destroy prox24</code></pre>
+
+  <div class="step-header">Step 2.3: Update Ceph CRUSH, HA Maintenance & Configs</div>
+  <pre><code>ceph osd crush rename-bucket prox24 prox024
+ha-manager crm-command node-maintenance enable prox24
+sed -i "s/prox24/prox024/g" /etc/pve/storage.cfg
+sed -i "s/prox24/prox024/g" /etc/pve/replication.cfg
+sed -i "s/name: prox24/name: prox024/g" /etc/pve/corosync.conf
+sed -i "s/config_version: 5/config_version: 6/g" /etc/pve/corosync.conf</code></pre>
+
+  <div class="step-header">Step 2.4: Update Hostname, Restart Services & Relocate VM Configs</div>
+  <div class="step-desc">VM 103 and 104 stay running on local-lvm without interruption.</div>
+  <pre><code># On 10.31.6.174:
+hostnamectl set-hostname prox024
+echo prox024 &gt; /etc/hostname
+systemctl restart pve-cluster corosync
+pvecm updatecerts -f
+systemctl restart pvedaemon pveproxy pvestatd pve-ha-lrm pve-ha-crm
+mv /etc/pve/nodes/prox24/qemu-server/*.conf /etc/pve/nodes/prox024/qemu-server/
+rm -rf /etc/pve/nodes/prox24</code></pre>
+
+  <div class="step-header">Step 2.5: Recreate Ceph Daemons & Restore HA</div>
+  <pre><code>pveceph mon create
+pveceph mgr create
+ha-manager crm-command node-maintenance disable prox024</code></pre>
+</div>
+
+<div class="page-break"></div>
+
+<div class="section-title">
+  <span>6. Phase 3: Rolling Rename of Final Node (prox22 ➔ prox022)</span>
+  <span class="badge">Node 3 Procedure</span>
+</div>
+
+<div class="step-card">
+  <div class="step-header">Step 3.1: Live-Migrate Shared Storage VMs Off prox22</div>
+  <div class="step-desc">Migrate Ceph-backed VMs (9001, 9002, 9004) to prox024 and prox023. Local VMs (100, 102, 106) stay on prox22.</div>
+  <pre><code>ha-manager migrate vm:9001 prox024
+ha-manager migrate vm:9002 prox024
+ha-manager migrate vm:9004 prox023</code></pre>
+
+  <div class="step-header">Step 3.2: Ceph Failover & Daemon Removal on prox22</div>
+  <pre><code>ceph mgr fail prox22
+# On 10.31.6.172:
+pveceph mon destroy prox22
+pveceph mgr destroy prox22
+ceph osd crush rename-bucket prox22 prox022</code></pre>
+
+  <div class="step-header">Step 3.3: HA Maintenance & Config Updates (Executed via Helper prox023)</div>
+  <pre><code>ha-manager crm-command node-maintenance enable prox22
+sed -i "s/prox22/prox022/g" /etc/pve/storage.cfg
+sed -i "s/prox22/prox022/g" /etc/pve/replication.cfg
+sed -i "s/name: prox22/name: prox022/g" /etc/pve/corosync.conf
+sed -i "s/config_version: 6/config_version: 7/g" /etc/pve/corosync.conf</code></pre>
+
+  <div class="step-header">Step 3.4: Hostname Change & VM Pointer Synchronization</div>
+  <div class="step-desc">Local VMs 100, 102, and 106 (250GB) maintain uninterrupted disk access.</div>
+  <pre><code># On 10.31.6.172:
+hostnamectl set-hostname prox022
+echo prox022 &gt; /etc/hostname
+systemctl restart pve-cluster corosync
+pvecm updatecerts -f
+systemctl restart pvedaemon pveproxy pvestatd pve-ha-lrm pve-ha-crm
+mv /etc/pve/nodes/prox22/qemu-server/*.conf /etc/pve/nodes/prox022/qemu-server/
+rm -rf /etc/pve/nodes/prox22</code></pre>
+
+  <div class="step-header">Step 3.5: Rebuild Ceph & Re-balance Cluster</div>
+  <pre><code>pveceph mon create
+pveceph mgr create
+ha-manager crm-command node-maintenance disable prox022
+ha-manager migrate vm:9001 prox022</code></pre>
+</div>
+
+<div class="section-title">
+  <span>7. Post-Migration Verification & Health Validation</span>
+  <span class="badge">Verification Audit</span>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Subsystem</th>
+      <th>Verification Command</th>
+      <th>Expected State</th>
+      <th>Audit Result</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Corosync Quorum</strong></td>
+      <td><code>pvecm status</code></td>
+      <td>Quorate: Yes, 3 nodes (prox022, prox023, prox024)</td>
+      <td><strong>PASSED (Config v7)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Cluster Nodes</strong></td>
+      <td><code>pvecm nodes</code></td>
+      <td>All 3 nodes online, nodeids 1, 2, 3 active</td>
+      <td><strong>PASSED (All Active)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Ceph Health</strong></td>
+      <td><code>ceph status</code></td>
+      <td>HEALTH_OK • 3 MONs in quorum • 12/12 OSDs up & in</td>
+      <td><strong>PASSED (Zero I/O Error)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>HA Manager</strong></td>
+      <td><code>ha-manager status</code></td>
+      <td>quorum OK, active CRM master, all LRMs active</td>
+      <td><strong>PASSED (All Active)</strong></td>
+    </tr>
+    <tr>
+      <td><strong>Virtual Machines</strong></td>
+      <td><code>qm list</code></td>
+      <td>All 9 VMs running across the 3 nodes with intact PIDs</td>
+      <td><strong>PASSED (0s Downtime)</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="section-title">
+  <span>8. Automation Reference</span>
+  <span class="badge">Script Artifact</span>
+</div>
+
+<div class="step-card">
+  <div class="step-desc">The full automated Python script is stored locally for future disaster recovery and cluster rebuilds:</div>
+  <pre><code>/home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/cluster_rolling_rename_prox022_prox023_prox024.py</code></pre>
+</div>
+
+</body>
+</html>

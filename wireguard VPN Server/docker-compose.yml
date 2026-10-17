@@ -1,0 +1,21 @@
+services:
+  wireguard:
+    image: wireguard-enterprise:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wireguard-manager
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./data:/data
+      - ./app:/app/app
+      - /etc/wireguard:/etc/wireguard
+      - /etc/nftables:/etc/nftables
+      - /etc/nftables.conf:/etc/nftables.conf
+    env_file:
+      - .env
+
+

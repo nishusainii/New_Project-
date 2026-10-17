@@ -1,0 +1,525 @@
+##############################################################################
+# GLOBAL SETTINGS
+##############################################################################
+#dns_options no-ipv6
+#dns_v4_first on
+#dns_v6_first off
+dns_nameservers  8.8.8.8 1.1.1.1
+#dns_nameservers  10.31.4.2
+pinger_enable off
+
+workers 1
+max_filedescriptors 65535
+
+
+##############################################################################
+# AUTHENTICATION
+##############################################################################
+
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/password
+auth_param basic children 5
+auth_param basic realm "Squid Basic Authentication"
+auth_param basic credentialsttl 2 hours
+auth_param basic casesensitive off
+
+acl authenticated_users proxy_auth REQUIRED
+
+
+##############################################################################
+# NETWORK ACLs
+##############################################################################
+
+#acl localhost src 127.0.0.1/32 ::1
+
+# Internal networks
+acl localnet src 10.31.0.0/23
+acl localnet src 10.31.4.0/22
+acl localnet src 10.31.88.0/22
+acl localnet src 10.40.0.0/16
+acl localnet src 10.31.73.11/32
+acl localnet src 10.31.72.113/32
+
+acl SSL_ports port 443
+acl Safe_ports port 80
+acl Safe_ports port 21
+acl Safe_ports port 443
+acl Safe_ports port 70
+acl Safe_ports port 210
+acl Safe_ports port 1025-65535
+acl Safe_ports port 280
+acl Safe_ports port 488
+acl Safe_ports port 591
+acl Safe_ports port 777
+acl CONNECT method CONNECT
+
+
+##############################################################################
+# DOMAIN-RESTRICTED USER AND SOURCE-IP ACLS
+#############################################################################
+# User files
+acl ai_users proxy_auth "/etc/squid/acl/users/ai_users.txt"
+acl github_users proxy_auth "/etc/squid/acl/users/github_users.txt"
+
+# Domain files
+acl ai_domains dstdomain "/etc/squid/acl/domains/ai_domains.txt"
+acl github_domains dstdomain "/etc/squid/acl/domains/github_domains.txt"
+acl whatsapp_domains dstdomain "/etc/squid/acl/domains/whatsapp_domains.txt"
+
+# IP files
+acl automation_servers src "/etc/squid/acl/ips/automation_servers.txt"
+
+
+##############################################################################
+# CORE USERS: ONLY INBOUND SQUID PORTS 8860, 8859, AND 8878
+# File currently contains:
+##############################################################################
+acl core_port_users proxy_auth "/etc/squid/acl/users/core_port_users.txt"
+acl core_user_ports myportname 8860 8859 8878
+
+##############################################################################
+# Static  USERS: ONLY INBOUND SQUID PORTS 8888, 8898, AND 8858
+# File currently contains:
+##############################################################################
+acl static_port_users proxy_auth "/etc/squid/acl/users/static_port_users.txt"
+acl static_user_ports myportname 8888 8898 8858
+
+##############################################################################
+# sajan users: ONLY INBOUND SQUID PORTS 8898, 8859, AND 8878
+# File currently contains:
+##############################################################################
+acl sajan_user proxy_auth "/etc/squid/acl/users/sajan_user.txt"
+acl sajan_user_ports myportname 8878 8859 8898
+
+
+##############################################################################
+# LISTENING PORTS
+##############################################################################
+
+http_port 0.0.0.0:3128 name=main
+http_port 10.31.1.159:8860 name=8860
+http_port 10.31.1.159:8859 name=8859
+http_port 10.31.1.159:8878 name=8878
+http_port 10.31.1.159:8888 name=8888
+http_port 10.31.1.159:8898 name=8898
+http_port 10.31.1.159:8858 name=8858
+
+##############################################################################
+# PER-PORT ACLs (CLIENT IP + LISTEN PORT)
+##############################################################################
+
+# 8860 -> 192.168.14.30 (NO /32s here)
+acl proxy8860 myportname 8860
+acl proxy8860_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16
+
+# 8859 -> 192.168.16.30 (NO /32s here)
+acl proxy8859 myportname 8859
+acl proxy8859_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16
+
+# 8878 -> 192.168.12.30 (INCLUDES the two /32s)
+acl proxy8878 myportname 8878
+acl proxy8878_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16 10.31.73.11/32 10.31.72.113/32
+
+# 8888 -> 192.168.1.30 (NO /32s)
+acl proxy8888 myportname 8888
+acl proxy8888_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16
+
+# 8898 -> 192.168.4.30 (NO /32s)
+acl proxy8898 myportname 8898
+acl proxy8898_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16
+
+# 8858 -> 192.168.19.30 (NO /32s)
+acl proxy8858 myportname 8858
+acl proxy8858_clients src 10.31.0.0/23 10.31.4.0/22 10.31.88.0/22 10.40.0.0/16
+
+
+##############################################################################
+# ACCESS CONTROL ORDER
+##############################################################################
+
+acl allowed_ips src "/etc/squid/allowed_ips.txt"
+
+# Standard security checks must come first
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+
+##############################################################################
+# CORE USERS: ONLY PORTS 8860, 8859 AND 8878
+##############################################################################
+
+#   1. Must connect through 8860, 8859 or 8878
+#   2. Must come from an IP present in allowed_ips.txt
+#   3. Must authenticate successfully
+
+http_access allow core_user_ports allowed_ips core_port_users
+
+# Block on every other Squid listener
+http_access deny core_port_users
+
+##############################################################################
+# STATIC USERS: ONLY PORTS 8888 8898 AND 8858
+##############################################################################
+
+#   1. Must connect through 8888, 8898 or 8858
+#   2. Must come from an IP present in allowed_ips.txt
+#   3. Must authenticate successfully
+
+http_access allow static_user_ports allowed_ips static_port_users
+
+# Block on every other Squid listener
+http_access deny static_port_users
+
+##############################################################################
+# sajan users: ONLY Ports PORTS 8898, 8859, AND 8878
+##############################################################################
+#   1. Must connect through 8859, 8898 or 8878
+#   2. Must come from an IP present in allowed_ips.txt
+#   3. Must authenticate successfully
+http_access allow sajan_user allowed_ips sajan_user_ports
+
+# Block on every other Squid listener
+http_access deny sajan_user
+
+##############################################################################
+# DOMAIN-RESTRICTED IDENTITIES
+##############################################################################
+
+# Nimmi/GitHub users can access only GitHub domains
+http_access allow github_users github_domains
+http_access deny github_users
+
+# VTS/AI users can access only AI domains
+http_access allow ai_users ai_domains
+http_access deny ai_users
+
+# WhatsApp automation VM can access only WhatsApp domains
+http_access allow automation_servers whatsapp_domains
+
+##############################################################################
+# CACHE MANAGER
+##############################################################################
+
+http_access allow localhost manager
+http_access deny manager
+
+##############################################################################
+# NORMAL AUTHENTICATED USERS
+##############################################################################
+
+http_access allow proxy8860 proxy8860_clients allowed_ips authenticated_users
+http_access allow proxy8859 proxy8859_clients allowed_ips authenticated_users
+http_access allow proxy8878 proxy8878_clients allowed_ips authenticated_users
+http_access allow proxy8888 proxy8888_clients allowed_ips authenticated_users
+http_access allow proxy8898 proxy8898_clients allowed_ips authenticated_users
+http_access allow proxy8858 proxy8858_clients allowed_ips authenticated_users
+
+# Main port 3128
+acl main_port myportname main
+http_access allow main_port localnet allowed_ips authenticated_users
+
+# Local Squid administration
+http_access allow localhost
+
+# Default deny
+http_access deny all
+
+
+##############################################################################
+# OUTGOING IP BINDING
+##############################################################################
+
+tcp_outgoing_address 192.168.14.30 proxy8860
+tcp_outgoing_address 192.168.16.30 proxy8859
+tcp_outgoing_address 192.168.12.30 proxy8878
+tcp_outgoing_address 192.168.1.30  proxy8888
+tcp_outgoing_address 192.168.4.30  proxy8898
+tcp_outgoing_address 192.168.19.30 proxy8858
+
+##############################################################################
+# LOGGING
+##############################################################################
+
+access_log daemon:/var/log/squid/access.log squid
+cache_store_log /var/log/squid/store.log
+cache_log /var/log/squid/cache.log
+coredump_dir /var/spool/squid
+
+##############################################################################
+# CACHE STORAGE
+##############################################################################
+
+cache_dir ufs /var/spool/squid/cache 10000 16 256
+cache_mem 1024 MB
+maximum_object_size 50 MB
+minimum_object_size 0 KB
+
+##############################################################################
+# REFRESH PATTERNS
+##############################################################################
+
+refresh_pattern ^ftp:           1440    20%     10080
+refresh_pattern ^gopher:        1440    0%      1440
+refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+refresh_pattern \/(Packages|Sources)(|\.bz2|\.gz|\.xz)$ 0 0% 0 refresh-ims
+refresh_pattern \/Release(|\.gpg)$      0 0% 0 refresh-ims
+refresh_pattern \/InRelease$            0 0% 0 refresh-ims
+refresh_pattern \/(Translation-.*)(|\.bz2|\.gz|\.xz)$ 0 0% 0 refresh-ims
+refresh_pattern .               0       20%     4320
+
+
+##############################################################################
+# SNMP (RESTRICTED)
+##############################################################################
+
+snmp_port 3401
+snmp_incoming_address 0.0.0.0
+snmp_outgoing_address 0.0.0.0
+
+acl snmp_clients src 10.31.0.0/16
+snmp_access allow snmp_clients
+snmp_access deny all
+
+
+##############################################################################
+# DEBUGGING
+##############################################################################
+
+debug_options ALL,1
+
+#FOR FULL TRANSLATED LOG
+#logformat ispflow "%ts client=%>a clientport=%>p user=%un bytes=%<st url=%>ru dst=%>A out-ip=%la"
+#logformat ispflow "%ts client=%>a clientport=%>p user=%un bytes=%<st url=%>ru status=%>Hs result=%Ss dst=%>A out-ip=%la"
+#logformat ispflow "%ts client=%>a clientport=%>p user=%un bytes=%<st url=%>ru status=%>Hs result=%Ss dst=%>A out-ip=%la"
+logformat ispflow %ts.%03tu client=%>a clientport=%>p duration=%tr result=%Ss/%>Hs bytes=%<st method=%rm destination=%ru user=%un local_port=%lp local_ip=%la
+
+access_log /var/log/squid/kv1.log ispflow proxy8860
+access_log /var/log/squid/kv2.log ispflow proxy8859
+access_log /var/log/squid/kv3.log ispflow proxy8878
+access_log /var/log/squid/kv6.log ispflow proxy8888
+access_log /var/log/squid/kv7.log ispflow proxy8898
+access_log /var/log/squid/kv8.log ispflow proxy8858
+# For SARG
+access_log /var/log/squid/sarg_access.log squid
+
+logformat flow %ts.%03tu %>a:%>p %la:%lp %<a:%<p %Ss/%03>Hs %rm %ru
+#access_log /var/log/squid/access_flow.log flow
+
+/etc/squid/password
+proxy:$apr1$8LUK/Pcb$B0inFDgec.1gc1n64cQUt.
+girish:$apr1$ZXwBtG8C$19SHBd9hsaiqY8fdJBYkt.
+user1:$apr1$fFdff4SG$CMceFDlmcllepY9FNAmDf/
+sapuser:$apr1$RayQ2tQq$zeG7JBEY2rA9p5LJhmRyp0
+tempuser:$apr1$6FCyqlhv$DC9T1byQPC7X8.a7Z2s0G/
+krishnanunni:$apr1$iyoqGr.f$eDzaGTdfhUmCm/PZI4iHi1
+gautham:$apr1$NibyjETH$iOLRJJeM2WMIcJw5k.YwZ1
+vishnums:$apr1$vRGSQUak$qVaWboG85Q3L5A9NcqMKD/
+arjunram:$apr1$gdQUcUKt$uegkm3yRmyckIQ9jAoxD0.
+aravinds:$apr1$f9OnsE7t$WK2Rt4TgdRd6XlqdQ0YC6.
+hemalatha:$apr1$3Tq3S7PV$NEgsCCzSP1B5LPnTSt/iZ.
+oggy:$apr1$2iDuYGtQ$abeOw2tpCn2FTYUUBcUR1/
+surya:$apr1$HRN3r7iT$YnFkTq96bpdyMo2VDfNK7/
+rekhamh:$apr1$03tYUCQN$Z.igmbGU5ysQlWXJv59zE/
+parvathi:$apr1$GxwQ.93x$QcjEWt/yyl2bzyiXsl.AW1
+anandhuanil:$apr1$hWKjfj0m$AcQyk8HUOcjqbxxcb/RDT.
+deepud:$apr1$V8L3JdMj$ewcIipD41s.5KP.m9yA//0
+arjunp:$apr1$JtU8ZChn$T6FEXpv3tSFzTx1ZMOqx3/
+vishnuv:$apr1$lmb.LT14$6VfqykR4N.jRiaT4WL/9b.
+sandeep:$apr1$bx.MDLQk$mgOUe1qhwiEuIQhUCKhl7/
+aparnaps:$apr1$13tRihOB$eKWNTYVNKMJqErdwOWWeO.
+anusree:$apr1$RhAFYDta$wCltrlZQLpWlnuh7GO2K/1
+santhoshkumar:$apr1$a0Cnou1D$Z7ouMi4K8CGmIQSg2fi8V1
+yuvaraj:$apr1$Jbd2UgaT$H3jX3YD1Dz7HlCCvij4461
+testuser1:$apr1$.YxyKkUA$zFvyH85Txy38wjUPMoRhH.
+vts-user:$apr1$7mqJJmOl$qwLCv2imaX/naduCOj.Sv0
+vishnupa:$apr1$FfrT2ksX$k8on7qi1InT..AxFh3ZOf0
+gopikrishnan:$apr1$0I.TKjAT$FDHTbbJylNkolJX5gRVtb.
+alertuser:$apr1$UW6IS7yC$RVUj18TOCfpBeSd05uERF0
+tenderportaluser:$apr1$NVJSbyvW$A1uMYzPdUY0O8G2OwLp3s.
+jishnua:$apr1$gs0RY8xu$u4ho.ioTyKj7DPmYjC/eY/
+appinteluser:$apr1$1rHS9AvC$s08JQINpgo85KwXsEY6Ri1
+adarshv:$apr1$rZtNq84W$bERQ4eBOl7kmajQQDcCal1
+nimmi:$apr1$oSZFkynz$.IA.BJYTCEds9BE9awYgE.
+arunr:$apr1$B3P2w53r$/tCuuEQmK.vtI4nQkjLg1/
+repotest:$apr1$qsm4nJtH$2C2qGIK9DYNBPsMF7q01R0
+parvathy:$apr1$APfJAqTU$pDQSO7poniEBcrvfgJSUk0
+sneha:$apr1$9mA3zS.r$eypl4ace5XZARz4btDGED.
+gokul:$apr1$qhcyvvZ5$SYWHCtGr4sfleV3mmNIxm0
+santhosh:$apr1$vvDKtpi2$bjeV7ehZmc215VDbRVzGv/
+hareeshp:$apr1$ggCMYBnA$p8z3AtsWANNHhGU8FW7ID1
+Gayathri:$apr1$2vH4xxGi$XNyEdzPgC1DYz4c7qGpCZ0
+P2P:$apr1$X.YHkc52$8kbDbRPMRsbQKI0NKp7tl/
+gayathri:$apr1$BmXFe7G/$c9RyAlMAX0SUoOzcL5VT0/
+p2p:$apr1$ghdHGJVu$BCVBJo.Q9yJvLQvB7Qn6x0
+shyam:26NwZPrbj7rVU
+nishu:46del2fcXlNZM
+sajan:24/4Hb15npAe.
+
+/etc/squid/acl/users/ai_users.txt 
+vts-user
+hareesh
+/etc/squid/acl/users/github_users.txt 
+nimmi
+/etc/squid/acl/domains/ai_domains.txt
+senselcm.sensorise.net
+app.growspace.in
+.openai.com
+.claude.ai
+.anthropic.com
+.cesium.com
+.mapbox.com
+.openstreetmap.org
+
+/etc/squid/acl/domains/github_domains.txt 
+.github.com
+.githubusercontent.com
+.githubassets.com
+.pypi.org
+.pythonhosted.org
+
+/etc/squid/acl/domains/whatsapp_domains.txt 
+.facebook.com
+.whatsapp.net
+.whatsapp.com
+.fbcdn.net
+
+/etc/squid/acl/ips/automation_servers.txt 
+10.31.5.58
+
+/etc/squid/allowed_ips.txt 
+
+#SAF Raspberry pi
+10.31.0.230
+
+#SAF VM's
+10.31.4.11
+10.31.4.22
+10.31.4.34
+10.31.4.66
+10.31.4.120
+10.31.4.121
+10.31.4.124
+10.31.4.125
+10.31.4.126
+10.31.4.130
+10.31.4.132
+10.31.4.133
+10.31.4.136
+10.31.4.138
+10.31.4.139
+10.31.4.140
+10.31.4.142
+10.31.4.143
+10.31.4.144
+10.31.4.147
+10.31.4.149
+10.31.4.152
+10.31.4.153
+10.31.4.155
+10.31.4.156
+10.31.4.159
+10.31.4.162
+10.31.4.164
+10.31.4.166
+10.31.4.172
+10.31.4.173
+10.31.4.174
+10.31.4.175
+10.31.4.177
+10.31.4.216
+10.31.4.217
+10.31.4.218
+10.31.4.219
+10.31.4.220
+10.31.4.221
+10.31.4.222
+10.31.4.225
+10.31.4.226
+10.31.4.227
+10.31.5.127
+10.31.5.208
+10.31.5.209
+10.31.5.217
+10.31.6.130
+10.31.6.85
+10.31.6.124
+10.31.7.86
+10.31.7.95
+10.31.7.193
+10.31.7.252
+10.31.7.242
+
+#SAF Crawler Team
+10.31.0.177
+10.31.0.11
+10.31.0.85
+10.31.0.118
+10.31.1.83
+10.31.0.128
+10.31.0.173
+10.31.1.63
+10.31.1.121
+10.31.0.142
+10.31.0.104
+
+#SAF VDI Vishnu MS using
+10.31.73.35
+10.31.73.11
+
+#CISAI IT team
+10.31.0.129
+10.31.0.140
+10.31.0.13
+10.31.0.30
+10.31.0.174
+
+#P2P-Netbird
+10.31.5.191
+10.31.6.193
+10.31.88.165
+10.31.0.58
+#VTS-System
+10.31.7.11
+10.31.7.180
+10.31.5.172
+10.31.6.25
+
+#OSINT
+10.31.0.178
+10.31.1.112
+10.31.0.12
+10.31.4.29
+10.31.0.150
+10.31.1.87
+10.31.1.16
+10.31.1.179
+#SSLVPN
+10.31.6.241
+
+
+#ALERTING-SYSTEM
+10.31.6.201
+
+#NCVMS
+10.31.5.247
+10.31.0.18
+10.31.7.109
+
+#appintel
+10.31.7.232
+10.31.88.190
+10.31.88.198
+10.31.88.191
+10.31.88.179
+10.31.88.62
+
+#for Temp
+10.31.5.129
+
+#repo_test
+10.31.7.251
+10.31.4.94
+
+#Testing 
+10.31.1.59
+
+#Sajan For Site Monitoring
+10.31.1.120

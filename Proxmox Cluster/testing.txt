@@ -1,0 +1,272 @@
+I created the updated Ceph Validation Suite v3.0 and verified it with bash -n.
+ It includes pool auto-detection, degraded-cluster handling, recovery timeout, correct PASS/FAIL/SKIP results, safer RBD mapping, cleanup traps, configurable parameters, 
+ and controlled disruptive-test modes.
+
+Download ceph-validation-suite.sh
+
+Important correction from your current file
+
+Your existing script contains encoded characters such as:
+
+&gt;
+&lt;
+&amp;
+
+
+The downloaded script contains the real shell operators:
+
+>
+<
+&
+>>
+2>&1
+<<EOF
+
+
+Do not copy it through a rich-text editor. Download the file directly, or use a plain-text terminal editor.
+
+Install it
+sudo cp ceph-validation-suite.sh /usr/local/sbin/ceph-validation-suite
+sudo chown root:root /usr/local/sbin/ceph-validation-suite
+sudo chmod 750 /usr/local/sbin/ceph-validation-suite
+
+
+Verify the syntax again on the Ceph node:
+
+sudo bash -n /usr/local/sbin/ceph-validation-suite
+
+
+Expected result: no output.
+
+View the new parameters:
+
+sudo /usr/local/sbin/ceph-validation-suite --help
+
+Recommended command for your current cluster
+
+Your cluster is already HEALTH_WARN because prox23, its monitor, and OSDs are unavailable. First run only the safe health collection:
+
+sudo /usr/local/sbin/ceph-validation-suite --mode health
+
+
+This does not run storage performance tests or stop anything.
+
+For performance testing with the existing vm-rbd pool:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode validate \
+  --pool vm-rbd \
+  --continue-degraded \
+  --bench-seconds 30 \
+  --timeout 300
+
+
+The --continue-degraded parameter is deliberately required while the cluster baseline is not HEALTH_OK. Without it, performance tests are skipped rather than accidentally benchmarking an unhealthy cluster.
+
+Normal healthy-cluster command
+
+After prox23 returns and the cluster becomes healthy:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode validate \
+  --pool vm-rbd
+
+
+If you omit --pool, the script automatically selects the first pool other than .mgr:
+
+sudo /usr/local/sbin/ceph-validation-suite
+
+New parameters
+Performance parameters
+--pool vm-rbd
+--bench-seconds 60
+--rbd-size 10G
+--fio-size 2G
+--fio-jobs 4
+--fio-iodepth 32
+--timeout 600
+--interval 10
+
+
+Example:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode validate \
+  --pool vm-rbd \
+  --bench-seconds 60 \
+  --rbd-size 10G \
+  --fio-size 2G \
+  --fio-jobs 4 \
+  --fio-iodepth 32 \
+  --timeout 600
+
+Available modes
+health
+validate
+osd-failure
+mon-failure
+network-partition
+disk-space
+
+Disruptive test protection
+
+The disruptive modes require both:
+
+The --allow-destructive parameter.
+An exact interactive confirmation phrase.
+
+For example, the OSD test asks you to type:
+
+RUN-osd-failure
+
+
+If the phrase is incorrect, the test is cancelled.
+
+Do not run an OSD or MON failure test while prox23 remains offline. Your cluster is already degraded and has reduced redundancy.
+
+OSD failure test
+
+Run this only after the cluster is stable and choose an OSD hosted on the local machine running the script, because systemctl controls only local services:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode osd-failure \
+  --osd 5 \
+  --timeout 600 \
+  --allow-destructive
+
+
+The script:
+
+Verifies that the OSD exists.
+Saves cluster evidence.
+Records whether noout was already enabled.
+Sets noout if needed.
+Marks the OSD out.
+Stops and starts its systemd service.
+Marks it back in.
+Restores the original noout condition.
+Waits for the original baseline state or HEALTH_OK.
+Stops waiting after the configured timeout.
+Monitor failure test
+
+Only target a monitor running on the local host:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode mon-failure \
+  --mon prox24 \
+  --timeout 300 \
+  --allow-destructive
+
+
+Do not run that command now while prox23 is unavailable. Stopping another monitor could remove quorum.
+
+Temporary network partition
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode network-partition \
+  --subnet 10.31.122.23/32 \
+  --partition-seconds 30 \
+  --timeout 300 \
+  --allow-destructive
+
+
+Safety controls:
+
+Maximum partition duration is 300 seconds.
+The rule uses the comment ceph-validation.
+The script removes only the rule it added.
+EXIT, INT, and TERM traps attempt rule cleanup if the run is interrupted.
+Current iptables configuration is saved before the change.
+
+Avoid running this through the same network path that provides your SSH management connection. Prefer console access.
+
+Bounded disk-space test
+
+This version does not intentionally fill an entire OSD. It creates a size-limited temporary test file:
+
+sudo /usr/local/sbin/ceph-validation-suite \
+  --mode disk-space \
+  --path /var/lib/ceph/osd/ceph-32 \
+  --test-mib 1024 \
+  --timeout 300 \
+  --allow-destructive
+
+
+Safety controls:
+
+Maximum temporary file size is 10,240 MiB.
+Requires an additional 1,024 MiB of free-space headroom.
+Deletes the test file after the check.
+Cleanup trap attempts deletion if interrupted.
+
+This is a bounded disk-space pressure test, not a true Ceph FULL threshold test. That limitation is intentional because filling a live OSD can disrupt writes and create serious recovery risk.
+
+Result locations
+
+Each execution creates:
+
+/var/log/ceph-validation/ceph_validation_DATE_TIME.log
+/var/log/ceph-validation/reports/report_DATE_TIME.txt
+/var/log/ceph-validation/metrics/
+/var/backups/ceph-validation/DATE_TIME/
+
+
+Find the latest report:
+
+sudo ls -ltr /var/log/ceph-validation/reports/
+
+
+Display it:
+
+sudo cat "$(sudo find /var/log/ceph-validation/reports \
+  -maxdepth 1 -type f -name 'report_*.txt' \
+  -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2-)"
+
+
+The report contains:
+
+Mode
+Pool
+Baseline health
+Final health
+Baseline PG summary
+Final PG summary
+PASS count
+FAIL count
+SKIP count
+Runtime
+Overall result
+Performance result extract
+Log location
+Metrics location
+Backup evidence location
+
+Cleanup verification after a run
+
+Check that no temporary RBD remains:
+
+sudo rbd ls --pool vm-rbd | grep ceph_validation_
+sudo rbd showmapped
+
+
+Check that no temporary network rule remains:
+
+sudo iptables -S INPUT | grep ceph-validation
+
+
+Check Ceph flags:
+
+sudo ceph osd dump | grep flags
+
+
+Check the cluster:
+
+sudo ceph -s
+sudo ceph health detail
+
+
+For your present condition, the correct first run is:
+
+sudo /usr/local/sbin/ceph-validation-suite --mode health
+
+
+Do not run the OSD, monitor, or network-partition modes until prox23 is back and monitor quorum, OSD availability, and PG redundancy have recovered.

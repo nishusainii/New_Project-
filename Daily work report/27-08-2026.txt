@@ -1,0 +1,49 @@
+Nishu Saini
+Date: 27/08/2026
+Login: 9:09AM
+Logout:6:50 PM
+
+
+Today's Work Summary
+
+9:00 AM  To 12:00 AM
+
+
+
+-Reviewed the Raspberry Pi Docker monitoring environment running Grafana, Prometheus, Blackbox Exporter, OpenWA API, and Docker Socket Proxy.
+-Verified that the existing Docker bridge network monitoring-net was available and that Blackbox Exporter was connected to it.
+-Confirmed that Prometheus was operating in host-network mode and therefore could not be attached to an additional Docker bridge network.
+-Designed a new monitoring request flow using Grafana → Prometheus → Nginx reverse proxy on 127.0.0.1:9117 → Blackbox Exporter → monitored websites.
+-Created the Nginx configuration directory at /opt/blackbox-nginx and added the reverse-proxy configuration file /opt/blackbox-nginx/nginx.conf.
+-Configured Nginx to forward /probe and /metrics requests to blackbox-exporter:9115 and added a /proxy-health health-check endpoint.
+-Identified that port 9116 was already used by custom_site_exporter, so selected port 9117 for the new Nginx reverse proxy.
+-Created the blackbox-nginx-proxy container and published it only on the Raspberry Pi loopback interface as 127.0.0.1:9117 → 8080.
+-Validated the Nginx configuration and confirmed that the /proxy-health endpoint reported the reverse proxy as healthy.
+-Tested website probing through Nginx and successfully received Blackbox metrics, including probe_success 1 and SSL certificate-expiry information.
+
+12:00 AM To 2:00 PM 
+
+-Located the Prometheus host configuration at /home/ubuntu/prometheus.yml and confirmed that it was mounted read-only at /etc/prometheus/prometheus.yml inside the container.
+-Updated both Blackbox Prometheus jobs to use the Nginx endpoint 127.0.0.1:9117 instead of directly accessing 127.0.0.1:9115, while leaving the custom exporter on 127.0.0.1:9116 unchanged.
+-Resolved a read-only bind-mount inode issue by recreating the Prometheus container with host networking, the updated configuration, the existing data volume, lifecycle reload support, and an unless-stopped restart policy.
+-Preserved all existing Prometheus historical data, validated the updated configuration with promtool, and confirmed that Prometheus became ready successfully.
+-Verified that active Prometheus targets were using 127.0.0.1:9117/probe and confirmed automatic Prometheus requests in the Nginx access logs.
+-Updated both Blackbox Prometheus jobs to use a 60s scrape interval and a 30s scrape timeout.
+-Located the active Blackbox configuration at /home/ubuntu/blackbox.yml, increased the Direct, Jio1, and Jio2 module timeouts from 15s to 25s, validated the configuration, and recreated Blackbox Exporter.
+-Restarted Nginx after recreating Blackbox Exporter so that the proxy refreshed the backend container address.
+-Compared Jio1 and Jio2 proxy paths, identified TLS handshake timeouts through Jio1 port 8855, and confirmed successful HTTP 200 and SSL probing through Jio2 port 8848.
+-Switched the Prometheus proxy-monitoring job from http_2xx_proxy_jio1 to http_2xx_proxy_jio2, after which most proxy-monitored websites became healthy.
+-Investigated the remaining Amritaserve failure and determined that the proxy connection, TLS 1.3 handshake, certificate collection, and HTTP 200 response succeeded, but the GET response body did not complete within the timeout.
+-Created and deployed the dedicated http_head_proxy_jio2 Blackbox module using HTTP HEAD, Jio2 proxy port 8848, IPv4, TLS monitoring, and a 25s timeout.
+-Created the dedicated Prometheus job blackbox-amritaserve-jio2; confirmed Amritaserve success with probe_success 1, HTTP 200, SSL enabled, and a probe duration of approximately 0.454 seconds; and removed Amritaserve from the shared Jio2 GET job.
+-Removed unused stopped Prometheus and Blackbox backup containers while preserving the active production containers: Grafana, Prometheus, Blackbox Exporter, Nginx proxy, OpenWA API, and OpenWA Docker Proxy.
+
+2:00 PM To 3:00 PM 
+
+- Lunch break.
+
+3:00 PM To 6:00 PM
+
+-Built a new Website Availability & SSL Operations Center dashboard in Grafana with dynamic Prometheus, route, website, certificate-warning, probe-interval, and SLO variables.
+ Added panels for website availability, UP/DOWN status, SSL expiry, HTTP status, response latency, Direct versus Jio2 route comparison, payload size, estimated Blackbox monitoring 
+ bandwidth, website inventory, active failures, and advanced troubleshooting.

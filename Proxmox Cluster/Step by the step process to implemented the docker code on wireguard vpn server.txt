@@ -1,0 +1,73 @@
+### 4. Step-by-Step Implementation Guide
+
+  Follow these steps to deploy on your air-gapped production Linux host.
+
+  #### Step 1: Transfer Archive to Production Server
+
+  Transfer wireguard-enterprise-production.zip to the air-gapped server via your organization's approved offline media (secure USB, internal
+  jumpbox SFTP, or deployment bastion).
+
+  #### Step 2: Unpack on Target Production Server
+
+  Execute as root (or with sudo):
+
+    # Create target directory and unpack
+    mkdir -p /opt/wireguard-enterprise
+    unzip wireguard-enterprise-production.zip -d /opt/wireguard-enterprise
+    cd /opt/wireguard-enterprise
+    chmod +x scripts/*.sh
+
+  #### Step 3: Run Diagnostic & Kernel Verification
+
+  Verify that the host kernel supports in-tree WireGuard and IPv4 forwarding:
+
+    ./scripts/verify-host-kernel.sh
+
+  What this validates:
+
+  • Kernel version ≥ 5.6 (built-in wireguard.ko).
+  • IPv4 forwarding state (net.ipv4.ip_forward = 1).
+  • Docker Engine and Docker Compose installation.
+
+  │ If Docker is not yet installed on the air-gapped host:
+  │ Download the offline .deb or .rpm package bundles on an internet-connected PC from Docker's official package repository
+  │ (download.docker.com/linux/ubuntu or /centos), transfer them to the server, and install via dpkg -i *.deb or rpm -Uvh *.rpm.
+
+  #### Step 4: Configure Host NFTables Integration
+
+  Execute the firewall setup script:
+
+    ./scripts/setup-host-nftables.sh
+
+  What this configures:
+
+  • Creates the dedicated /etc/nftables/act.nft table.
+  • Links include "/etc/nftables/act.nft" into /etc/nftables.conf.
+  • Guarantees complete isolation from existing Docker bridge chains.
+
+  #### Step 5: Execute Automated Offline Deployment
+
+  Run the offline installer:
+
+    ./scripts/deploy-offline.sh
+
+  The script executes the following automated steps:
+
+  1. Enables and persists net.ipv4.ip_forward = 1 in /etc/sysctl.d/99-wireguard-forward.conf.
+  2. Loads wireguard.ko into the host kernel.
+  3. Imports wireguard-enterprise-image.tar.gz into the local Docker daemon cache via docker load.
+  4. Initializes .env and generates a 32-byte cryptographic secret key.
+  5. Restricts permissions on ./data (chmod 700).
+  6. Starts the containerized control center via docker compose up -d.
+  7. Executes an automated HTTP health probe to verify service status.
+  ──────
+  ### 5. Post-Deployment Verification & Daily Operations
+
+  #### Accessing the Web Control Center
+
+  Open your browser and navigate to:
+
+    http://<SERVER_IP>:8000
+
+  • Username: admin
+  • Password: adminpassword123 (configurable in .env)

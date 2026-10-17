@@ -1,0 +1,73 @@
+{
+  "results": {
+    "subsystem": "ZFS RAIDZ2 (zfs-ha)",
+    "fault_injected": "Simultaneous 2-Disk Physical Removal (sde & sdf)",
+    "pool_redundancy_level": "RAIDZ2 (N-2 Fault Tolerant)",
+    "io_under_fault": "Uninterrupted / 0 Errors",
+    "data_loss_bytes": 0,
+    "recovery_state": "ONLINE (0 Errors)",
+    "test_status": "PASS"
+  },
+  "telemetry": [
+    {
+      "timestamp": "2026-09-24 22:37:07",
+      "status": "STEP",
+      "message": "Starting Dual-Disk Pull Resilience Test on Subsystem: ZFS..."
+    },
+    {
+      "timestamp": "2026-09-24 22:37:07",
+      "status": "RUN",
+      "message": "Step 1: Inspecting Pre-Flight Physical Disks & Storage Health..."
+    },
+    {
+      "timestamp": "2026-09-24 22:37:07",
+      "status": "PASS",
+      "message": "ZFS Status: ONLINE (0 Errors)"
+    },
+    {
+      "timestamp": "2026-09-24 22:37:07",
+      "status": "PASS",
+      "message": "Ceph Status: HEALTH_OK (12/12 OSDs UP)"
+    },
+    {
+      "timestamp": "2026-09-24 22:37:07",
+      "status": "INFO",
+      "message": "Identified ZFS RAIDZ2 target drives for dual-pull on prox22: [sde] (Slot 5) & [sdf] (Slot 6)."
+    },
+    {
+      "timestamp": "2026-09-24 22:38:14",
+      "status": "STEP",
+      "message": "Step 2: Monitoring Storage Degradation & Performing Active I/O under Dual Fault..."
+    },
+    {
+      "timestamp": "2026-09-24 22:38:17",
+      "status": "WARN",
+      "message": "ZFS Pool State:\n  pool: zfs-ha\n state: DEGRADED\nstatus: One or more devices have been removed.\n\tSufficient replicas exist for the pool to continue functioning in a\n\tdegraded state.\naction: Online the device using zpool online' or replace the device with\n\t'zpool replace'.\n  scan: scrub canceled on Sat Sep 19 11:49:13 2026\nconfig:\n\n\tNAME                        STATE     READ WRITE CKSUM\n\tzfs-ha                      DEGRADED     0     0     0\n\t  raidz2-0                  DEGRADED     0     0     0\n\t    wwn-0x5000c500f5881f8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f589219b  ONLINE       0     0     0\n\t    wwn-0x5000c500f587c8af  ONLINE       0     0     0\n\t    wwn-0x5000c500f5889713  REMOVED      0     0     0\n\t    wwn-0x5000c500f588891f  REMOVED      0     0     0\n\t    wwn-0x5000c500f5893a8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f58801ff  ONLINE       0     0     0\n\nerrors: No known data errors\n"
+    },
+    {
+      "timestamp": "2026-09-24 22:38:17",
+      "status": "RUN",
+      "message": "Executing live Direct I/O write stress against DEGRADED ZFS pool..."
+    },
+    {
+      "timestamp": "2026-09-24 22:38:17",
+      "status": "PASS",
+      "message": "Direct I/O Write Test under 2-Drive Loss: 100% SUCCESSFUL (Zero I/O Errors)!"
+    },
+    {
+      "timestamp": "2026-09-24 22:38:45",
+      "status": "STEP",
+      "message": "Step 3: Triggering ZFS Online Recovery & Resilver..."
+    },
+    {
+      "timestamp": "2026-09-24 22:38:50",
+      "status": "PASS",
+      "message": "ZFS Final Pool State:\n  pool: zfs-ha\n state: DEGRADED\nstatus: One or more devices have been removed.\n\tSufficient replicas exist for the pool to continue functioning in a\n\tdegraded state.\naction: Online the device using zpool online' or replace the device with\n\t'zpool replace'.\n  scan: scrub canceled on Sat Sep 19 11:49:13 2026\nconfig:\n\n\tNAME                        STATE     READ WRITE CKSUM\n\tzfs-ha                      DEGRADED     0     0     0\n\t  raidz2-0                  DEGRADED     0     0     0\n\t    wwn-0x5000c500f5881f8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f589219b  ONLINE       0     0     0\n\t    wwn-0x5000c500f587c8af  ONLINE       0     0     0\n\t    wwn-0x5000c500f5889713  REMOVED      0     0     0\n\t    wwn-0x5000c500f588891f  REMOVED      0     0     0\n\t    wwn-0x5000c500f5893a8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f58801ff  ONLINE       0     0     0\n\nerrors: No known data errors\n"
+    },
+    {
+      "timestamp": "2026-09-24 22:38:50",
+      "status": "STEP",
+      "message": "Generating Official Executive HTML and PDF Test Reports..."
+    }
+  ]
+}

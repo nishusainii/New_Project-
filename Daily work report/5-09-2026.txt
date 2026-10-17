@@ -1,0 +1,86 @@
+Name: Nishu Saini
+ Date: 05/09/2026
+ Login: 8:56 AM
+ Logout: 07:00 PM
+ 
+  
+Today's Work Summary
+
+9:00 AM to 2:00 PM
+
+-Validated the three-node cisai-pve Proxmox cluster comprising prox22,    prox23, and prox24.
+-Confirmed full cluster quorum, active pve-cluster/Corosync services, and no recent Corosync warnings or errors.
+-Verified Proxmox VE, kernel, Ceph, ZFS, NTP, timezone, and root-filesystem capacity across the cluster.
+-Confirmed the Ceph cluster was HEALTH_OK, with all three monitors in quorum and Ceph Manager services operating correctly.
+-Verified all 12 Ceph OSDs were up and in, with all 33 placement groups active+clean.
+-Reviewed Ceph capacity, OSD utilization, latency indicators, and overall storage health.
+-Completed controlled Ceph RADOS write, sequential-read, and random-read benchmark tests.
+-Verified Ceph test-object integrity using SHA-256 and removed all temporary benchmark objects and pools.
+-Validated seven-disk ZFS RAIDZ2 pools across prox22, prox23, and prox24.
+-Confirmed all RAIDZ2 disks were online, with zero read, write, checksum, or known data errors.
+-Completed ZFS capacity, fragmentation, dataset, I/O, SMART-health, scrub, and integrity checks.
+-Corrected and finalized production ZFS validation scripts, including property and error-counter parsing fixes.
+-Created combined ZFS validation evidence logs and production audit PDF reports for Proxmox, Ceph, and ZFS.
+-Created Ceph-backed Ubuntu test VM 9001 using the validated Ubuntu Server 22.04.4 ISO.
+-Successfully completed live migration of VM 9001 across all three nodes, recording downtime between 9 ms and 13 ms.
+-Added VM 9001 to Proxmox HA and completed HA testing with 36 passes, 10 expected warnings, and zero failures.
+-Created ZFS-backed Ubuntu test VM 9002 and verified guest data integrity using a 1 GiB test file and SHA-256 checksum.
+-Successfully tested controlled offline migration of VM 9002 between local RAIDZ2 pools.
+-Confirmed approximately 4.42 GiB of data transferred and validated system/EFI disk mapping and successful VM restart.
+-Standardized the local RAIDZ2 storage name as zfs-ha and confirmed its health and availability on all three nodes.
+-Standardized ZFS datasets and properties, including lz4 compression, checksums, atime=off, and xattr=sa.
+-Created the common non-shared Proxmox storage ID zfs-ha and moved VM 9002 disks between Ceph and ZFS as required.
+-Configured ZFS replication job 9002-0 to prox23 and successfully validated initial and incremental replication.
+-Confirmed both VM volumes were replicated, imported successfully, and stale replication snapshots were removed automatically.
+-Added VM 9002 to Proxmox HA and confirmed the service was started and managed on prox24.
+-Created a production-safe three-node ZFS HA migration validation script with the route prox24 → prox23 → prox22 → prox24.
+-Included quorum, storage, pool health, HA, replication, VM state, disk mapping, optional ping, logging, and checksum validation.
+-Reviewed the production Nginx and Guacamole reverse-proxy configuration and prepared a controlled change and rollback procedure.
+
+
+2:00PM  to 2:40 PM 
+
+- Lunch break.
+
+2:40 PM to 7:00 PM 
+
+Nginx, Guacamole server, and SSL/TLS Work Summary
+-Reviewed the existing production Nginx configuration for the Guacamole reverse-proxy service.
+-Prepared a structured production change procedure covering pre-checks, backup, implementation, validation, and emergency rollback.
+-Added validation using readlink -f to identify the actual configuration file behind /etc/nginx/sites-enabled/default.
+-Moved configuration backups outside the active Nginx directory to prevent accidental loading.
+-Defined /var/backups/nginx/ as the secure Nginx configuration backup location.
+-Added backup-integrity verification using cmp, SHA-256 checksums, and file metadata.
+-Added pre-change checks for Nginx syntax, service status, filesystem capacity, and established connections.
+-Added listener checks for frontend HTTPS on TCP port 443 and the Guacamole backend on TCP port 8080.
+-Added backend application, frontend HTTPS, and full active Nginx configuration validation.
+-Corrected HTML-encoded shell operators and removed the invalid Page 7 of 18 document-export artifact.
+-Reviewed and retained the /websocket-tunnel and /guacamole/websocket-tunnel WebSocket paths.
+-Preserved the standard /guacamole/ and / Guacamole proxy paths.
+-Verified the required WebSocket HTTP version, Upgrade header, and Connection header directives.
+-Retained extended WebSocket timeouts for long-running Guacamole sessions.
+-Reviewed the existing SSL/TLS configuration and identified that TLS 1.0 and TLS 1.1 were enabled.
+-Compared the existing broad cipher configuration with a restricted production cipher policy.
+-Confirmed that the current SSL certificate uses a 2048-bit RSA public key.
+-Verified local support for the selected RSA-compatible TLS 1.2 ECDHE cipher suites.
+-Confirmed that the SSL certificate and private key match using identical SHA-256 public-key fingerprints.
+-Verified the installed software versions as Nginx 1.14.0 and OpenSSL 1.1.1.
+-Confirmed that the installed OpenSSL version provides prerequisite support for TLS 1.3.
+-Verified that the certificate is valid from 27 May 2020 until 25 May 2030.
+-Identified that the certificate is likely self-signed because its subject and issuer are identical.
+-Confirmed that the current certificate does not match the hostname guacamole.
+-Identified that the certificate output did not contain a Subject Alternative Name for the required hostname or IP address.
+-Recommended deploying a replacement SAN certificate containing the approved production DNS name and required operational identities.
+-Documented certificate hostname, IP, expiry, private-key, chain, trust-store, and live-listener validation procedures.
+-Prepared an updated Nginx configuration with TLS 1.2/1.3, restricted cipher suites, session caching, Guacamole routing, and WebSocket support.
+-Added controlled reload protection, post-change service checks, TLS validation, application testing, log inspection, and rollback criteria.
+-Completed the Nginx review and configuration preparation; hostname validation failed, a replacement SAN certificate is required, and production implementation remains pending an approved change window and final validation.
+
+
+
+
+
+
+
+
+

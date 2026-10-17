@@ -1,0 +1,198 @@
+I created the complete production-based ZFS RAIDZ2 testing script with configurable parameters, health thresholds, disk checks, SMART evidence, controlled I/O, checksum verification, performance testing, scrub testing, cleanup, and reporting.
+
+[Download the complete ZFS RAIDZ2 testing script](https://in-prod.asyncgw.teams.microsoft.com/v1/objects/0-jhb-d1-b5738d4a82f0034c719362f60f79d65e/views/original/zfs-raidz2-complete-production-test.sh)
+
+## Included parameters
+
+POOL="local-zfs-prox24"  
+
+EXPECTED_RAID_LEVEL="raidz2"  
+
+EXPECTED_DISKS=7  
+
+TEST_SIZE_MIB=1024  
+
+DD_BLOCK_SIZE="1M"  
+
+IOSTAT_INTERVAL=2  
+
+IOSTAT_COUNT=5  
+
+SCRUB_POLL_SECONDS=30  
+
+CAPACITY_WARN_PERCENT=80  
+
+FRAGMENTATION_WARN_PERCENT=50  
+
+MIN_FREE_GIB=10  
+
+MAX_READ_ERRORS=0  
+
+MAX_WRITE_ERRORS=0  
+
+MAX_CKSUM_ERRORS=0  
+
+RUN_IO_TEST=0  
+
+RUN_SCRUB=0  
+
+WAIT_FOR_SCRUB=0  
+
+RUN_SMART_TEST=1  
+
+RUN_PERFORMANCE_TEST=1  
+
+DROP_CACHES=1  
+
+KEEP_TEST_DATASET=0  
+
+TEST_DATASET_PREFIX="validation"  
+
+TEST_MOUNT_BASE="/mnt"  
+
+REPORT_DIR="/var/log/zfs-validation"
+
+## Tests included
+
+- ZFS pool import and availability
+- RAIDZ2 layout verification
+- Expected disk-count validation
+- Pool health validation
+- Pool capacity and free-space checks
+- Fragmentation threshold validation
+- READ error validation
+- WRITE error validation
+- CKSUM error validation
+- Known data-error detection
+- Pool property collection
+- Dataset property collection
+- Compression, record-size, sync and cache settings
+- ZFS Event Daemon status
+- ARC statistics
+- Disk model, serial number and WWN collection
+- SMART health and attributes
+- Pool and individual disk I/O statistics
+- Scrub history
+- Optional controlled I/O test
+- SHA-256 write/read integrity verification
+- Direct sequential read testing
+- Optional ZFS scrub
+- Scrub completion and error validation
+- Automatic temporary-dataset cleanup
+- Evidence report and report checksum
+
+## Install
+
+sudo install -m 750 </span>  
+
+zfs-raidz2-complete-production-test.sh </span>  
+
+/usr/local/sbin/zfs-raidz2-complete-production-test
+
+## Read-only validation
+
+This is the safest initial test:
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox24 </span>  
+
+--expected-disks 7
+
+## Controlled integrity and performance test
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox24 </span>  
+
+--expected-disks 7 </span>  
+
+--execute-io </span>  
+
+--size-mib 1024
+
+The temporary validation dataset is automatically removed after the test.
+
+## Start a scrub without waiting
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox24 </span>  
+
+--expected-disks 7 </span>  
+
+--start-scrub
+
+Monitor it separately:
+
+watch -n 10 'zpool status local-zfs-prox24'
+
+## Complete test including scrub
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox24 </span>  
+
+--expected-disks 7 </span>  
+
+--execute-io </span>  
+
+--size-mib 1024 </span> cd  
+
+--wait-scrub
+
+## Run on each node
+
+### prox22
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox22 </span>  
+
+--expected-disks 7 </span>  
+
+--execute-io </span>  
+
+--size-mib 1024  
+
+``
+
+### prox23
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox23 </span>  
+
+--expected-disks 7 </span>  
+
+--execute-io </span>  
+
+--size-mib 1024  
+
+``
+
+### prox24
+
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test </span>  
+
+--pool local-zfs-prox24 </span>  
+
+--expected-disks 7 </span>  
+
+--execute-io </span>  
+
+--size-mib 1024  
+
+``
+
+## Report location
+
+sudo ls -lh /var/log/zfs-validation/  
+
+``
+
+The script does not offline, remove, detach, replace, or destroy any RAIDZ2 member disk. Destructive disk-failure simulation is deliberately excluded from production execution.
+
+### Main improvements
+
+The updated version centralizes all test parameters, validates the expected seven-disk RAIDZ2 layout, applies configurable health thresholds, gathers physical disk evidence, and separates read-only testing from controlled write and scrub operations.

@@ -1,0 +1,92 @@
+ Name: Nishu Saini
+ Date: 03/09/2026
+ Login: 08:45 AM
+ Logout: 08:30 PM
+ 
+  
+Today's Work Summary
+
+8:45 AM to 1:00 PM
+
+-Investigated intermittent HTTP 404 errors and session disconnections affecting multiple production VDI users.
+-Verified that Nginx, Tomcat, Guacamole, guacd, and backend TigerVNC services were operational during the incident.
+-Analyzed Nginx access/error logs, Tomcat catalina.out, guacd journals, kernel logs, and network-interface statistics.
+-Confirmed 183 genuine HTTP 404 responses in the retained Nginx access log.
+-Identified that most incident-related 404s referenced obsolete Guacamole tunnel IDs under /api/session/tunnels/....
+-Confirmed simultaneous resets of multiple browser-to-Guacamole WebSocket connections.
+-Correlated Nginx Connection reset by peer errors with guacd messages stating User is not responding.
+-Confirmed that Tomcat recorded tunnel disconnections, upstream timeouts, and socket timeout exceptions.
+-Established that tunnel objects were removed after WebSocket loss, causing browsers to receive HTTP 404 when querying old tunnel IDs.
+-Verified that browser refresh or reconnection created new tunnels and restored access for most users.
+-Found no evidence of a simultaneous common failure across Proxmox, KVM VMs, LXC containers, GNOME, or TigerVNC.
+-Confirmed that the primary guacd process remained operational and created replacement VNC connections.
+-Reviewed /etc/nginx/sites-enabled/default and identified WebSocket header and timeout hardening opportunities.
+-Recommended creating dedicated Nginx locations for /websocket-tunnel and /guacamole/websocket-tunnel.
+-Verified that enp5s0 remained UP with no link, carrier, RX-error, or TX-error event during the incident.
+-Identified more than 24 million cumulative RX-dropped packets on enp5s0, requiring continued incident-time monitoring.
+-Found no evidence of local nf_conntrack exhaustion; recommended checking the upstream firewall, gateway, switch, and hypervisor network.
+-Identified recurring guacd worker cleanup issues and several workers with high historical CPU utilization.
+-Found that Tomcat catalina.out had grown to approximately 2.4 GB and prepared a controlled log-rotation plan.
+-Created a detailed 18-page Production VDI RCA and Remediation PDF containing the evidence, proposed configuration, monitoring, rollback, upgrade, and validation procedures.
+
+Writing improvements
+Reduced the full technical report to exactly 20 management-friendly points.
+Preserved the confirmed findings, root-cause relationship, corrective actions, and documentation status.
+Clearly distinguished the WebSocket interruption from the resulting HTTP 404 symptom.
+
+1:00 PM To 2:00 PM 
+
+- Lunch break.
+
+2:00PM to 5:00 PM 
+Squid Proxy Server Ip - http://10.31.1.24/, http://10.31.88.24/,http://10.31.212.14/
+-Installed and configured SARG (Squid Analysis Report Generator) on the Squid proxy server.
+-Resolved the APT repository conflict caused by duplicate Webmin repository entries using different Signed-By keyrings.
+-Verified the original SARG package binary at /usr/bin/sarg.
+-Configured Squid to generate a separate SARG-compatible access log at:
+/var/log/squid/access-sarg.log
+-Retained the existing custom CISAI Squid log separately.
+-Corrected an invalid entry in /etc/sarg/sarg.conf that caused the Unknown option access-cisai.log# error.
+-Configured SARG to read the standard Squid log and generate reports under:
+/var/www/html/sarg
+-Successfully generated date-wise SARG HTML reports.
+-Installed and configured Apache2 to publish the SARG dashboard.
+-Changed the Apache DocumentRoot so the SARG dashboard can be accessed directly using the server IP, without adding /sarg/.
+-Enabled TCP port 80 in the nftables input chain for authorized network access.
+-Validated /etc/nftables.conf, corrected a malformed comment string, and successfully loaded the ruleset.
+-Confirmed that Apache is listening on TCP port 80.
+-Verified the SARG website locally with an HTTP 200 OK response.
+-Deployed a custom SARG Bash wrapper to:
+-Generate reports through the original /usr/bin/sarg binary.
+-Convert accumulated elapsed time into a readable days, hours, and minutes format.
+-Format values in the MILLISEC column with comma separators.
+-Prevent duplicate JavaScript formatting blocks when reports are regenerated.
+-Confirmed successful custom dashboard formatting across multiple date-based reports.
+-Prepared the custom SARG wrapper for deployment on another Squid proxy server.
+-Kept the package-managed SARG executable unchanged and placed the custom wrapper under /usr/local/sbin/sarg.
+-Created a symbolic link under /usr/local/bin/sarg for convenient execution.
+-Reviewed PATH and sudo secure_path requirements so sudo-enabled users can execute the customized SARG wrapper.
+
+5:00 PM to 8:30 PM 
+
+-Verified dual-ISP routing and source-address selection.
+-Confirmed Jio1: Port 8855 → 192.168.18.30 → vlan13.
+-Confirmed Jio2: Port 8848 → 192.168.5.30 → vlan18.
+-Tested both ISP gateways and Internet connectivity with 0% packet loss.
+-Confirmed both Jio1 and Jio2 connections were UP.
+-Monitored live traffic using vnstat and iftop.
+-Observed light traffic on Jio1 and higher outbound traffic on Jio2.
+-Reviewed monthly and daily bandwidth usage for both ISP interfaces.
+-Identified Jio2 as the likely connection with approximately 9 GB remaining.
+-Confirmed Jio1 as the likely connection with approximately 900 GB remaining.
+-Verified Squid service was active and both proxy ports were listening.
+-Investigated the dashboard’s temporary “Proxy Down” alert.
+-Identified repeated Squid file-descriptor shortage warnings.
+-Increased the Squid file-descriptor limit from 1024 to 65536.
+-Added persistent systemd setting LimitNOFILE=65536.
+-Added Squid setting max_filedescriptors 65536.
+-Validated the Squid configuration successfully using squid -k parse.
+-Restarted Squid and verified the new worker limit.
+-Confirmed current descriptor usage was approximately 343 / 65536.
+-Confirmed ports 8848 and 8855 remained active after the change.
+-Final status: Squid healthy, both proxy ports active, and both ISP links operational.

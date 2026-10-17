@@ -1,0 +1,148 @@
+Daily Work Summary: 02 September 2026
+
+Reviewed and cleaned the active nftables firewall ruleset.
+
+Identified and removed duplicate input, forwarding, and NAT rules.
+
+Added flush ruleset to prevent rule duplication during future reloads.
+
+Confirmed the firewall rules now appear only once.
+
+Verified access rules for SSH, Squid ports 3128/8085, Webmin port 10000, ICMP, and FortiGate SSL-VPN port 4433.
+
+Confirmed NAT masquerading for OpenFortiVPN client traffic.
+
+Reviewed and updated the Squid proxy configuration.
+
+Validated configuration changes with:
+
+sudo squid -k parse
+
+Applied changes without restarting Squid:
+sudo squid -k reconfigure
+
+Confirmed Squid is active and listening on port 8085.
+Updated the access-log configuration to:
+access_log stdio:/var/log/squid/access.log
+
+
+Confirmed /var/log/squid/access.log opens successfully.
+
+Verified that Squid authentication, cache settings, safe ports, and access-control rules load without fatal errors.
+
+Created a separate normal proxy client ACL file:
+
+/etc/squid/allowed_ips.txt
+
+Updated squid.conf to load allowed client IPs from the external file:
+acl allowed_ips src "/etc/squid/allowed_ips.txt"
+
+Retained the separate OpenFortiVPN client ACL file:
+/etc/squid/openfortivpn_clients.txt
+
+
+Verified both ACL files are readable by the proxy service account.
+
+Confirmed normal proxy clients require both an allowed source IP and valid authentication.
+
+Confirmed OpenFortiVPN clients are restricted to 182.19.54.189:4433.
+
+Checked DNS resolution through systemd-resolved.
+
+Confirmed /etc/resolv.conf correctly points to the local stub resolver 127.0.0.53.
+
+Verified upstream DNS server 10.31.4.2 is active on interface ens18.
+
+Confirmed DNS resolution by resolving google.com.
+
+Reviewed Netplan and confirmed 10.31.4.2 is already configured permanently.
+
+Confirmed the server’s Netplan settings:
+
+IP address: 10.31.212.14/23
+Gateway: 10.31.212.1
+DNS: 10.31.4.2
+Interface: ens18
+
+Reviewed Outlook signature configuration and prepared a professional default signature:
+
+Best regards,
+
+Nishu Saini
+CISAI IT Support
+Amritapuri Campus
+
+Final Status
+nftables ruleset: Clean and active
+Squid configuration: Valid
+Squid service: Active
+Proxy port 8085: Listening
+External ACL files: Configured and readable
+DNS resolution: Working
+Netplan DNS configuration: Permanent
+Outlook signature format: Prepared
+
+
+Today’s Work Summary, September 2, 2026
+Investigated the unexpected power-down of Proxmox node prox001.
+Reviewed the previous boot journal and confirmed there was no graceful OS shutdown or reboot sequence.
+Verified that the previous boot ended abruptly and the server started a new boot at approximately 12:15 PM IST on September 1.
+Analyzed the BMC/IPMI System Event Log and found two hardware-level Power off/down transitions.
+Compared Linux and BMC clocks and confirmed they were synchronized within approximately three seconds.
+Checked IPMI sensors:
+CPU, memory, motherboard, PSU, voltage, and fan readings were currently normal.
+No active warning or critical sensor condition was detected.
+CPU0 and CPU1 throttling was recorded during the September 1 startup, but no current overheating was found.
+Checked the BMC Audit Log for the incident window. No audit entries were available, so a remote BMC user action could not be confirmed.
+Identified persistent network reachability failures to Proxmox Backup Servers:
+10.31.4.233:8007
+10.31.5.98:8007
+Error: No route to host
+Investigated RAID disk health and confirmed a failing drive:
+Controller path: /c0/e251/s1
+Serial number: 2TG0V89E
+Device ID: 12
+1,264 pending unreadable sectors
+One offline uncorrectable sector
+29,086 reported uncorrectable errors
+SMART short test failed with a read error
+Confirmed that the failing disk remains online in RAID but requires urgent replacement planning after redundancy and backup verification.
+Prepared a summarized Root Cause Analysis report in Word format.
+Current RCA Status
+
+The server experienced an abrupt hardware-level power interruption or forced reset. No graceful Linux shutdown was recorded. The precise initiating trigger remains unconfirmed because no corresponding PSU AC-loss, thermal-trip, watchdog, or BMC audit event was found. UPS/PDU event history is the remaining evidence required for final confirmation.
+
+The PBS routing failure and failing RAID disk are confirmed separate issues requiring corrective action.
+
+Today’s Work Summary, 2 September 2026
+
+No relevant meetings were found for today, so this summary is based on the technical work completed in our conversation.
+
+Tested the vnStat network traffic monitoring utility.
+
+Verified real-time monitoring on the eth0 interface using:
+
+vnstat --live -i eth0
+
+
+Monitored live RX/TX bandwidth and packet rates.
+
+Collected traffic statistics over a 48-second test period.
+
+Observed:
+
+2.98 MiB received
+66.92 MiB transmitted
+Average RX rate: 520.73 kbit/s
+Average TX rate: 11.70 Mbit/s
+Maximum TX rate: 60.58 Mbit/s
+
+Confirmed that eth0 was transmitting considerably more traffic than it was receiving.
+
+Reviewed the meaning of RX, TX, bandwidth rate, packet rate, maximum, average, minimum, and total transferred data.
+
+Identified nethogs as the next diagnostic utility for checking which process is generating network traffic.
+
+Overall status: vnStat live monitoring was tested successfully and the eth0 interface traffic statistics were validated.
+
+i make ten lan cable for testing 

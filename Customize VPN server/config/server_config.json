@@ -1,0 +1,48 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 443,
+    "tls_min_version": "TLSv1_2",
+    "cipher_suite": "ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES128-GCM-SHA256",
+    "cert_file": "certs/server.crt",
+    "key_file": "certs/server.key",
+    "ca_file": "certs/ca.crt",
+    "require_client_cert": false,
+    "dh_params_file": null
+  },
+  "network": {
+    "vpn_subnet": "10.8.0.0/24",
+    "server_ip": "10.8.0.1",
+    "ip_pool_start": "10.8.0.10",
+    "ip_pool_end": "10.8.0.250",
+    "mtu": 1400,
+    "tun_name": "ssl0",
+    "wan_interface": null,
+    "enable_nat": true,
+    "enable_ip_forward": true,
+    "dns_servers": [
+      "8.8.8.8",
+      "1.1.1.1"
+    ]
+  },
+  "session": {
+    "max_clients": 50,
+    "idle_timeout_seconds": 300,
+    "keepalive_interval_seconds": 30,
+    "max_connections_per_user": 2,
+    "handshake_timeout_seconds": 30
+  },
+  "security": {
+    "auth_mode": "password",
+    "password_iterations": 200000,
+    "rate_limit_attempts": 5,
+    "rate_limit_window_seconds": 300,
+    "lockout_seconds": 900,
+    "token_bucket_interval_seconds": 0.2
+  },
+  "logging": {
+    "level": "INFO",
+    "file": null
+  },
+  "tun_enabled": true
+}

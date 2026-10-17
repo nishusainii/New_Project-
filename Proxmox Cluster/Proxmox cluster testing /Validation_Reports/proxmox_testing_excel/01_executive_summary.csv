@@ -1,0 +1,16 @@
+Category,Metric / Attribute,Observed Value,Target SLA,Status / Verdict
+Cluster Metadata,Cluster Name,cisai-pve,-,Active
+Cluster Metadata,Cluster Master IP,10.31.6.172,-,Active
+Cluster Metadata,Total Nodes,"3 Nodes (prox22, prox23, prox24)",-,Active
+Cluster Metadata,Storage Fabric,"Ceph Reef (12 NVMe OSDs, 218.28 TiB)",-,HEALTH_OK
+Cluster Metadata,Test Execution Date,2026-09-19,-,Completed
+Scenario 1,Dual Node Shutdown Recovery,5m 05s (305s),< 10 min,PASS
+Scenario 1,Quorum Loss VM Lockdown,100% Enforced (Zero Split-Brain),Zero unquorate writes,PASS
+Scenario 1,VM Automatic Recovery,2m 41s (161s),< 5 min,PASS
+Scenario 2,Single Node Watchdog Fence,53 seconds,< 90s,PASS
+Scenario 2,VM Failover Time,2m 26s (146s),< 3 min,PASS
+Scenario 2,Node Re-join & Quorum,29 seconds,< 5 min,PASS
+Scenario 3,Ceph Network 12 OSDs Up,21 seconds,< 5 min,PASS
+Scenario 3,Ceph PGs Active+Clean,24 seconds,< 5 min,PASS
+Scenario 3,Ceph HEALTH_OK Restored,28 seconds,< 10 min,PASS
+Overall Verdict,SLA Compliance Rate,100% (9 of 9 Gates),100%,APPROVED - ENTERPRISE READY

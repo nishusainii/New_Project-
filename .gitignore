@@ -1,0 +1,43 @@
+# Virtual Machine Disks, ISOs & Lab Images
+OS Images/
+Palo Alto Firewall /EVE-NG-OVA/
+Palo Alto Firewall /gns3-data/
+PXE-BOOTING/
+*.iso
+*.img
+*.qcow2
+*.vmdk
+*.ova
+*.vdi
+
+# Media and video files (>50MB)
+*.mp4
+*.mkv
+*.mov
+*.avi
+central-tv-streaming/media/
+central-tv-streaming/media_4k_backup/
+
+# Compiled Binaries & Tar packages (>50MB)
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+Camera-Server-Dashboard/bin/mediamtx
+wireguard VPN Server/wireguard-vpn-manager-v4-syncconf/*.tar
+
+# Databases & runtime data
+wireguard VPN Server/data/
+*.db
+*.sqlite3
+
+# Python & Node caches
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+node_modules/
+.DS_Store

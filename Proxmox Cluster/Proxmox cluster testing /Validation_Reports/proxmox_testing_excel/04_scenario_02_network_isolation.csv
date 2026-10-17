@@ -1,0 +1,9 @@
+Elapsed Time (T0),Failover Phase,State Transition,Detailed Telemetry & Observations
+T+0s,Network Severed,ISOLATION,iptables DROP applied across all interfaces on prox24 (10.31.6.174)
+T+11s,Corosync Token Lost,HEARTBEAT TIMEOUT,Surviving nodes detect missing ring token; Quorum maintained 2/3
+T+49s,Ceph OSD Evicted,OSD_DOWN,Ceph marks OSDs 8-11 down; surviving 8 OSDs continue serving I/O
+T+53s,Watchdog Fence Tripped,FENCE DECLARED,HA CRM declares prox24 dead; /dev/watchdog hardware reset triggered
+T+132s,HA Workload Allocation,SCHEDULING,CRM schedules VM 9002 to prox23 and VM 9003 to prox22
+T+146s (2m26s),VM Failover Running,VMs RUNNING,VM 9002 RUNNING on prox23; VM 9003 RUNNING on prox22 (VM 9001 0s downtime)
++29s (restore),Node Rejoined,QUORUM 3/3,iptables flushed; prox24 rejoins cluster and Corosync ring
++91s (restore),Storage Reconverged,HEALTH_OK,Ceph re-integrates OSDs 8-11; 33 PGs active+clean; 0 data loss

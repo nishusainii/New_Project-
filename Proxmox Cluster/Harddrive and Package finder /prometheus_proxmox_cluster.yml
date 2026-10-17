@@ -1,0 +1,65 @@
+# ==============================================================================
+# PROMETHEUS SCRAPE CONFIGURATION — 3-NODE PROXMOX CLUSTER
+# Target Nodes:
+#   prox22 : 10.31.6.172
+#   prox23 : 10.31.6.173
+#   prox24 : 10.31.6.174
+# ==============================================================================
+
+scrape_configs:
+  # 1. Proxmox OS & System Metrics (CPU, RAM, Disk IO, Network)
+  - job_name: 'proxmox-node-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '10.31.6.172:9100'
+          - '10.31.6.173:9100'
+          - '10.31.6.174:9100'
+        labels:
+          cluster: 'cisai-pve'
+
+  # 2. Dell Server Hardware Sensors (Fans RPM, Temperatures, Power Supplies)
+  - job_name: 'proxmox-ipmi'
+    scrape_interval: 30s
+    scrape_timeout: 20s
+    static_configs:
+      - targets:
+          - '10.31.6.172:9290'
+          - '10.31.6.173:9290'
+          - '10.31.6.174:9290'
+        labels:
+          cluster: 'cisai-pve'
+
+  # 3. Hard Drive S.M.A.R.T Health (Temps, Bad Sectors, Wear Levels)
+  - job_name: 'proxmox-smartctl'
+    scrape_interval: 60s
+    scrape_timeout: 45s
+    static_configs:
+      - targets:
+          - '10.31.6.172:9633'
+          - '10.31.6.173:9633'
+          - '10.31.6.174:9633'
+        labels:
+          cluster: 'cisai-pve'
+
+  # 4. Ceph Cluster & OSD Metrics (Scraped from Active Ceph MGR)
+  - job_name: 'ceph-mgr'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '10.31.6.172:9283'
+          - '10.31.6.173:9283'
+          - '10.31.6.174:9283'
+        labels:
+          cluster: 'ceph'
+
+  # 5. ZFS Pool Health & ARC Metrics ('zfs-ha' RAID-Z2 Pool)
+  - job_name: 'proxmox-zfs'
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - '10.31.6.172:9134'
+          - '10.31.6.173:9134'
+          - '10.31.6.174:9134'
+        labels:
+          cluster: 'cisai-pve'

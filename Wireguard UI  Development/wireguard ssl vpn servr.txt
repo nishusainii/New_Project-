@@ -1,0 +1,140 @@
+ ### 📋 Prerequisites for the Fresh Server
+
+   Requirement                                                                  | Specification
+  ------------------------------------------------------------------------------|-----------------------------------------------------------------------------
+   OS                                                                           | Linux (Debian 11/12, Ubuntu 20.04+, RHEL/Rocky 8/9)
+   Kernel                                                                       | Linux Kernel 5.6+ (wireguard.ko built-in)
+   Open Ports                                                                   | 443/UDP (WireGuard VPN Tunnel)8000/TCP (Admin Web Dashboard)
+   Required Packages                                                            | docker & docker-compose-plugin (or docker-compose), unzip
+   Privileges                                                                   | root or user with sudo access
+  ──────
+  ### Step 1: Transfer the Bundle to the Fresh Server
+
+  From your local machine, transfer wireguard-enterprise-production.zip to the fresh server:
+    scp wireguard-enterprise-production.zip <USER>@<SERVER_IP>:/home/<USER>/
+  (Replace <USER> and <SERVER_IP> with your target server username and IP address).
+  ──────
+  ### Step 2: Extract the Package on the Fresh Server
+
+  SSH into the target server and unpack the bundle into /opt/wireguard-enterprise:
+
+    # SSH into the server
+    ssh <USER>@<SERVER_IP>
+    
+    # Create deployment directory and extract
+    sudo mkdir -p /opt/wireguard-enterprise
+    sudo unzip wireguard-enterprise-production.zip -d /opt/wireguard-enterprise
+    cd /opt/wireguard-enterprise
+    sudo chmod +x scripts/*.sh
+  ──────
+  ### Step 3: Install Docker (If Not Already Installed)
+  If Docker is already installed, skip to Step 4. If not:
+
+  • For Ubuntu / Debian (with Internet Access):
+    sudo apt update
+    sudo apt install -y docker.io docker-compose-v2
+    sudo systemctl enable --now docker
+
+  • For Air-Gapped / Offline Host:
+  Transfer and install the offline Docker .deb or .rpm packages onto the machine using sudo dpkg -i *.deb or sudo rpm -Uvh *.rpm.
+  ──────
+  ### Step 4: Run Deployment
+
+  You can choose either the Automated 1-Click Method or the Manual Step-by-Step Method.
+  #### Option A: Automated 1-Click Deployment (Recommended)
+
+  Run the included deployment script as root or with sudo:
+    sudo ./scripts/deploy-offline.sh
+
+  What this script handles automatically:
+
+  1. Verifies root privileges and kernel module wireguard.ko.
+  2. Enables and persists IPv4 forwarding (net.ipv4.ip_forward = 1).
+  3. Loads the offline Docker image wireguard-enterprise:latest from the tarball.
+  4. Generates a secure random .env with a unique session secret key.
+  5. Sets up host directories (/etc/wireguard, /etc/nftables, /etc/nftables.conf).
+  6. Starts the container with docker compose up -d and runs an HTTP health check.
+  ──────
+  #### Option B: Manual Step-by-Step Deployment
+
+  If you prefer executing each step manually:
+
+  ##### 1. Enable Kernel WireGuard & IP Forwarding
+    sudo modprobe wireguard
+    sudo sysctl -w net.ipv4.ip_forward=1
+    echo "net.ipv4.ip_forward = 1" | sudo tee /etc/sysctl.d/99-wireguard-forward.conf
+  ##### 2. Load the Offline Docker Image
+    sudo docker load < wireguard-enterprise-image.tar.gz
+  ##### 3. Initialize Host NFTables & Directories
+    sudo ./scripts/setup-host-nftables.sh
+  ##### 4. Configure Environment Variables
+
+  Create your production .env configuration:
+
+    cp .env.example .env
+  Edit .env using your preferred editor (nano .env or vim .env):
+
+    SERVER_PUBLIC_IP=<YOUR_SERVER_PUBLIC_OR_LAN_IP>
+    SERVER_PORT=443
+    WG_INTERFACE=wg0
+    WG_SUBNET=172.29.250.0/24
+    WG_SERVER_IP=172.29.250.1
+    
+    ADMIN_USERNAME=admin
+    ADMIN_PASSWORD=YourStrongPasswordHere
+    SECRET_KEY=generate-a-random-32-char-string
+
+  ##### 5. Ensure Secure Permissions
+
+    sudo mkdir -p ./data
+    sudo chmod 700 ./data
+
+  ##### 6. Start the Service
+
+    sudo docker compose up -d
+  ──────
+  ### Step 5: Post-Deployment Verification
+
+  1. Check Container Status:
+    sudo docker compose ps
+  Expected Output: wireguard-manager showing state Up.
+  2. Verify Logs:
+    sudo docker compose logs -f
+
+  3. Verify WireGuard Interface:
+    sudo wg show
+    ip addr show wg0
+  Expected Output: wg0 interface with IP 172.29.250.1/24 listening on UDP 443.
+  4. Verify Host Firewall & ACL:
+    sudo nft list ruleset
+
+  ──────
+  ### Step 6: Access the Dashboard & Initial Configuration
+
+  1. Open your web browser and navigate to:
+    http://<SERVER_IP>:8000
+
+  2. Log in using your configured credentials (default: admin / password from .env).
+  3. Configure Physical Interfaces (LAN / WAN):
+      • Go to Server Settings in the dashboard.
+      • Verify the physical network interfaces:
+	  • LAN Interface: e.g., ens18
+	  • WAN/Internet Interface: e.g., ens19
+      • Ensure the post-up NAT masquerade and forwarding directives match your server's interfaces.
+  4. Add Your First Client / Peer:
+      • Go to Peers Management -> Add Peer.
+      • Provide a peer name (e.g. Admin-Laptop), click Generate.
+      • Download the .conf file or scan the QR code using the official WireGuard client.
+      • Connect and monitor real-time handshake and traffic telemetry on the Overview dashboard.
+
+  ──────
+  ### 🛠️ Useful Management Commands
+
+   Action                                                                       | Command
+  ------------------------------------------------------------------------------|-----------------------------------------------------------------------------
+   View Live Logs                                                               | sudo docker compose logs -f
+   Restart Service                                                              | sudo docker compose restart
+   Stop Service                                                                 | sudo docker compose down
+   Start Service                                                                | sudo docker compose up -d
+   Backup Database & Config                                                     | sudo tar -czvf wg-backup-$(date +%F).tar.gz ./data .env /etc/wireguard
+

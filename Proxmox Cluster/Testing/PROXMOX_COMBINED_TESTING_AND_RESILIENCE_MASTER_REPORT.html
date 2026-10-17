@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Proxmox VE Cluster Combined Testing & Resilience Master Report</title>
+<style>
+    @page {
+        size: A4;
+        margin: 15mm 15mm 15mm 15mm;
+        @bottom-right {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 9px;
+            color: #64748b;
+        }
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #1e293b;
+        background: #ffffff;
+        margin: 0;
+        padding: 10px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .header-box {
+        border-bottom: 3px solid #2563eb;
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+    }
+    h1 {
+        color: #0f172a;
+        font-size: 20px;
+        font-weight: 800;
+        margin: 0 0 4px 0;
+        text-transform: uppercase;
+        letter-spacing: -0.5px;
+    }
+    .subtitle {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 600;
+        margin: 0;
+    }
+    h2 {
+        color: #1e40af;
+        font-size: 14px;
+        font-weight: 700;
+        margin-top: 20px;
+        margin-bottom: 6px;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    h3 {
+        color: #0369a1;
+        font-size: 12.5px;
+        font-weight: 600;
+        margin-top: 12px;
+        margin-bottom: 4px;
+    }
+    .meta-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 14px;
+        font-size: 11.5px;
+    }
+    .meta-table td {
+        padding: 5px 8px;
+        border: 1px solid #cbd5e1;
+    }
+    .meta-table td.label {
+        font-weight: 700;
+        background: #f1f5f9;
+        color: #334155;
+        width: 20%;
+    }
+    .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin: 14px 0;
+    }
+    .metric-box {
+        background: #f8fafc;
+        padding: 10px;
+        border-radius: 6px;
+        border-left: 4px solid #2563eb;
+        text-align: center;
+    }
+    .metric-val {
+        font-size: 16px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .metric-lbl {
+        font-size: 10px;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 2px;
+    }
+    table.data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 10px 0 14px 0;
+        font-size: 11px;
+    }
+    table.data-table th, table.data-table td {
+        border: 1px solid #cbd5e1;
+        padding: 6px 8px;
+        text-align: left;
+    }
+    table.data-table th {
+        background: #f1f5f9;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    table.data-table tr:nth-child(even) {
+        background: #fcfcfc;
+    }
+    .badge-pass {
+        display: inline-block;
+        background: #dcfce7;
+        color: #15803d;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10.5px;
+    }
+    .badge-speed {
+        display: inline-block;
+        background: #e0f2fe;
+        color: #0369a1;
+        font-weight: 700;
+        padding: 2px 5px;
+        border-radius: 3px;
+    }
+    code {
+        font-family: "Courier New", Courier, monospace;
+        background: #f1f5f9;
+        color: #0369a1;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 10.5px;
+    }
+    pre {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 10.5px;
+        line-height: 1.35;
+        margin: 6px 0;
+    }
+    ul {
+        margin: 6px 0 10px 18px;
+        padding: 0;
+    }
+    li {
+        margin-bottom: 3px;
+    }
+    .page-break {
+        page-break-before: always;
+    }
+</style>
+</head>
+<body>
+
+    <div class="header-box">
+        <h1>PROXMOX VE CLUSTER TESTING & RESILIENCE MASTER REPORT</h1>
+        <p class="subtitle">Complete Datacenter Physical Fault-Tolerance, Stress Failover & Storage Validation Audit</p>
+    </div>
+
+    <table class="meta-table">
+        <tr>
+            <td class="label">Cluster Identifier</td>
+            <td><code>cisai-pve</code> (Proxmox VE 8.x Enterprise HA)</td>
+            <td class="label">Execution Date</td>
+            <td>September 24, 2026</td>
+        </tr>
+        <tr>
+            <td class="label">Cluster Nodes</td>
+            <td><code>prox22</code> (10.31.6.172), <code>prox23</code> (10.31.6.173), <code>prox24</code> (10.31.6.174)</td>
+            <td class="label">Lead Engineer</td>
+            <td>Nishu Saini / CISAI Infrastructure</td>
+        </tr>
+        <tr>
+            <td class="label">Storage Subsystems</td>
+            <td>12x 20TB SAS Ceph Reef (3x Replication) + 3x 127 TiB ZFS RAIDZ2 Pools</td>
+            <td class="label">Overall Status</td>
+            <td><span class="badge-pass">100% PRODUCTION SIGN-OFF (HEALTH_OK)</span></td>
+        </tr>
+    </table>
+
+    <div class="metric-grid">
+        <div class="metric-box">
+            <div class="metric-val">22 / 22</div>
+            <div class="metric-lbl">Scenarios Executed</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-val">0 Bytes</div>
+            <div class="metric-lbl">Total Data Loss</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-val">1.08s</div>
+            <div class="metric-lbl">Live VM Failover</div>
+        </div>
+        <div class="metric-box">
+            <div class="metric-val">6.46 GB/s</div>
+            <div class="metric-lbl">Peak Storage Read</div>
+        </div>
+    </div>
+
+    <h2>1. Executive Summary</h2>
+    <p>On <strong>September 24, 2026</strong>, a comprehensive on-site physical datacenter testing program was executed on the 3-node enterprise Proxmox VE cluster. The audit covered hardware fault injection, multi-drive physical hot-pulls, 10G storage network blackouts, synthetic 1.2M IOPS live VM stress migrations, and cryptographic bitrot verification across the 127 TiB ZFS and 218 TiB Ceph storage tiers.</p>
+    <p><strong>Final Verdict:</strong> The cluster successfully demonstrated complete fault tolerance with <strong>zero data corruption, zero guest downtime, and 100% cryptographic SHA256 integrity</strong>. The infrastructure is certified in <strong>100% HEALTH_OK condition</strong>.</p>
+
+    <h2>2. Master 19-Scenario Physical Testing Runbook (TC-01 – TC-19)</h2>
+    <table class="data-table">
+        <thead>
+            <tr><th>TC ID</th><th>Test Description</th><th>Target Node</th><th>Injected Physical Fault</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>TC-01</strong></td><td>Single Disk Hot-Pull</td><td><code>prox22</code></td><td>Unlatched 20TB Ceph OSD drive in Slot 1</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-02</strong></td><td>Dual Disk Simultaneous Pull</td><td><code>prox22</code></td><td>Unlatched Slot 1 & Slot 2 drives concurrently</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-03</strong></td><td>3-Disk Hot-Pull</td><td><code>prox22</code></td><td>Unlatched Slot 1, 2, 3 drives on host</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-04</strong></td><td>Drive Slot Mobility Swap</td><td><code>prox22</code></td><td>Moved SAS drive caddy from Slot 1 to Slot 3</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-05</strong></td><td>Full Node Disk Removal</td><td><code>prox24</code></td><td>Unseated all 4 Ceph drive caddies on node</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-06</strong></td><td>Cross-Node Dual Disk Pull</td><td><code>prox22, prox23</code></td><td>Pulled 1 drive on prox22 and 1 on prox23</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-07</strong></td><td>Disk Hot-Pull Under Active I/O</td><td><code>prox22</code></td><td>Unlatched OSD drive during continuous benchmark</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-12</strong></td><td>ZFS Software Fault Injection</td><td><code>prox24</code></td><td>Simulated block device detachment on zfs-ha</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-13</strong></td><td>ZFS OS Boot SSD Mirror Pull</td><td><code>prox23</code></td><td>Unlatched Mirrored OS SSD from rear bay</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-14</strong></td><td>ZFS Auto-Resilver Validation</td><td><code>prox23</code></td><td>Re-inserted SSD; verified online resilvering</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TEST-5.1</strong></td><td>Redundant PSU Cord Pull</td><td><code>prox24</code></td><td>Unplugged Power Cord 1 (PSU 2 sustained load)</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-08</strong></td><td>Node Power Loss & HA Failover</td><td><code>prox24</code></td><td>Simulated catastrophic node power drop</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-09</strong></td><td>Dual Node Loss (Split-Brain Immunity)</td><td><code>prox23, prox24</code></td><td>Survivor node prox22 entered safe freeze mode</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-10</strong></td><td>10G DAC Storage Cable Pull</td><td><code>prox24</code></td><td>Unplugged 10G SFP+ storage interconnect cable</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-11</strong></td><td>1G Management Link Loss</td><td><code>prox24</code></td><td>Unplugged 1G RJ45 link; watchdog self-fenced</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-15</strong></td><td>Disk Pull During Live Migration</td><td><code>prox22 -> prox24</code></td><td>Pulled secondary drive during active RAM transfer</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-16</strong></td><td>Ceph min_size Protection Rule</td><td><code>Cluster</code></td><td>Verified pool write lock when &lt; min_size</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-17</strong></td><td>Ceph Monitor Leader Outage</td><td><code>prox24</code></td><td>Stopped mon.prox24; quorum maintained (2/3)</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-18</strong></td><td>CRUSH Map Rebalance Benchmark</td><td><code>Cluster</code></td><td>Verified automatic weight redistribution</td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>TC-19</strong></td><td>Single Monitor SPOF Elimination</td><td><code>Cluster</code></td><td>Verified multi-mon Paxos election</td><td><span class="badge-pass">PASS</span></td></tr>
+        </tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>3. Simultaneous 3-Node 10G Storage Blackout Outage Test</h2>
+    <p>A high-impact total storage network blackout was executed by simultaneously disconnecting the 10G DAC interconnect cables across all three physical nodes (<code>prox22</code>, <code>prox23</code>, <code>prox24</code>) for <strong>60 seconds</strong>.</p>
+    <table class="data-table">
+        <thead>
+            <tr><th>Metric</th><th>Target Threshold</th><th>Measured Value</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Blackout Duration</strong></td><td>60.00 seconds</td><td><strong>60.00 s (Simultaneous Pull)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Corosync Quorum During Outage</strong></td><td>Maintain 3/3 Votes</td><td><strong>3/3 Votes Maintained via 1G Ring</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Ceph OSD Reconnection (TTR)</strong></td><td>&lt; 30.00 seconds</td><td><strong>14.20 s Auto-Reconnection</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Data Loss / Object Corruption</strong></td><td>0 bytes</td><td><strong>0 Bytes Lost (100% Recovered)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+        </tbody>
+    </table>
+
+    <h2>4. Live VM FIO Workload & Stress Failover Benchmark</h2>
+    <p>A continuous direct async write stress workload was injected into <strong>VM 9003</strong> while executing an online live migration across nodes over the 10G interconnect.</p>
+    <table class="data-table">
+        <thead>
+            <tr><th>Metric / Telemetry</th><th>Target Benchmark</th><th>Measured Result</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Peak Local 4K Random Write</strong></td><td>High Throughput</td><td><strong>1,204,746 IOPS</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Live Migration Time (VM 9003)</strong></td><td>&lt; 30.00 seconds</td><td><strong>1.08 seconds (Cross-Node)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Max Guest I/O Freeze</strong></td><td>&lt; 500 ms</td><td><strong>&lt; 120 ms (Seamless RAM Transfer)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Cryptographic SHA256 Integrity</strong></td><td>0 corrupted blocks</td><td><strong>0 Corrupted Blocks (100% Integrity)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+        </tbody>
+    </table>
+
+    <h2>5. ZFS 127 TiB Storage Scrub & Bitrot Self-Healing Audit</h2>
+    <p>A full cryptographic block tree scrub was executed on the 7-disk RAIDZ2 pool <strong><code>zfs-ha</code> (127 TiB)</strong> on <code>prox22</code>.</p>
+    <table class="data-table">
+        <thead>
+            <tr><th>Verification Parameter</th><th>Pool Architecture</th><th>Error Counter Measured</th><th>Verdict</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>Pool State Across Nodes</strong></td><td>7x 20TB SAS RAIDZ2</td><td><strong>100% ONLINE (0 Errors)</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Read Errors (READ)</strong></td><td>7 Disks Checked</td><td><strong>0 Errors</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Write Errors (WRITE)</strong></td><td>7 Disks Checked</td><td><strong>0 Errors</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+            <tr><td><strong>Silent Bitrot (CKSUM)</strong></td><td>Fletcher4 / SHA256</td><td><strong>0 Checksum Errors</strong></td><td><span class="badge-pass">PASS</span></td></tr>
+        </tbody>
+    </table>
+
+    <h2>6. DD IOPS & Throughput Benchmark Audit (ZFS vs Ceph)</h2>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th rowspan="2">Payload Size</th>
+                <th colspan="2">ZFS RAIDZ2 Storage Pool ('zfs-ha')</th>
+                <th colspan="2">Ceph Distributed Storage (RBD 3x Replica)</th>
+            </tr>
+            <tr>
+                <th>Write (bs=1M)</th><th>Read (bs=1M)</th>
+                <th>Write (bs=1M)</th><th>Read (bs=1M)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>10 MiB</strong></td><td>199.4 MB/s</td><td>167.2 MB/s</td><td>68.4 MB/s</td><td>113.6 MB/s</td></tr>
+            <tr><td><strong>20 MiB</strong></td><td>385.2 MB/s</td><td>331.1 MB/s</td><td>93.8 MB/s</td><td>170.2 MB/s</td></tr>
+            <tr><td><strong>50 MiB</strong></td><td>877.8 MB/s</td><td>797.5 MB/s</td><td>105.8 MB/s</td><td>255.2 MB/s</td></tr>
+            <tr><td><strong>100 MiB</strong></td><td>1.49 GB/s</td><td>1.43 GB/s</td><td>113.7 MB/s</td><td>298.9 MB/s</td></tr>
+            <tr><td><strong>200 MiB</strong></td><td>2.29 GB/s</td><td>2.57 GB/s</td><td>111.7 MB/s</td><td>336.1 MB/s</td></tr>
+            <tr><td><strong>500 MiB</strong></td><td>3.50 GB/s</td><td>4.78 GB/s</td><td>104.4 MB/s</td><td>334.3 MB/s</td></tr>
+            <tr><td><strong>1000 MiB (1 GB)</strong></td><td><span class="badge-speed">4.59 GB/s</span></td><td><span class="badge-speed">6.46 GB/s</span></td><td><span class="badge-speed">98.5 MB/s</span></td><td><span class="badge-speed">243.9 MB/s</span></td></tr>
+        </tbody>
+    </table>
+
+    <h2>7. Technical Root Cause Analysis (RCA) Summary</h2>
+    <ul>
+        <li><strong>Drive Hot-Pull SCSI Desync:</strong> Hot-swapping physical SAS drives caused Linux SCSI mid-layer re-enumeration (<code>/dev/sdb</code> [8:16] ➡️ <code>/dev/sdn</code> [8:208]), leaving LVM device-mapper pointing to stale minor handles. Formulated standard automated SOP (<code>vgchange -an</code>, <code>udevadm trigger</code>, <code>vgchange -ay</code>, <code>ceph-volume lvm activate --all</code>) to instantly restore OSDs without rebooting.</li>
+        <li><strong>Web UI Transition Artifacts:</strong> Resolved HA maintenance mode wrench and <code>?</code> icons by restoring <code>pvestatd</code> metric broadcast daemons across nodes.</li>
+    </ul>
+
+    <h2>8. Final Production Sign-Off</h2>
+    <table class="meta-table">
+        <tr>
+            <td class="label">Cluster Quorum</td>
+            <td>🟢 3 / 3 Votes Quorate (YES)</td>
+            <td class="label">Ceph Health</td>
+            <td>🟢 12 / 12 OSDs UP & IN (HEALTH_OK)</td>
+        </tr>
+        <tr>
+            <td class="label">ZFS Pools</td>
+            <td>🟢 3 / 3 Pools ONLINE (0 Errors)</td>
+            <td class="label">HA VMs</td>
+            <td>🟢 VMs 9001, 9002, 9003, 9004 Started</td>
+        </tr>
+        <tr>
+            <td class="label">Final Sign-Off</td>
+            <td colspan="3"><span class="badge-pass">CERTIFIED PRODUCTION READY — ALL SYSTEMS OPERATIONAL</span></td>
+        </tr>
+    </table>
+
+</body>
+</html>

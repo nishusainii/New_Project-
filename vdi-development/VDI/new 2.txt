@@ -1,0 +1,146 @@
+You found why the earlier recursive search was slow: catalina.out is 2.4 GB, plus several historical access logs are between roughly 29 MB and 309 MB. The write failure happened because $WORKDIR was unset, so the destination became /tomcat-last5000.log.
+
+1. Reset the working directory
+
+Run these one-line commands:
+
+WORKDIR=/tmp/vdi-404-check
+
+mkdir -p "$WORKDIR" && chmod 700 "$WORKDIR"
+
+echo "WORKDIR=$WORKDIR"
+
+
+Expected:
+
+WORKDIR=/tmp/vdi-404-check
+
+2. Extract only the latest 5,000 lines
+
+Use sudo only to read the protected source file. Your normal shell writes the output into /tmp:
+
+sudo tail -n 5000 /opt/tomcat/logs/catalina.out > "$WORKDIR/tomcat-last5000.log"
+
+
+Verify:
+
+ls -lh "$WORKDIR/tomcat-last5000.log"
+
+
+Then search efficiently:
+
+grep -anE 'Connection to guacd timed out|Permission Denied|disconnected from connection|SocketTimeoutException' "$WORKDIR/tomcat-last5000.log" | tail -n 200
+
+
+The -a option is important because your Catalina file contains bytes that make grep identify it as binary.
+
+3. Check filesystem capacity immediately
+
+The 2.4 GB active Catalina log is an operational concern. Check whether the filesystem is approaching capacity:
+
+df -h /opt
+
+df -i /opt
+
+
+Check total Tomcat log usage:
+
+sudo du -sh /opt/tomcat/logs
+
+
+Find the 20 largest files without wildcard/permission problems:
+
+sudo find /opt/tomcat/logs -maxdepth 1 -type f -printf '%s %p\n' | sort -nr | head -n 20 | awk '{printf "%.1f MB %s\n", $1/1048576, $2}'
+
+4. Preserve current evidence
+
+Do not copy all 2.4 GB unless sufficient storage exists. Preserve the recent relevant section:
+
+sudo tail -n 20000 /opt/tomcat/logs/catalina.out > "$WORKDIR/catalina-evidence-$(date +%F-%H%M%S).log"
+
+
+Generate a checksum:
+
+sha256sum "$WORKDIR"/catalina-evidence-*.log > "$WORKDIR/catalina-evidence.sha256"
+
+
+Restrict permissions:
+
+chmod 600 "$WORKDIR"/catalina-evidence-*
+
+5. Do not delete or truncate the active log yet
+
+Avoid these commands during production use:
+
+rm /opt/tomcat/logs/catalina.out
+truncate -s 0 /opt/tomcat/logs/catalina.out
+echo > /opt/tomcat/logs/catalina.out
+
+
+They could remove evidence, and deleting an open log may not immediately release space until Tomcat closes its file descriptor.
+
+Check whether Tomcat still has the file open:
+
+sudo lsof /opt/tomcat/logs/catalina.out
+
+
+If lsof is unavailable:
+
+sudo ls -l /proc/26198/fd 2>/dev/null | grep catalina
+
+6. Check existing log-rotation configuration
+sudo grep -RniE 'catalina|tomcat' /etc/logrotate.conf /etc/logrotate.d 2>/dev/null
+
+
+Check whether Tomcat’s service redirects output to catalina.out:
+
+sudo systemctl cat tomcat
+
+
+Also inspect the startup scripts without changing them:
+
+sudo grep -RniE 'catalina.out|CATALINA_OUT' /opt/tomcat/bin /etc/init.d/tomcat /etc/default/tomcat 2>/dev/null
+
+7. Production-safe log-rotation proposal
+
+After evidence is saved, you can prepare a logrotate policy. First back up any existing policy:
+
+sudo cp -a /etc/logrotate.d/tomcat /etc/logrotate.d/tomcat.backup-$(date +%F-%H%M%S) 2>/dev/null || true
+
+
+Create a proposed configuration:
+
+sudo tee /etc/logrotate.d/tomcat-catalina >/dev/null <<'EOF'
+/opt/tomcat/logs/catalina.out {
+    daily
+    rotate 14
+    size 100M
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    create 0640 tomcat tomcat
+}
+EOF
+
+
+Validate it in debug mode without rotating:
+
+sudo logrotate -d /etc/logrotate.d/tomcat-catalina
+
+
+Review the debug output for errors. copytruncate avoids requiring a Tomcat restart, though it can theoretically lose a very small number of log lines during copying, so application-native logging rotation is preferable long term.
+
+Do not force rotation until checking free space because rotation using copytruncate temporarily needs enough storage for a copy:
+
+df -h /opt
+
+Current assessment
+
+You now have two confirmed operational issues:
+
+Repeated Guacamole-to-guacd timeout events affecting multiple VDI users.
+Uncontrolled Tomcat logging, with an active catalina.out of 2.4 GB and multiple large historical access logs.
+
+The large log does not by itself prove the timeout root cause. However, it explains the slow searches and creates a disk-capacity and troubleshooting risk. The session problem still requires correlation of high-CPU guacd workers with their TigerVNC destination IPs.

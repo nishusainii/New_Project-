@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: letter;
+        margin: 15mm 13mm 15mm 13mm;
+        @bottom-right {
+            content: "Page " counter(page) " of " counter(pages);
+            font-size: 8pt;
+            color: #718096;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        @bottom-left {
+            content: "Palo Alto Networks (PAN-OS) Training Guide | Innspark Solutions";
+            font-size: 8pt;
+            color: #718096;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #2D3748;
+        line-height: 1.38;
+        font-size: 8.8pt;
+        margin: 0;
+        padding: 0;
+    }
+
+    .header-banner {
+        background: linear-gradient(135deg, #0F2942 0%, #1A365D 60%, #FA582D 100%);
+        color: white;
+        padding: 16px 20px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
+
+    .header-banner h1 {
+        margin: 0 0 3px 0;
+        font-size: 16pt;
+        font-weight: 700;
+        letter-spacing: -0.3px;
+        color: #FFFFFF;
+    }
+
+    .header-banner .subtitle {
+        font-size: 9pt;
+        color: #E2E8F0;
+        margin: 0 0 8px 0;
+        font-weight: 400;
+    }
+
+    .meta-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 6px 10px;
+        border-radius: 4px;
+        font-size: 7.5pt;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .meta-item strong {
+        color: #FBD38D;
+        display: block;
+        font-size: 6.8pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 1px;
+    }
+
+    h2 {
+        color: #0F2942;
+        font-size: 11pt;
+        font-weight: 700;
+        border-bottom: 2px solid #E2E8F0;
+        padding-bottom: 2px;
+        margin-top: 14px;
+        margin-bottom: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        page-break-after: avoid;
+    }
+
+    h2 .badge {
+        background: #ED8936;
+        color: white;
+        font-size: 7pt;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 8px;
+    }
+
+    h3 {
+        color: #2B6CB0;
+        font-size: 9.5pt;
+        font-weight: 600;
+        margin-top: 8px;
+        margin-bottom: 3px;
+        page-break-after: avoid;
+    }
+
+    p {
+        margin: 0 0 5px 0;
+    }
+
+    ul, ol {
+        margin: 0 0 6px 0;
+        padding-left: 16px;
+    }
+
+    li {
+        margin-bottom: 2px;
+    }
+
+    strong {
+        color: #1A202C;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 6px 0 10px 0;
+        font-size: 7.8pt;
+        page-break-inside: avoid;
+    }
+
+    th {
+        background: #0F2942;
+        color: white;
+        text-align: left;
+        padding: 4px 6px;
+        font-weight: 600;
+        border: 1px solid #0F2942;
+    }
+
+    td {
+        padding: 4px 6px;
+        border: 1px solid #E2E8F0;
+        vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+        background-color: #F7FAFC;
+    }
+
+    .diagram-box {
+        background: #1A202C;
+        color: #68D391;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 6.8pt;
+        line-height: 1.18;
+        padding: 6px 10px;
+        border-radius: 4px;
+        margin: 6px 0;
+        white-space: pre;
+        border-left: 3px solid #FA582D;
+        page-break-inside: avoid;
+        overflow-x: hidden;
+    }
+
+    .callout {
+        background: #FEFCBF;
+        border-left: 3px solid #D69E2E;
+        padding: 6px 10px;
+        border-radius: 0 3px 3px 0;
+        margin: 6px 0;
+        font-size: 7.8pt;
+        page-break-inside: avoid;
+    }
+
+    .callout strong {
+        color: #744210;
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
+
+    .highlight-card {
+        background: #EDF2F7;
+        border: 1px solid #CBD5E0;
+        border-left: 3px solid #2B6CB0;
+        padding: 6px 10px;
+        border-radius: 0 3px 3px 0;
+        margin: 6px 0;
+    }
+</style>
+</head>
+<body>
+
+<div class="header-banner">
+    <h1>Palo Alto NGFW Comprehensive Training Notes</h1>
+    <div class="subtitle">Complete Technical Architecture & Conceptual Engineering Manual (Hindi Course Analysis)</div>
+    <div class="meta-grid">
+        <div class="meta-item">
+            <strong>Video Source</strong>
+            11+ Hours Palo Alto Firewall Course (IMEDITA)
+        </div>
+        <div class="meta-item">
+            <strong>Analyzed Timeline Range</strong>
+            00:00:00 to 03:05:00 (Full 3 Hrs 05 Mins)
+        </div>
+        <div class="meta-item">
+            <strong>Core Focus</strong>
+            PAN-OS Architecture, SP3 Engine, Hardware Processors (NPE/SME/SPE), Packet Flow & Lab Setup
+        </div>
+    </div>
+</div>
+
+<h2>Executive Curriculum Overview <span class="badge">00:00:00 – 03:05:00</span></h2>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 17%;">Timestamp</th>
+            <th style="width: 31%;">Module & Core Theme</th>
+            <th style="width: 52%;">Key Concepts & Architecture Highlights</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>00:00:00 – 00:30:00</strong></td>
+            <td><strong>Evolution of Firewalls & Why NGFW?</strong></td>
+            <td>Packet filtering (L3/L4), stateful limitations, port-hopping evasion, why traditional port-based firewalls failed on web/cloud traffic.</td>
+        </tr>
+        <tr>
+            <td><strong>00:30:00 – 01:00:00</strong></td>
+            <td><strong>Palo Alto Core Pillars & SP3 Engine</strong></td>
+            <td>App-ID, User-ID, Content-ID, WildFire, Single-Pass Parallel Processing (SP3), Control Plane vs Data Plane hardware separation.</td>
+        </tr>
+        <tr>
+            <td><strong>01:00:00 – 01:30:00</strong></td>
+            <td><strong>Zero-Day Attacks & Sandboxing (WildFire)</strong></td>
+            <td>Zero-Day threat model, SandBox detonation mechanics, cloud signature distribution, "Patient Zero" concept, dynamic behavioral analysis.</td>
+        </tr>
+        <tr>
+            <td><strong>01:30:00 – 01:45:00</strong></td>
+            <td><strong>Firewall Fundamentals & Stateless ACLs</strong></td>
+            <td>Router ACLs vs dedicated firewalls, stateless rule explosion, lack of bidirectional connection state tracking.</td>
+        </tr>
+        <tr>
+            <td><strong>01:45:00 – 02:00:00</strong></td>
+            <td><strong>Proxy Architectures (Explicit vs Transparent)</strong></td>
+            <td>Dual-socket termination, Application-Layer Gateways, Explicit Proxy (PAC/WPAD) vs Transparent Proxy (WCCP), caching & scaling bottlenecks.</td>
+        </tr>
+        <tr>
+            <td><strong>02:00:00 – 02:10:00</strong></td>
+            <td><strong>Stateful Inspection & State Table Mechanics</strong></td>
+            <td>TCP 3-way handshake tracking, Session State Tables (5-Tuple + State + Sequence Numbers), dynamic return traffic fast-path.</td>
+        </tr>
+        <tr>
+            <td><strong>02:10:00 – 02:20:00</strong></td>
+            <td><strong>Deployment Modes (V-Wire / Transparent Mode)</strong></td>
+            <td>Layer 3 Routed Mode vs Layer 2 Virtual Wire (V-Wire) "Bump-in-the-Wire", zero IP redesign, transparent enterprise gateway deployment.</td>
+        </tr>
+        <tr>
+            <td><strong>02:20:00 – 02:30:00</strong></td>
+            <td><strong>Firewall Generations & Nir Zuk's Industry Journey</strong></td>
+            <td>Gen 1 (Stateless) to Gen 5 (NGFW), Nir Zuk's career: Check Point stateful pioneer → OneSecure IPS → NetScreen/Juniper CTO → Palo Alto Networks founder.</td>
+        </tr>
+        <tr>
+            <td><strong>02:30:00 – 02:40:00</strong></td>
+            <td><strong>UTM Flaws vs Palo Alto SP3 Architecture</strong></td>
+            <td>UTM multi-pass daisy-chaining latency, Single-Pass Parallel Processing (SP3) architecture, hardware Control Plane vs Data Plane separation.</td>
+        </tr>
+        <tr>
+            <td><strong>02:40:00 – 03:05:00</strong></td>
+            <td><strong>Hardware Series, Port Matrix & Lab Setup</strong></td>
+            <td>Appliance portfolios (PA-220, PA-500, PA-800, PA-3200, PA-5200, PA-7000, VM-Series), Port types (MGT, Console, HA1/HA2, HSCI, Data), LED status, Baud Rate 9600-8-N-1, Lab topology.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Deep Dive: Palo Alto Firewall Architecture (SP3 Engine & Hardware Processors) <span class="badge">Architecture Masterclass</span></h2>
+
+<p>The core innovation of Palo Alto Networks lies in its <strong>Single-Pass Parallel Processing (SP3) Architecture</strong>, which fundamentally separates the software inspection architecture and the underlying dedicated hardware processing engines.</p>
+
+<div class="diagram-box">
++===================================================================================================================+
+|                                    PALO ALTO HARDWARE & SOFTWARE ARCHITECTURE (SP3)                               |
++===================================================================================================================+
+|                                                                                                                   |
+|   ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐   |
+|   │                                    CONTROL PLANE (MANAGEMENT PLANE)                                       │   |
+|   │   - Dedicated Multi-Core CPU & RAM (Completely isolated from traffic processing)                          │   |
+|   │   - Dedicated Hard Drive / SSD for Logging, Reporting, PAN-OS System Image, and Configuration Database    │   |
+|   │   - Handles: Web GUI (HTTPS:443), CLI (SSH/Console), API, Dynamic Routing Protocols, Panorama Sync       │   |
+|   └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘   |
+|                                                     ▲                                                             |
+|                                 Internal High-Speed Bus (Heartbeats/Sync)                                         |
+|                                                     ▼                                                             |
+|   ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐   |
+|   │                                         DATA PLANE (DATAPATH)                                             │   |
+|   │                                                                                                           │   |
+|   │   ┌───────────────────────────┐    ┌───────────────────────────┐    ┌─────────────────────────────────┐   │   |
+|   │   │ NETWORK PROCESSOR (NPE)   │    │ SECURITY PROCESSOR (SPE)  │    │ SIGNATURE MATCHING ENGINE (SME) │   │   |
+|   │   │ ───────────────────────── │    │ ───────────────────────── │    │ ─────────────────────────────── │   │   |
+|   │   │ • Route & MAC Lookup      │    │ • Hardware SSL/TLS Crypto │    │ • Custom ASIC Match Engine (ME) │   │   |
+|   │   │ • Layer 2 - Layer 4 QoS   │    │ • IPsec VPN Acceleration  │    │ • Deep Packet IPS & Vulnerability│  │   |
+|   │   │ • Hardware NAT Rewriting  │    │ • Hardware Decryption     │    │ • Antivirus & Anti-Spyware Scan │   │   |
+|   │   │ • Flow Control & Session  │    │   (Forward & Inbound Proxy)│   │ • Uniform Regex Signature Scan  │   │   |
+|   │   └───────────────────────────┘    └───────────────────────────┘    └─────────────────────────────────┘   │   |
+|   │                                                 ▲                                                         │   |
+|   │                                                 │                                                         │   |
+|   │   ┌─────────────────────────────────────────────┴─────────────────────────────────────────────────────┐   │   |
+|   │   │                           MULTI-CORE SECURITY ENGINE (DATA PLANE CPU)                             │   │   |
+|   │   │ ───────────────────────────────────────────────────────────────────────────────────────────────── │   │   |
+|   │   │ • App-ID Classification (L7 Decoder)   • User-ID Mapping Engine       • Policy Rule Evaluation    │   │   |
+|   │   │ • Stateful Session Table Lookup        • Threat Content Inspection   • QoS / Bandwidth Shaping   │   │   |
+|   │   └───────────────────────────────────────────────────────────────────────────────────────────────────┘   │   |
+|   └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘   |
+|                                                                                                                   |
+|       [ Inbound Traffic ] ──────────────────> ( Single-Pass Processing ) ──────────────────> [ Egress Traffic ]   |
++===================================================================================================================+
+</div>
+
+<h3>1. Single-Pass Software Engine Mechanics</h3>
+<ul>
+    <li><strong>Uniform Signature Matching:</strong> Instead of separate scanning engines running sequentially, Palo Alto software compiles all signatures (Antivirus, Anti-Spyware, Vulnerability/IPS, URL Filtering, and File Blocking) into a single unified pattern matrix.</li>
+    <li><strong>Single Packet Decode:</strong> Packets are buffered and decoded <strong>only once</strong> upon ingress. All security profiles and App-ID decoders scan the payload simultaneously.</li>
+    <li><strong>Single Decryption:</strong> When SSL Decryption is enabled, packets are decrypted once by hardware, scanned in parallel, and re-encrypted once on egress.</li>
+</ul>
+
+<h3>2. Hardware Processing Engines Breakdown</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 24%;">Hardware Subsystem</th>
+            <th style="width: 38%;">Engine Functionality</th>
+            <th style="width: 38%;">Architectural Advantage</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Network Processor (NPE)</strong></td>
+            <td>Dedicated ASIC/chip handling Layer 2 switching, Layer 3 routing, MAC table lookup, NAT address translation, QoS tagging, and packet parsing.</td>
+            <td>Offloads basic networking from CPU, ensuring wire-speed packet delivery for established sessions.</td>
+        </tr>
+        <tr>
+            <td><strong>Security Processor (SPE)</strong></td>
+            <td>Dedicated cryptographic coprocessors for hardware-accelerated SSL/TLS decryption and IPsec VPN tunneling.</td>
+            <td>Prevents CPU exhaustion during intensive HTTPS forward proxy and site-to-site VPN encryption.</td>
+        </tr>
+        <tr>
+            <td><strong>Signature Matching Engine (SME)</strong></td>
+            <td>Purpose-built Match Engine (ME) ASICs running high-speed parallel Regular Expression (RegEx) matching.</td>
+            <td>Executes Content-ID threat scans at line-rate without introducing packet latency.</td>
+        </tr>
+        <tr>
+            <td><strong>Multi-Core Security Engine</strong></td>
+            <td>High-performance multicore data plane processors dedicated to App-ID classification, User-ID mapping, and security rule enforcement.</td>
+            <td>Executes complex Layer 7 application decoding in parallel threads.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Palo Alto Packet Flow Architecture (Life of a Packet) <span class="badge">Packet Processing Logic</span></h2>
+
+<p>When a packet enters a Palo Alto Next-Generation Firewall, it traverses a strict 4-stage processing pipeline:</p>
+
+<div class="diagram-box">
++───────────────────────────────────────────────────────────────────────────────────────────────────────────────────+
+|                                    PALO ALTO PACKET PROCESSING FLOW (LIFE OF A PACKET)                            |
++───────────────────────────────────────────────────────────────────────────────────────────────────────────────────+
+|                                                                                                                   |
+|  [ INGRESS STAGE ]                                                                                                |
+|   1. Ingress Packet Arrival ──> L2/L3 Header Sanity Check ──> Determine Ingress Interface & Zone                 |
+|   2. Check State Table for Active Session:                                                                        |
+|         │                                                                                                         |
+|         ├── [ SESSION MATCH FOUND: FAST PATH ] ────────────────────────────────────────────────────────┐          |
+|         │    - Validate TCP Sequence & Ack Numbers                                                     │          |
+|         │    - Fast-Path Flow to Content-ID                                                            │          |
+|         │                                                                                              │          |
+|         └── [ NO SESSION MATCH: SLOW PATH / NEW SYN PACKET ]                                           │          |
+|              - Forwarding Route Lookup & Egress Interface/Zone Determination                           │          |
+|              - NAT Policy Evaluation (Pre-NAT Source/Dest vs Post-NAT Mapping)                         │          |
+|              - Security Policy Rulebase Evaluation (Top-to-Bottom First Match)                         │          |
+|              - IF ALLOWED: Allocate Session ID, populate Session State Table                           │          |
+|              - IF DENIED: Silently Drop or Send TCP Reset                                              │          |
+|                                                                                                        │          |
+|  [ APP-ID STAGE ] <────────────────────────────────────────────────────────────────────────────────────┘          |
+|   3. Layer 7 Protocol Decoders Analyze Initial Packets (Payload Signatures & Behavioral Analysis)                 |
+|   4. Application Identified (e.g. SSL ──> Facebook ──> Facebook-Chat)                                             |
+|   5. Dynamic Security Policy Re-evaluation based on confirmed App-ID                                              |
+|                                                                                                                   |
+|  [ CONTENT-ID & SECURITY PROFILES STAGE ]                                                                         |
+|   6. If SSL Decryption Enabled: Decrypt packet once using Hardware Crypto Engine (SPE)                            |
+|   7. Parallel Deep Inspection: Antivirus + Anti-Spyware + Vulnerability Protection + URL Filtering + File Blocking|
+|   8. Forward Unknown Suspicious Files to WildFire Cloud Sandbox                                                   |
+|                                                                                                                   |
+|  [ EGRESS STAGE ]                                                                                                 |
+|   9. Apply NAT Translations (Source IP/Port DIPP, Static 1:1, or Destination NAT)                                 |
+|  10. Egress Interface Packet Transmission & Log Generation at Session End                                         |
++───────────────────────────────────────────────────────────────────────────────────────────────────────────────────+
+</div>
+
+<div class="page-break"></div>
+
+<h2>Module 3: Zero-Day Protection, Sandboxing & WildFire <span class="badge">01:00:00 – 01:30:00</span></h2>
+
+<h3>1. The Zero-Day Attack Problem & The Limits of Signatures</h3>
+<p>Traditional security controls (standard Antivirus, traditional IDS/IPS) operate strictly on known signature matching. When a cybercriminal creates a completely new malware variant or exploits an unpatched vulnerability (<strong>Zero-Day Attack</strong>), no signature exists anywhere in the world.</p>
+<ul>
+    <li><strong>Traditional Defenses Fail:</strong> If an unknown file reaches an endpoint, hash comparison (MD5/SHA256) returns clean because the hash has never been cataloged.</li>
+    <li><strong>The Medical Analogy:</strong> Like a brand-new virus strain where vaccines cannot be manufactured until patient samples are isolated and studied, cyber defenses cannot create signatures without capturing and detonating the malicious code.</li>
+</ul>
+
+<h3>2. Sandboxing Inspection & Palo Alto WildFire</h3>
+<p>To defeat zero-day malware without human intervention, Next-Generation Firewalls utilize <strong>SandBox Inspection</strong>.</p>
+<ul>
+    <li><strong>Sandboxing Defined:</strong> An isolated, highly controlled, instrumented virtual environment (VM) mimicking real enterprise operating systems (Windows, macOS, Android, Linux).</li>
+    <li><strong>Palo Alto WildFire:</strong> Palo Alto's cloud-delivered (or on-premise WF-500 appliance) sandboxing service. Suspicious executables (PE files), scripts, DLLs, Office docs, PDFs, and APKs entering the firewall are streamed to WildFire.</li>
+    <li><strong>Detonation & Heuristics:</strong> The sandbox executes the file and observes real-time behavior: Registry modifications, outbound Command & Control (C2) callback attempts, process injection, DLL hijacking, and ransomware encryption attempts.</li>
+</ul>
+
+<div class="diagram-box">
++-----------------------------------------------------------------------------------+
+|                           WILDFIRE THREAT ENGINE WORKFLOW                         |
+|                                                                                   |
+|  [ Inbound File ] ---> [ Palo Alto Firewall ] ---> Known Signature?               |
+|                                │                        │                         |
+|                                │                        ├── YES ──> [ BLOCK / AV ]|
+|                                │                        │                         |
+|                                │                        └── NO                    |
+|                                ▼                            │                     |
+|                 [ Stream File to WildFire Cloud ] <─────────┘                     |
+|                                │                                                  |
+|                                ▼                                                  |
+|                   [ Virtual Detonation Chamber ]                                  |
+|         (Executes in Win/Linux VM, analyzes behavior & registry)                  |
+|                                │                                                  |
+|                                ├── MALICIOUS BEHAVIOR DETECTED                    |
+|                                ▼                                                  |
+|       1. Generate New Signature (Hash + Payload Sig)                              |
+|       2. Update Global Threat Cloud within 5-15 Minutes                           |
+|       3. Automatically pushed to ALL Palo Alto Firewalls Worldwide                |
++-----------------------------------------------------------------------------------+
+</div>
+
+<div class="callout">
+    <strong>The "Patient Zero" Concept:</strong> The very first user who downloads an unknown zero-day file receives it before the cloud analysis completes (Patient Zero). However, within 5 minutes of cloud detonation, WildFire generates a global signature, protecting all remaining users and firewalls globally from subsequent infection.
+</div>
+
+<div class="page-break"></div>
+
+<h2>Module 4 & 5: Proxies, Stateful Inspection & Deployment Modes <span class="badge">01:30:00 – 02:20:00</span></h2>
+
+<h3>1. Explicit Proxy vs. Transparent Proxy</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Feature / Dimension</th>
+            <th style="width: 37%;">Explicit Proxy</th>
+            <th style="width: 38%;">Transparent Proxy (Inline)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Client Configuration</strong></td>
+            <td>Mandatory: Browser/OS proxy settings configured (IP:Port or PAC file URL).</td>
+            <td>Zero client configuration. Client points to standard default gateway.</td>
+        </tr>
+        <tr>
+            <td><strong>Traffic Interception</strong></td>
+            <td>Client explicitly sends HTTP/HTTPS requests addressed to Proxy IP.</td>
+            <td>Network devices (switches/routers via WCCP or PBR) divert traffic into proxy.</td>
+        </tr>
+        <tr>
+            <td><strong>Authentication</strong></td>
+            <td>Native HTTP 407 Proxy Authentication challenge.</td>
+            <td>Requires captive portal, 802.1X, or Kerberos/NTLM snoop.</td>
+        </tr>
+        <tr>
+            <td><strong>Deployment Complexity</strong></td>
+            <td>Requires enterprise GPO / MDM proxy rollout.</td>
+            <td>Network-level routing configuration required.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>2. Stateful Inspection & The State Table</h3>
+<p>Stateful firewalls maintain an in-memory <strong>State Table (Session Table)</strong> tracking 5-tuples (Source IP, Dest IP, Source Port, Dest Port, Protocol) along with TCP Sequence/Ack numbers, NAT mappings, and connection flags.</p>
+
+<h3>3. Deployment Modes: Routed vs. Virtual Wire</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Deployment Mode</th>
+            <th style="width: 20%;">Layer Operation</th>
+            <th style="width: 25%;">Network Changes Required</th>
+            <th style="width: 30%;">Use Case / Best Fit</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Routed Mode (L3)</strong></td>
+            <td>Layer 3 (IP Routing)</td>
+            <td>Interfaces have IP addresses; acts as Default Gateway; participates in OSPF/BGP/Static routing; performs NAT.</td>
+            <td>Standard perimeter edge firewall, branch office gateway, inter-VLAN routing firewall.</td>
+        </tr>
+        <tr>
+            <td><strong>Virtual Wire (V-Wire / Transparent)</strong></td>
+            <td>Layer 2 (Bump-in-the-Wire)</td>
+            <td>Zero IP changes. Interfaces have NO IP addresses, NO MAC addresses. Binds two physical ports together.</td>
+            <td>Inserting inspection transparently between existing switches and legacy edge routers without downtime or IP re-architecture.</td>
+        </tr>
+        <tr>
+            <td><strong>TAP Mode</strong></td>
+            <td>Passive (SPAN / Mirror)</td>
+            <td>Connects to switch mirror port; receives copy of traffic; cannot block inline.</td>
+            <td>Initial POC evaluations, audit visibility, traffic analysis without inline risk.</td>
+        </tr>
+        <tr>
+            <td><strong>HA Mode</strong></td>
+            <td>Clustering (L2/L3)</td>
+            <td>Dedicated heartbeats (HA1) and session state synchronization (HA2).</td>
+            <td>Active/Passive or Active/Active resilient enterprise clustering.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<h2>Module 6, 7 & 8: History, Hardware Series & Port Architecture <span class="badge">02:20:00 – 03:05:00</span></h2>
+
+<h3>1. History & Nir Zuk's Industry Journey</h3>
+<p><strong>Nir Zuk</strong> (Palo Alto Networks Founder & CTO) pioneered the major milestones in network security:</p>
+<ul>
+    <li><strong>Check Point (1994–1999):</strong> Principal architect of the first commercial Stateful Inspection engine.</li>
+    <li><strong>OneSecure (1999–2002):</strong> Invented the industry's first standalone Intrusion Prevention System (IPS).</li>
+    <li><strong>NetScreen / Juniper (2002–2005):</strong> Served as CTO after NetScreen acquired OneSecure, and Juniper acquired NetScreen.</li>
+    <li><strong>Palo Alto Networks (2005–Present):</strong> Built the world's first true Next-Generation Firewall to solve port-hopping application evasion.</li>
+</ul>
+
+<h3>2. Palo Alto Appliance Portfolio</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 22%;">Appliance Tier</th>
+            <th style="width: 28%;">Hardware Models</th>
+            <th style="width: 25%;">Target Deployment</th>
+            <th style="width: 25%;">Hardware Specs</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Branch / Small Site</strong></td>
+            <td>PA-220, PA-400 Series (PA-410/440/460)</td>
+            <td>Branch offices, retail sites.</td>
+            <td>Fanless options, 1G Copper/SFP.</td>
+        </tr>
+        <tr>
+            <td><strong>Mid-Size Enterprise</strong></td>
+            <td>PA-500, PA-800, PA-3200 / PA-3400 Series</td>
+            <td>Campuses, regional headquarters.</td>
+            <td>1G/10G SFP+, Redundant PSUs.</td>
+        </tr>
+        <tr>
+            <td><strong>Data Center Core</strong></td>
+            <td>PA-5200 Series, PA-5400 Series</td>
+            <td>Enterprise core, cloud providers.</td>
+            <td>10G/40G/100G, high-capacity ASICs.</td>
+        </tr>
+        <tr>
+            <td><strong>Modular Chassis</strong></td>
+            <td>PA-7000 Series (PA-7050, PA-7080)</td>
+            <td>Telco carriers, mega data centers.</td>
+            <td>Modular NPC, SMC, and LPC cards.</td>
+        </tr>
+        <tr>
+            <td><strong>Virtual Appliances</strong></td>
+            <td>VM-Series (VM-50, VM-100, VM-300, VM-Flex)</td>
+            <td>ESXi, KVM, AWS, Azure, GNS3/EVE-NG.</td>
+            <td>Virtualized PAN-OS software appliance.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>3. Physical Port & Front Panel LED Architecture</h3>
+<div class="diagram-box">
++---------------------------------------------------------------------------------------------------+
+|                           PALO ALTO HARDWARE PORT & LED MATRIX                                    |
+|                                                                                                   |
+|  [ PWR ][ STS ][ ALM ][ FAN ][ HA ]                 [ MGT Port ]    [ Console ]   [ Micro-USB ]   |
+|   LEDs: Green=Normal, Amber=Boot/Warn                10/100/1000     RJ-45 Serial  Baud: 9600-8-N-1|
+|                                                                                                   |
+|  [ HA1-A ] [ HA1-B ]      [ HA2-A ] [ HA2-B ]        [ Port 1 ] [ Port 2 ] ... [ Port 8 / 10G SFP]|
+|  Control Link (Heartbeat) Data Link (Session State)  Data Plane Interfaces (Assign to Zones/VR)   |
++---------------------------------------------------------------------------------------------------+
+</div>
+
+<div class="page-break"></div>
+
+<h2>Module 9: Virtual Systems (VSYS) & Multi-Tenancy Architecture <span class="badge">Enterprise Virtualization</span></h2>
+
+<p><strong>Virtual Systems (VSYS)</strong> enable a single physical Palo Alto Networks firewall (or VM-Series) to be partitioned into multiple distinct, independent virtual firewall instances. Each virtual system functions as an autonomous firewall with its own security policies, administrative domains, routing tables, and interface assignments.</p>
+
+<div class="diagram-box">
++===================================================================================================================+
+|                                    PALO ALTO VIRTUAL SYSTEMS (VSYS) ARCHITECTURE                                  |
++===================================================================================================================+
+|                                                                                                                   |
+|   ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐   |
+|   │                       SUPERUSER / DEVICE MANAGEMENT PLANE (Global Administrator)                          │   |
+|   │   • Global System Settings    • Shared Address/Service Objects    • Global Threat Profiles & WildFire     │   |
+|   │   • Hardware Interface Pool   • VSYS Creation & Resource Limits   • Device Licensing & PAN-OS Upgrades    │   |
+|   └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘   |
+|                                                     │                                                             |
+|            ┌────────────────────────────────────────┼────────────────────────────────────────┐                    |
+|            ▼                                        ▼                                        ▼                    |
+|   ┌───────────────────────────┐    ┌───────────────────────────┐    ┌─────────────────────────────────┐           |
+|   │      VSYS 1 (HR Dept)     │    │   VSYS 2 (Finance Dept)   │    │     VSYS 3 (Guest / DMZ)        │           |
+|   │ ───────────────────────── │    │ ───────────────────────── │    │ ─────────────────────────────── │           |
+|   │ • Interfaces: eth1/1, 1/2 │    │ • Interfaces: eth1/3, 1/4 │    │ • Interfaces: eth1/5, sub-if.50 │           |
+|   │ • Zones: Trust, Untrust   │    │ • Zones: Finance-LAN, DMZ │    │ • Zones: Guest-Wifi, Public-DMZ │           |
+|   │ • Virtual Router: VR-HR   │    │ • Virtual Router: VR-Fin  │    │ • Virtual Router: VR-DMZ        │           |
+|   │ • Security Policies: 120  │    │ • Security Policies: 350  │    │ • Security Policies: 45         │           |
+|   │ • NAT Rules: Source/DIPP  │    │ • NAT Rules: Bi-dir/Static│    │ • NAT Rules: Dynamic IP / PAT   │           |
+|   │ • Admin: hr_admin (RBAC)  │    │ • Admin: fin_admin (RBAC) │    │ • Admin: dmz_operator (RBAC)    │           |
+|   └───────────────────────────┘    └───────────────────────────┘    └─────────────────────────────────┘           |
+|            │                                        │                                        │                    |
+|            └────────────────────────────────────────┼────────────────────────────────────────┘                    |
+|                                                     ▼                                                             |
+|   ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────┐   |
+|   │                    SHARED GATEWAY / INTER-VSYS ROUTING & SINGLE-PASS ACCELERATION                         │   |
+|   │   • Internal Inter-VSYS Routing: Fast-path packet forwarding between tenants without external cables      │   |
+|   │   • Shared Gateway: Centralized WAN Edge & ISP Uplink sharing single public IP pool                       │   |
+|   │   • Dedicated Hardware Data Plane: Parallel App-ID, User-ID, and Content-ID inspection across all tenants│   |
+|   └───────────────────────────────────────────────────────────────────────────────────────────────────────────┘   |
++===================================================================================================================+
+</div>
+
+<h3>1. Key Architectural Components of Virtual Systems</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 25%;">Component</th>
+            <th style="width: 40%;">Functionality in Multi-Tenancy</th>
+            <th style="width: 35%;">Isolation Boundary</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Independent Rulebases</strong></td>
+            <td>Each VSYS maintains its own Security, NAT, Policy Based Forwarding (PBF), QoS, and Decryption rule tables.</td>
+            <td>Strictly isolated. Admins in VSYS 1 cannot view or modify rules in VSYS 2.</td>
+        </tr>
+        <tr>
+            <td><strong>Virtual Routers (VR)</strong></td>
+            <td>Each VSYS can be bound to one or more independent Virtual Routers running isolated OSPF, BGP, RIP, or Static routing tables.</td>
+            <td>Overlapping IP subnets (e.g. 10.0.0.0/24 in both VSYS 1 and VSYS 2) can coexist without routing conflicts.</td>
+        </tr>
+        <tr>
+            <td><strong>Security Zones & Interfaces</strong></td>
+            <td>Physical interfaces, sub-interfaces (802.1Q VLAN tags), and VLAN interfaces are explicitly assigned to a specific VSYS.</td>
+            <td>Zones are scoped strictly within the parent VSYS (e.g., `vsys1-Trust` vs `vsys2-Trust`).</td>
+        </tr>
+        <tr>
+            <td><strong>Inter-VSYS Routing</strong></td>
+            <td>Allows internal communication between distinct VSYS instances without requiring external physical loopback cables or switches.</td>
+            <td>Traverses virtual router links and undergoes full Next-Gen Security & Content-ID inspection.</td>
+        </tr>
+        <tr>
+            <td><strong>Shared Gateway</strong></td>
+            <td>A dedicated virtual system configured as an edge gateway providing centralized internet access and public IP pools to client VSYS.</td>
+            <td>Provides centralized perimeter defense while delegating internal policy control to individual departments.</td>
+        </tr>
+        <tr>
+            <td><strong>Role-Based Access (RBAC)</strong></td>
+            <td>Device Superusers manage physical hardware and global objects; VSYS Administrators are restricted strictly to their assigned VSYS.</td>
+            <td>Ensures full compliance with multi-tenant compliance standards (PCI-DSS, HIPAA, SOC 2).</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>2. Preventing Resource Contention: Resource Control & Profiles</h3>
+<p>To prevent a single tenant from exhausting firewall hardware resources (the <em>"Noisy Neighbor"</em> issue), PAN-OS provides granular <strong>Resource Profiles</strong>:</p>
+<ul>
+    <li><strong>Max Concurrent Sessions:</strong> Limits the maximum number of active TCP/UDP state table entries a VSYS can open.</li>
+    <li><strong>Security & NAT Rule Limits:</strong> Caps the maximum number of policies a tenant administrator can commit.</li>
+    <li><strong>VPN Tunnels:</strong> Restricts the number of Site-to-Site IPsec and GlobalProtect VPN gateways allocated per VSYS.</li>
+    <li><strong>Decryption Sessions:</strong> Controls the volume of hardware SSL crypto coprocessor allocation per tenant.</li>
+</ul>
+
+<h3>3. Platform Support & Licensing Matrix</h3>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 30%;">Hardware / Platform Series</th>
+            <th style="width: 25%;">Base VSYS Included</th>
+            <th style="width: 25%;">Max VSYS Supported</th>
+            <th style="width: 20%;">License Required</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>PA-220, PA-400 Series</strong></td>
+            <td>1 (Single System only)</td>
+            <td>1</td>
+            <td>Not Supported</td>
+        </tr>
+        <tr>
+            <td><strong>PA-800 Series</strong></td>
+            <td>1</td>
+            <td>1</td>
+            <td>Not Supported</td>
+        </tr>
+        <tr>
+            <td><strong>PA-3200 / PA-3400 Series</strong></td>
+            <td>1 Base VSYS</td>
+            <td>Up to 6 / 10 VSYS</td>
+            <td>Multi-VSYS License</td>
+        </tr>
+        <tr>
+            <td><strong>PA-5200 / PA-5400 Series</strong></td>
+            <td>1 Base VSYS</td>
+            <td>Up to 20 / 40 VSYS</td>
+            <td>Multi-VSYS License</td>
+        </tr>
+        <tr>
+            <td><strong>PA-7000 Modular Series</strong></td>
+            <td>1 Base VSYS</td>
+            <td>Up to 225 VSYS</td>
+            <td>Multi-VSYS License</td>
+        </tr>
+        <tr>
+            <td><strong>VM-Series (VM-300, VM-Flex)</strong></td>
+            <td>1 Base VSYS</td>
+            <td>Up to 10+ VSYS</td>
+            <td>Multi-VSYS License</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="highlight-card">
+    <strong style="color: #1A365D; font-size: 9.5pt;">Key Engineering Rules to Remember:</strong>
+    <ul style="margin-top: 4px; margin-bottom: 0;">
+        <li><strong>NPE vs SPE vs SME:</strong> Network Processor handles L2/L3/NAT, Security Processor handles Crypto/SSL, and Signature Matching Engine runs RegEx threat scans in parallel.</li>
+        <li><strong>Control vs Data Plane:</strong> Running heavy reports on the management plane NEVER causes packet drops on the data plane.</li>
+        <li><strong>Single-Pass Software:</strong> Packets are decoded and decrypted only once, eliminating legacy UTM multi-pass throughput bottlenecks.</li>
+        <li><strong>Virtual Systems (VSYS):</strong> Enables enterprise multi-tenancy and MSP virtualization with complete isolation of policies, routing tables, and administrative access on supported hardware platforms.</li>
+    </ul>
+</div>
+
+</body>
+</html>

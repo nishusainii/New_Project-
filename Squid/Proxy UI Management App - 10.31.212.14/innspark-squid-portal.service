@@ -1,0 +1,18 @@
+[Unit]
+Description=Innspark Squid Proxy Management Web Portal
+After=network.target squid.service
+Wants=squid.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/innspark-squid-portal
+ExecStart=/usr/bin/python3 /opt/innspark-squid-portal/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=innspark-squid-portal
+
+[Install]
+WantedBy=multi-user.target

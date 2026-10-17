@@ -1,0 +1,54 @@
+cluster:
+  name: "cisai-pve"
+  leader_node: "prox22"
+  leader_ip: "10.31.6.172"
+  username: "root"
+  password: "(cybe6@cluster)"
+
+nodes:
+  - name: "prox22"
+    mgmt_ip: "10.31.6.172"
+    cluster_ip: "192.168.10.22"
+    nodeid: 2
+    role: "leader"
+  - name: "prox24"
+    mgmt_ip: "10.31.6.174"
+    cluster_ip: "192.168.10.24"
+    nodeid: 1
+    role: "member"
+  - name: "prox23"
+    mgmt_ip: "10.31.6.173"
+    cluster_ip: "192.168.10.23"
+    nodeid: 3
+    role: "member"
+
+storage:
+  ceph:
+    pool: "ceph"
+    expected_osds_per_node: 4
+    expected_total_osds: 12
+    min_quorum_mons: 3
+    type: "shared_rbd"
+  zfs:
+    pool: "zfs-ha"
+    raid_level: "raidz2"
+    expected_disks_per_node: 7
+    type: "local_replicated"
+
+test_vms:
+  - vmid: 9001
+    name: "ha-test-ceph-ubuntu2204"
+    storage: "ceph"
+    ha_managed: true
+  - vmid: 9002
+    name: "zfs-test-prox24-ubuntu2204"
+    storage: "zfs-ha"
+    ha_managed: true
+
+thresholds:
+  max_mgmt_latency_ms: 5.0
+  max_cluster_latency_ms: 1.5
+  max_packet_loss_percent: 0.0
+  min_ceph_monitors: 3
+  min_ceph_osds_up: 12
+  max_zfs_errors: 0

@@ -1,0 +1,52 @@
+Use these commands on the Raspberry Pi Docker host to check probe traffic through blackbox-nginx-proxy.
+
+Live probe requests
+docker logs -f blackbox-nginx-proxy 2>&1 | grep '"GET /probe'
+
+
+Press Ctrl+C to stop.
+
+Probe requests from the last 5 minutes
+docker logs --since 5m blackbox-nginx-proxy 2>&1 | grep '"GET /probe'
+
+Last 20 probe requests
+docker logs blackbox-nginx-proxy 2>&1 | grep '"GET /probe' | tail -20
+
+Only automatic Prometheus requests
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep 'Prometheus/'
+
+Search requests for one website
+docker logs blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep 'innspark.in'
+
+Check direct-domain module requests
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep 'module=http_2xx'
+
+Check Jio-proxy module requests
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep 'module=http_2xx_proxy_jio1'
+
+Show failed HTTP responses
+
+Successful proxy responses return HTTP 200. To show non-200 responses:
+
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep -v '" 200 '
+
+
+No output means no non-200 probe responses were found in that period.
+
+Check Nginx errors
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep -Ei 'error|failed|connect\(\)|upstream|timeout'
+
+Check container status and recent logs together
+docker ps --filter name=blackbox-nginx-proxy
+docker logs --tail 50 blackbox-nginx-proxy

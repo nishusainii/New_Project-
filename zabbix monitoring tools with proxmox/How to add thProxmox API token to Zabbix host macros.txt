@@ -1,0 +1,144 @@
+Once you've created the API token in Proxmox, add it to the host macros of the Proxmox host in Zabbix.
+
+1. Open Your Proxmox Host in Zabbix
+
+Navigate to:
+
+Data Collection
+  └── Hosts
+       └── Proxmox-Cluster
+            └── Macros
+
+
+(or)
+
+Configuration
+  └── Hosts
+       └── Proxmox-Cluster
+            └── Macros
+
+
+depending on your Zabbix version.
+
+2. Add Required Macros
+
+Click Add and create the following macros:
+
+Proxmox Host/IP
+Macro: {$PVE.URL.HOST}
+Value: 10.31.212.100
+
+
+Replace with your Proxmox cluster IP/FQDN.
+
+Proxmox API Port
+Macro: {$PVE.URL.PORT}
+Value: 8006
+
+
+Default Proxmox API port.
+
+Token ID
+
+Use the complete token name:
+
+Macro: {$PVE.TOKEN.ID}
+Value: zabbix-monitor@pve!zabbix
+
+
+Format:
+
+<user>@<realm>!<tokenid>
+
+
+Example:
+
+zabbix-monitor@pve!zabbix
+
+Token Secret
+Macro: {$PVE.TOKEN.SECRET}
+Value: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+
+Paste the secret that Proxmox displayed when the token was created.
+
+⚠️ The secret is shown only once when created. If you've lost it, create a new token.
+
+Example Configuration
+{$PVE.URL.HOST}      = pve-cluster.company.local
+{$PVE.URL.PORT}      = 8006
+{$PVE.TOKEN.ID}      = zabbix-monitor@pve!zabbix
+{$PVE.TOKEN.SECRET}  = 3f8d9a12b45......
+
+3. Attach the Template
+
+On the same host:
+
+Templates
+   └── Link new template
+
+
+Select:
+
+Proxmox VE by HTTP
+
+
+The template uses the macros above to authenticate against the Proxmox API and automatically discover:
+
+Cluster status
+Nodes
+VMs
+LXC containers
+Storage
+Network resources
+4. Verify It Works
+
+Go to:
+
+Monitoring
+   └── Latest Data
+
+
+or
+
+Data Collection
+   └── Hosts
+        └── Proxmox-Cluster
+             └── Items
+
+
+Look for items such as:
+
+Cluster Health
+Node Discovery
+VM Discovery
+Storage Discovery
+
+
+If everything is correct, the items should become Supported within a few minutes.
+
+Common Errors
+"401 Unauthorized"
+
+Usually means:
+
+Wrong Token Secret
+Wrong Token ID
+Token deleted in Proxmox
+"403 Permission Denied"
+
+Usually means:
+
+Missing PVEAuditor role
+ACL not applied to /
+Privilege separation enabled but token ACL not assigned
+"Connection Refused"
+
+Check:
+
+nc -vz PROXMOX-IP 8006
+
+
+from the Zabbix server.
+
+For your multi-node Proxmox setup, I recommend creating one Proxmox host in Zabbix for API monitoring of the cluster and installing Zabbix Agent 2 on each PVE node for OS-level metrics such as CPU, memory, ZFS, SMART disks, and network interfaces. This gives complete visibility of both the cluster and the individual hypervisors.

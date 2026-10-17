@@ -1,0 +1,14 @@
+services:
+  gns3-server:
+    image: gns3/gns3-server:latest
+    container_name: gns3-server
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - /dev/kvm:/dev/kvm
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./config/gns3_server.conf:/server/conf/gns3_server.conf:ro
+      - ./gns3-data:/data
+    command: ["python3", "-m", "gns3server", "--config", "/server/conf/gns3_server.conf"]

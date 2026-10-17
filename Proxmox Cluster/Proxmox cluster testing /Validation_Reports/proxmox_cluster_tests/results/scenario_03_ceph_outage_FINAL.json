@@ -1,0 +1,39 @@
+{
+  "scenario": "03_full_ceph_network_outage",
+  "cluster": "cisai-pve",
+  "cluster_ip": "10.31.6.172",
+  "timestamp_start": "2026-09-19T05:20:33Z",
+  "ceph_interface": "nic3 (192.168.10.0/24)",
+  "nodes_affected": 3,
+  "nodes": ["prox22 (10.31.6.172)", "prox23 (10.31.6.173)", "prox24 (10.31.6.174)"],
+  "baseline_io": {
+    "pool": "ceph",
+    "write_bandwidth_mb_s": { "max": 700, "min": 404 },
+    "write_avg_iops": 150,
+    "write_avg_latency_ms": 105.08,
+    "read_avg_latency_ms": 72.90
+  },
+  "fault_phase": {
+    "outage_type": "Simultaneous link-down on storage interface (nic3) across all 3 nodes",
+    "osds_isolated": 12,
+    "fault_duration_sec": 91,
+    "client_impact": "All Ceph I/O blocked/frozen (expected safe behavior to prevent data corruption)"
+  },
+  "recovery_phase": {
+    "network_restored_at": "2026-09-19T05:22:04Z",
+    "t_first_osd_up_from_restore_sec": 21,
+    "t_all_12_osds_up_from_restore_sec": 21,
+    "t_all_33_pgs_clean_from_restore_sec": 24,
+    "t_ceph_health_ok_from_restore_sec": 28,
+    "t_total_test_duration_sec": 329
+  },
+  "observations": [
+    "Simultaneous nic3 shutdown isolated all Ceph storage traffic without affecting PVE management",
+    "During outage, client I/O paused safely; zero data lost, zero corruption",
+    "Upon bringing nic3 back UP, Ceph monitors re-established quorum almost immediately",
+    "All 12 OSDs rejoined within ~16s of link restoration",
+    "All 33 Placement Groups (PGs) peered and returned to active+clean",
+    "Cluster reached complete HEALTH_OK in 28 seconds from network restore"
+  ],
+  "result": "PASS"
+}

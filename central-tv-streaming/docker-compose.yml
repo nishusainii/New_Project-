@@ -1,0 +1,35 @@
+services:
+  # 1. Media Core Server (MediaMTX) - Handles WebRTC, HLS, RTSP, RTMP
+  mediamtx:
+    image: bluenviron/mediamtx:latest-ffmpeg
+    container_name: central-tv-mediamtx
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  # 2. Central Controller, Device Registry & Web Applications
+  tv-manager:
+    build: .
+    container_name: central-tv-manager
+    restart: unless-stopped
+    network_mode: "host"
+    volumes:
+      - ./server.js:/app/server.js
+      - ./data:/app/data
+      - ./media:/app/media
+      - ./certs:/app/certs
+      - ./public:/app/public:ro
+      - ./production-installation-packages:/app/production-installation-packages:ro
+      - ./management-tools:/app/management-tools:ro
+      - ./documentation-and-pdfs:/app/documentation-and-pdfs:ro
+      - ./scripts:/app/scripts:ro
+      - ./tv-detect.sh:/app/tv-detect.sh:ro
+    environment:
+      - HTTP_PORT=8080
+      - HTTPS_PORT=8443
+      - MEDIAMTX_HOST=127.0.0.1
+      - MEDIAMTX_WEBRTC_PORT=8889
+      - MEDIAMTX_HLS_PORT=8888
+    depends_on:
+      - mediamtx

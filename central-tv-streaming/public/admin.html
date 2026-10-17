@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CiSAI Enterprise Central TV - Command Console</title>
+  <link rel="stylesheet" href="/css/style.css?v=2.5">
+</head>
+<body>
+  <div class="container">
+    <!-- Top Enterprise Navigation Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-logo-wrap">
+          <img src="/logo.png" alt="CiSAI" height="28">
+        </div>
+        <div>
+          <h1>CiSAI Central TV Console</h1>
+          <div class="brand-meta">
+            <span id="system-badge" class="badge badge-green badge-pulse">System Operational</span>
+            <span id="connected-count" class="badge badge-blue">0 TVs Connected</span>
+            <span class="badge badge-cyan" style="font-family: var(--font-mono); font-size: 10px;">CORE v2.5</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <span id="admin-user-badge" class="badge badge-emerald" style="font-size: 11px; padding: 4px 10px; display: none;"></span>
+        <a href="/admin.html" class="nav-btn active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Admin Console
+        </a>
+        <a href="/presenter.html" class="nav-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"></path>
+          </svg>
+          Presenter Studio
+        </a>
+        <a href="/player.html" target="_blank" class="nav-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+            <polyline points="17 2 12 7 7 2"></polyline>
+          </svg>
+          Open TV Player
+        </a>
+        <button onclick="handleLogout()" class="nav-btn btn-signout" title="Sign out of administration console">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <!-- Enterprise Telemetry KPI Cards -->
+    <div class="kpi-grid">
+      <!-- KPI 1: Active Displays -->
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-emerald">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+            <polyline points="17 2 12 7 7 2"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Display Fleet Status</div>
+          <div class="kpi-value" id="kpi-online-tvs">-- / -- Online</div>
+          <div class="kpi-meta">Self-Healing Watchdog Active</div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Channel Mode -->
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-cyan">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Active Broadcast</div>
+          <div class="kpi-value" id="kpi-broadcast-mode">Signage Loop</div>
+          <div class="kpi-meta">Continuous 24/7 Failover</div>
+        </div>
+      </div>
+
+      <!-- KPI 3: Media Assets -->
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Media Library Loop</div>
+          <div class="kpi-value" id="kpi-media-count">-- Videos</div>
+          <div class="kpi-meta">High Definition H.264 / WebM</div>
+        </div>
+      </div>
+
+      <!-- KPI 4: Streaming Core -->
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-indigo">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Streaming Transport</div>
+          <div class="kpi-value">MediaMTX Core</div>
+          <div class="kpi-meta">WebRTC WHEP &bull; Port 8889</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Global Command & Broadcast Control Center -->
+    <div class="broadcast-center">
+      <div class="broadcast-info">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+          </svg>
+          One-Click Global Broadcast Operations
+        </h3>
+        <p>Instantly switch all displays across headquarters and remote sites to a live presenter feed or continuous digital signage loop</p>
+      </div>
+      <div class="broadcast-actions">
+        <button class="btn btn-live" onclick="broadcastGlobalChannel('ch-live')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2"></circle>
+            <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49"></path>
+          </svg>
+          Push Live Stream to All
+        </button>
+        <button class="btn btn-primary" onclick="broadcastGlobalChannel('ch-signage')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          Revert All to Signage Loop
+        </button>
+        <button class="btn btn-secondary" onclick="syncAllTvsToVideo(0)" title="Force all connected screens to start Video 1 synchronously">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          Sync All to Video 1
+        </button>
+        <button class="btn btn-danger" onclick="promptEmergencyAlert()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          Emergency Alert
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Emergency Alert Banner (Hidden by default) -->
+    <div id="active-alert-box" class="card" style="display: none; border-color: var(--accent-red); background: rgba(239, 68, 68, 0.12); margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div>
+            <strong style="color: #f87171; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">ACTIVE EMERGENCY BROADCAST:</strong>
+            <span id="active-alert-text" style="margin-left: 8px; font-size: 14px; color: #ffffff;"></span>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="clearEmergencyAlert()">Dismiss Alert</button>
+      </div>
+    </div>
+
+    <!-- TV Displays Fleet Overview Toolbar -->
+    <div class="fleet-toolbar">
+      <div class="fleet-title-area">
+        <h2>Connected TV Displays</h2>
+        <div class="density-toggle" title="Switch grid density for multi-screen monitoring">
+          <button id="btn-density-default" class="density-btn active" onclick="setGridDensity('default')">Comfortable</button>
+          <button id="btn-density-compact" class="density-btn" onclick="setGridDensity('compact')">Compact Grid</button>
+        </div>
+      </div>
+      <div class="fleet-actions">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <label style="font-size: 12px; color: var(--text-muted); font-weight: 500;">Filter Site:</label>
+          <select id="site-filter" class="select" style="width: auto; min-width: 170px; padding: 6px 10px; font-size: 12px;" onchange="renderDevices()">
+            <option value="all">All Sites (Headquarters + Remote)</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="fetchDevices()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Refresh
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="reloadAllDevices()" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Send remote reload signal to refresh all TV browser sessions">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          Reload All TVs
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="pruneOfflineDevices()" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="Remove all offline or disconnected TV records from console">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Clear Offline TVs
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Display Fleet Grid -->
+    <div id="device-grid" class="grid">
+      <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 48px; color: var(--text-muted);">
+        Scanning for connected TV display players...
+      </div>
+    </div>
+
+    <!-- Channels Matrix & Continuous Loop Media Management -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px;">
+      <!-- Channels List -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 700; color: #ffffff;">Broadcast Channels Matrix</h3>
+          <span class="badge badge-cyan">3 Channels Configured</span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+          Available live and automated broadcast channels. TVs can be routed individually or globally.
+        </p>
+        <div id="channels-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Continuous Video Loop & Signage Assets -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="font-size: 16px; font-weight: 700; color: #ffffff;">Continuous Video Loop Playlist</h3>
+          <span id="playlist-badge" class="badge badge-blue">0 Videos in Loop</span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+          Upload corporate videos to play in an automatic round-robin 24/7 loop across all displays.
+        </p>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+          <input type="file" id="media-upload-input" multiple accept="video/mp4,video/webm,video/mkv,video/quicktime" class="input" style="padding: 7px 10px;">
+          <button id="btn-upload-media" class="btn btn-primary btn-sm" onclick="uploadMediaFiles()" style="white-space: nowrap;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Upload Videos
+          </button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Active Video Loop Queue</span>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-primary btn-sm" onclick="syncAllTvsToVideo(0)" style="font-size: 11px; padding: 4px 8px;">
+              Sync All to Video 1
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="broadcastGlobalChannel('ch-signage')" style="font-size: 11px; padding: 4px 8px;">
+              Force Loop
+            </button>
+          </div>
+        </div>
+
+        <div id="media-files-list" style="max-height: 230px; overflow-y: auto; background: rgba(5, 8, 15, 0.6); border-radius: 8px; border: 1px solid var(--border-subtle); padding: 6px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Management Tools & Operations Section -->
+    <div class="card" style="margin-top: 24px; border-color: rgba(56, 189, 248, 0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700; color: #ffffff; margin-bottom: 3px;">Management Tools & Operations</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 0;">
+            Network auto-discovery, display lifecycle management, and production distribution packages
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button id="btn-detect-tvs" class="btn btn-primary btn-sm" onclick="runNetworkTvDetection()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Scan & Auto-Connect Network TVs
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="pruneOfflineDevices()" style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);">
+            Clear Offline TVs
+          </button>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 14px;">
+        <!-- Tool 1: Network Automation -->
+        <div style="background: rgba(5, 8, 15, 0.6); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #ffffff;">Network TV Discovery Tool</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.5;">
+            Scans LAN & Wi-Fi subnets for connected Smart TVs, triggers on-screen remote pairing, and launches video streaming automatically.
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 11px; background: rgba(0,0,0,0.6); padding: 7px 10px; border-radius: 6px; color: var(--accent-cyan); margin-bottom: 12px; border: 1px solid rgba(6, 182, 212, 0.2);">
+            ./tv-detect.sh --all
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="runNetworkTvDetection()" style="width: 100%;">
+            Run Auto-Detection Scan
+          </button>
+        </div>
+
+        <!-- Tool 2: Terminal Scripts Reference -->
+        <div style="background: rgba(5, 8, 15, 0.6); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #ffffff;">Host Scripts in <code>management-tools/</code></div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+            CLI management scripts installed on host:
+          </p>
+          <ul style="font-size: 11.5px; color: var(--text-secondary); padding-left: 18px; line-height: 1.8; font-family: var(--font-mono);">
+            <li>./tv-detect.sh - Subnet discovery</li>
+            <li>start-kiosk.sh - Pi Kiosk autostart</li>
+            <li>install-systemd.sh - Boot watchdog</li>
+            <li>branch-relay-setup.sh - Branch proxy</li>
+          </ul>
+        </div>
+
+        <!-- Tool 3: Production Packages & Guides -->
+        <div style="background: rgba(5, 8, 15, 0.6); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px;">
+          <div style="font-weight: 700; font-size: 14px; margin-bottom: 6px; color: #ffffff;">Production Packages & Guides</div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+            Download deployment zip files and PDF guides:
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <a href="/packages/cisai-central-tv-docker.zip" download class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; text-decoration: none;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Docker Package (.zip)
+            </a>
+            <a href="/packages/cisai-central-tv-baremetal-vm.zip" download class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; text-decoration: none;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Bare Metal & VM Package (.zip)
+            </a>
+            <a href="/packages/cisai-central-tv-raspberry-pi.zip" download class="btn btn-secondary btn-sm" style="text-align: left; justify-content: flex-start; text-decoration: none;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Raspberry Pi Package (.zip)
+            </a>
+            <a href="/packages/CiSAI_Central_TV_Production_Implementation_Guide.pdf" target="_blank" class="btn btn-primary btn-sm" style="text-align: left; justify-content: flex-start; text-decoration: none; margin-top: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              View Implementation Guide (PDF)
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js?v=2.5"></script>
+</body>
+</html>

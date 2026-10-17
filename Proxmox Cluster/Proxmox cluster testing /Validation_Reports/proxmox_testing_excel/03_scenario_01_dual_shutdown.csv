@@ -1,0 +1,10 @@
+Elapsed Time (T0),Event Name,Phase,State Transition,Detailed Telemetry & Observations
+T+0s,Fault Injected,Fault,SHUTDOWN,Simultaneous poweroff signal dispatched to prox23 and prox24
+T+11s,prox23 Offline,Fault,QUORUM 2/3,Node prox23 offline; Quorum retained by prox22+prox24; HA migrates vm:9002
+T+34s,Ceph Warning,Fault,HEALTH_WARN,Ceph monitor marks 4 OSDs down; 29 PGs degraded under 3x replica
+T+140s (2m20s),prox24 Offline,Fault,QUORUM 1/3 (LOST),prox24 shuts down; quorum falls below 50%+1 threshold
+T+140s,Workload Protection,Safety,VMs STOPPED,HA CRM halts VMs to prevent split-brain disk writes
++44s (boot),prox24 Reboots,Recovery,QUORUM 2/3 (RESTORED),prox24 boots; Corosync immediately restores majority quorum
++57s (boot),prox23 Reboots,Recovery,QUORUM 3/3 (FULL),prox23 rejoins; pmxcfs synchronizes /etc/pve across all 3 nodes
++161s (2m41s),VMs Running,Recovery,HA RESTORED,HA CRM starts all 3 production VMs across surviving nodes
++305s (5m05s),Ceph Healthy,Recovery,HEALTH_OK,All 12 OSDs UP/IN; 33 PGs active+clean; 0 missing objects

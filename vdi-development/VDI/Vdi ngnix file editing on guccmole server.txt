@@ -1,0 +1,729 @@
+Below is a corrected, production-ready SOP for deploying the Nginx Guacamole configuration on 10.31.7.213. It includes pre-checks, evidence collection, backup verification, controlled editing, guarded reload, functional validation, and rollback.
+
+Production Nginx Change Procedure
+1. Change scope
+
+This change will:
+
+Preserve the existing TLS policy.
+Remove the obsolete ssl on; directive.
+Preserve both Guacamole WebSocket paths.
+Preserve /guacamole/ and root application proxying.
+Remove document-export artifacts.
+Validate the configuration before reload.
+Use an Nginx reload rather than a restart.
+Provide a verified rollback path.
+
+Nginx requires the WebSocket Upgrade and Connection headers to be passed explicitly to the upstream service. Increased proxy_read_timeout values also help support long-lived WebSocket connections.
+
+2. Pre-change checks
+
+2.1 Start a root shell
+
+To prevent environment variables from being lost between steps:
+
+sudo -i
+
+
+Enable pipeline failure detection:
+
+set -o pipefail
+
+
+Do not use set -e for this procedure because commands such as diff and grep can return a nonzero result during normal operation.
+
+2.2 Define change variables
+
+NGINX_LINK="/etc/nginx/sites-enabled/default"
+TARGET_URL="https://10.31.7.213/"
+BACKEND_URL="http://127.0.0.1:8080/guacamole/"
+CHANGE_TIMESTAMP=$(date +%F-%H%M%S)
+
+ACTIVE_PATH_FILE="/tmp/nginx-active-config-path.txt"
+BACKUP_PATH_FILE="/tmp/nginx-backup-path.txt"
+BASELINE_FILE="/tmp/nginx-baseline-${CHANGE_TIMESTAMP}.txt"
+EVIDENCE_FILE="/tmp/nginx-config-before-${CHANGE_TIMESTAMP}.txt"
+
+2.3 Resolve the active configuration file
+
+echo "=== Active Nginx configuration check ==="
+
+if [ ! -e "$NGINX_LINK" ]; then
+    echo "ERROR: $NGINX_LINK does not exist."
+    exit 1
+fi
+
+ls -l "$NGINX_LINK"
+
+NGINX_CONFIG=$(readlink -f "$NGINX_LINK")
+
+if [ -z "$NGINX_CONFIG" ] || [ ! -f "$NGINX_CONFIG" ]; then
+    echo "ERROR: Unable to resolve the active Nginx configuration file."
+    exit 1
+fi
+
+printf '%s\n' "$NGINX_CONFIG" > "$ACTIVE_PATH_FILE"
+chmod 0600 "$ACTIVE_PATH_FILE"
+
+echo "Active configuration: $NGINX_CONFIG"
+
+
+2.4 Check for document artifacts
+
+echo "=== Document artifact check ==="
+
+if grep -nE 'Page [0-9]+ of [0-9]+|&gt;|&amp;' "$NGINX_CONFIG"; then
+    echo "ERROR: Document-export or HTML artifacts were found."
+    echo "Do not proceed until they are reviewed."
+    exit 1
+else
+    echo "No document-export or HTML artifacts detected."
+fi
+
+2.5 Validate the current configuration
+echo "=== Current Nginx syntax validation ==="
+
+if ! nginx -t; then
+    echo "ERROR: Existing Nginx configuration is invalid."
+    echo "Do not edit or reload Nginx."
+    exit 1
+fi
+
+
+The result must contain:
+
+syntax is ok
+test is successful
+
+2.6 Verify service status
+
+echo "=== Nginx service status ==="
+
+if ! systemctl is-active --quiet nginx; then
+    echo "ERROR: Nginx is not active."
+    systemctl status nginx --no-pager
+    exit 1
+fi
+
+echo "Nginx service is active."
+systemctl status nginx --no-pager
+nginx -v
+
+2.7 Verify TCP listeners
+
+Check Nginx HTTPS:
+
+echo "=== HTTPS listener check ==="
+
+if ss -lntp | grep -E ':443[[:space:]]'; then
+    echo "HTTPS listener detected on TCP port 443."
+else
+    echo "ERROR: No listener detected on TCP port 443."
+    exit 1
+fi
+
+
+Check the Guacamole backend:
+
+echo "=== Guacamole backend listener check ==="
+
+if ss -lntp | grep -E ':8080[[:space:]]'; then
+    echo "Backend listener detected on TCP port 8080."
+else
+    echo "ERROR: No backend listener detected on TCP port 8080."
+    exit 1
+fi
+
+
+Display all relevant listeners:
+
+ss -lntp | grep -E ':(80|443|8080)[[:space:]]' || true
+
+2.8 Validate the backend
+echo "=== Guacamole backend baseline ==="
+
+BACKEND_RESULT=$(
+    curl -sS \
+        --connect-timeout 5 \
+        --max-time 15 \
+        -o /dev/null \
+        -w '%{http_code} %{time_total}' \
+        "$BACKEND_URL"
+)
+BACKEND_CURL_RC=$?
+
+if [ "$BACKEND_CURL_RC" -ne 0 ]; then
+    echo "ERROR: Unable to reach the Guacamole backend."
+    exit 1
+fi
+
+BACKEND_HTTP=$(printf '%s\n' "$BACKEND_RESULT" | awk '{print $1}')
+BACKEND_TIME=$(printf '%s\n' "$BACKEND_RESULT" | awk '{print $2}')
+
+echo "Backend HTTP=$BACKEND_HTTP time=$BACKEND_TIME"
+
+case "$BACKEND_HTTP" in
+    200|301|302)
+        echo "Backend response accepted."
+        ;;
+    *)
+        echo "ERROR: Unexpected backend HTTP status: $BACKEND_HTTP"
+        exit 1
+        ;;
+esac
+
+
+If production currently uses another expected response code, document it in the change record before adding it to the accepted list.
+
+2.9 Validate the HTTPS frontend
+
+echo "=== Nginx HTTPS frontend baseline ==="
+
+FRONTEND_RESULT=$(
+    curl -k -sS \
+        --connect-timeout 5 \
+        --max-time 15 \
+        -o /dev/null \
+        -w '%{http_code} %{time_total}' \
+        "$TARGET_URL"
+)
+FRONTEND_CURL_RC=$?
+
+if [ "$FRONTEND_CURL_RC" -ne 0 ]; then
+    echo "ERROR: Unable to reach the Nginx HTTPS frontend."
+    exit 1
+fi
+
+FRONTEND_HTTP=$(printf '%s\n' "$FRONTEND_RESULT" | awk '{print $1}')
+FRONTEND_TIME=$(printf '%s\n' "$FRONTEND_RESULT" | awk '{print $2}')
+
+echo "Frontend HTTP=$FRONTEND_HTTP time=$FRONTEND_TIME"
+
+case "$FRONTEND_HTTP" in
+    200|301|302)
+        echo "Frontend response accepted."
+        ;;
+    *)
+        echo "ERROR: Unexpected frontend HTTP status: $FRONTEND_HTTP"
+        exit 1
+        ;;
+esac
+
+2.10 Capture remaining pre-change evidence
+
+echo "=== Established HTTP/HTTPS connections ==="
+
+ss -Htan state established \
+    | awk '$4 ~ /:(80|443)$/ || $5 ~ /:(80|443)$/'
+
+echo "=== Filesystem capacity ==="
+
+df -h /etc /var /tmp
+
+echo "=== Configuration file metadata ==="
+
+stat "$NGINX_CONFIG"
+sha256sum "$NGINX_CONFIG"
+
+
+Capture the complete active configuration:
+
+echo "=== Complete Nginx configuration capture ==="
+
+if nginx -T > "$EVIDENCE_FILE" 2>&1; then
+    chmod 0600 "$EVIDENCE_FILE"
+    echo "Configuration evidence saved: $EVIDENCE_FILE"
+else
+    echo "ERROR: Unable to capture the complete Nginx configuration."
+    exit 1
+fi
+
+
+Save the HTTP baselines:
+
+{
+    echo "Timestamp=$(date --iso-8601=seconds)"
+    echo "Configuration=$NGINX_CONFIG"
+    echo "Backend_URL=$BACKEND_URL"
+    echo "Backend_HTTP=$BACKEND_HTTP"
+    echo "Backend_Time=$BACKEND_TIME"
+    echo "Frontend_URL=$TARGET_URL"
+    echo "Frontend_HTTP=$FRONTEND_HTTP"
+    echo "Frontend_Time=$FRONTEND_TIME"
+} > "$BASELINE_FILE"
+
+chmod 0600 "$BASELINE_FILE"
+
+echo "Baseline evidence saved: $BASELINE_FILE"
+
+2.11 Pre-change acceptance criteria
+
+Proceed only when:
+
+The active configuration path is correctly resolved.
+No document page-number or HTML artifacts are present.
+nginx -t reports successful syntax and configuration validation.
+Nginx is active.
+TCP port 443 is listening.
+TCP port 8080 is listening locally.
+The backend returns its approved baseline status.
+The frontend returns its approved baseline status.
+Sufficient space is available under /etc, /var, and /tmp.
+The current checksum is recorded.
+The complete Nginx configuration is captured.
+The approved production change window is active.
+echo
+echo "PRE-CHECK RESULT: PASSED"
+echo "Active configuration: $NGINX_CONFIG"
+echo "Baseline evidence: $BASELINE_FILE"
+echo "Configuration evidence: $EVIDENCE_FILE"
+
+
+
+3. Create and verify the backup
+echo "=== Nginx configuration backup ==="
+
+NGINX_CONFIG=$(cat "$ACTIVE_PATH_FILE")
+
+if [ -z "$NGINX_CONFIG" ] || [ ! -f "$NGINX_CONFIG" ]; then
+    echo "ERROR: Active Nginx configuration path is invalid."
+    exit 1
+fi
+
+BACKUP_DIR="/var/backups/nginx"
+BACKUP_FILE="$BACKUP_DIR/default.backup-${CHANGE_TIMESTAMP}"
+
+install -d -m 0700 "$BACKUP_DIR"
+
+if ! cp -a "$NGINX_CONFIG" "$BACKUP_FILE"; then
+    echo "ERROR: Failed to create the Nginx configuration backup."
+    exit 1
+fi
+
+printf '%s\n' "$BACKUP_FILE" > "$BACKUP_PATH_FILE"
+chmod 0600 "$BACKUP_PATH_FILE"
+
+
+Verify the backup:
+
+if cmp -s "$NGINX_CONFIG" "$BACKUP_FILE"; then
+    echo "Backup verified successfully: $BACKUP_FILE"
+else
+    echo "ERROR: Backup content does not match the active configuration."
+    exit 1
+fi
+
+
+Record checksums and metadata:
+
+sha256sum "$NGINX_CONFIG" "$BACKUP_FILE"
+stat "$BACKUP_FILE"
+
+
+The two SHA-256 values must be identical.
+
+4. Updated production configuration
+
+Edit the resolved configuration:
+
+NGINX_CONFIG=$(cat "$ACTIVE_PATH_FILE")
+vim "$NGINX_CONFIG"
+
+
+Use this configuration:
+
+server {
+    listen 443 ssl;
+    server_name localhost;
+
+    add_header X-Frame-Options "SAMEORIGIN";
+
+    ssl_certificate /etc/nginx/ssl/nginx.crt;
+    ssl_certificate_key /etc/nginx/ssl/nginx.key;
+
+    # Existing TLS policy retained.
+    # TLS hardening must be handled under a separate approved change.
+    ssl_session_cache builtin:1000 shared:SSL:10m;
+    ssl_protocols TLSv1.1 TLSv1.2;
+    ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
+    ssl_prefer_server_ciphers on;
+
+    access_log /var/log/nginx/localhost.access.log;
+    error_log /var/log/nginx/error.log;
+
+    error_page 500 502 503 504 /error.html;
+
+    location = /error.html {
+        root /usr/share/nginx/html;
+        internal;
+    }
+
+    # Short Guacamole WebSocket endpoint
+    location = /websocket-tunnel {
+        proxy_pass http://127.0.0.1:8080/guacamole/websocket-tunnel;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Standard Guacamole WebSocket endpoint
+    location = /guacamole/websocket-tunnel {
+        proxy_pass http://127.0.0.1:8080/guacamole/websocket-tunnel;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Standard Guacamole application path
+    location /guacamole/ {
+        proxy_pass http://127.0.0.1:8080/guacamole/;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Root path forwarded to Guacamole
+    location / {
+        proxy_pass http://127.0.0.1:8080/guacamole/;
+
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+}
+
+
+For normal proxy requests, Nginx removes a request header when proxy_set_header assigns it an empty value. Therefore, proxy_set_header Connection ""; is valid for the non-WebSocket locations.
+
+5. Review and validate without applying
+
+5.1 Check for accidental artifacts
+
+if grep -nE 'Page [0-9]+ of [0-9]+|&gt;|&amp;' "$NGINX_CONFIG"; then
+    echo "ERROR: Invalid document or HTML artifacts detected."
+    exit 1
+fi
+
+5.2 Review the exact difference
+
+BACKUP_FILE=$(cat "$BACKUP_PATH_FILE")
+
+echo "=== Configuration difference ==="
+
+diff -u "$BACKUP_FILE" "$NGINX_CONFIG"
+DIFF_RC=$?
+
+case "$DIFF_RC" in
+    0)
+        echo "WARNING: No configuration changes were detected."
+        ;;
+    1)
+        echo "Configuration differences displayed successfully."
+        ;;
+    *)
+        echo "ERROR: Unable to compare the configuration and backup."
+        exit 1
+        ;;
+esac
+
+
+Confirm that the output contains only approved changes.
+
+5.3 Validate Nginx syntax
+
+echo "=== Post-edit Nginx validation ==="
+
+if ! nginx -t; then
+    echo "ERROR: Updated Nginx configuration is invalid."
+    echo "Do not reload Nginx."
+    exit 1
+fi
+
+
+Proceed only if the output includes:
+
+syntax is ok
+test is successful
+
+6. Controlled application
+
+Run one final validation immediately before reload:
+
+echo "=== Final validation before reload ==="
+
+if ! nginx -t; then
+    echo "ERROR: Final validation failed."
+    echo "Reload canceled."
+    exit 1
+fi
+
+
+Reload Nginx:
+
+echo "=== Controlled Nginx reload ==="
+
+if ! systemctl reload nginx; then
+    echo "ERROR: Nginx reload command failed."
+    systemctl status nginx --no-pager
+    exit 1
+fi
+
+
+Confirm that the service remains active:
+
+if ! systemctl is-active --quiet nginx; then
+    echo "ERROR: Nginx is not active after reload."
+    systemctl status nginx --no-pager
+    exit 1
+fi
+
+echo "Nginx reload completed successfully."
+systemctl status nginx --no-pager
+
+7. Post-change validation
+
+7.1 Validate the backend
+
+POST_BACKEND_RESULT=$(
+    curl -sS \
+        --connect-timeout 5 \
+        --max-time 15 \
+        -o /dev/null \
+        -w '%{http_code} %{time_total}' \
+        "$BACKEND_URL"
+)
+POST_BACKEND_RC=$?
+
+if [ "$POST_BACKEND_RC" -ne 0 ]; then
+    echo "ERROR: Post-change backend connectivity failed."
+    exit 1
+fi
+
+POST_BACKEND_HTTP=$(printf '%s\n' "$POST_BACKEND_RESULT" | awk '{print $1}')
+POST_BACKEND_TIME=$(printf '%s\n' "$POST_BACKEND_RESULT" | awk '{print $2}')
+
+echo "Post-change backend HTTP=$POST_BACKEND_HTTP time=$POST_BACKEND_TIME"
+
+if [ "$POST_BACKEND_HTTP" != "$BACKEND_HTTP" ]; then
+    echo "WARNING: Backend status changed from $BACKEND_HTTP to $POST_BACKEND_HTTP."
+fi
+
+7.2 Validate the frontend
+
+POST_FRONTEND_RESULT=$(
+    curl -k -sS \
+        --connect-timeout 5 \
+        --max-time 15 \
+        -o /dev/null \
+        -w '%{http_code} %{time_total}' \
+        "$TARGET_URL"
+)
+POST_FRONTEND_RC=$?
+
+if [ "$POST_FRONTEND_RC" -ne 0 ]; then
+    echo "ERROR: Post-change frontend connectivity failed."
+    exit 1
+fi
+
+POST_FRONTEND_HTTP=$(printf '%s\n' "$POST_FRONTEND_RESULT" | awk '{print $1}')
+POST_FRONTEND_TIME=$(printf '%s\n' "$POST_FRONTEND_RESULT" | awk '{print $2}')
+
+echo "Post-change frontend HTTP=$POST_FRONTEND_HTTP time=$POST_FRONTEND_TIME"
+
+if [ "$POST_FRONTEND_HTTP" != "$FRONTEND_HTTP" ]; then
+    echo "WARNING: Frontend status changed from $FRONTEND_HTTP to $POST_FRONTEND_HTTP."
+fi
+
+7.3 Review logs
+echo "=== Nginx service logs ==="
+journalctl -u nginx --since "-10 minutes" --no-pager
+
+echo "=== Nginx error log ==="
+tail -n 100 /var/log/nginx/error.log
+
+echo "=== Nginx access log ==="
+tail -n 50 /var/log/nginx/localhost.access.log
+
+
+Search for critical errors:
+
+journalctl -u nginx --since "-10 minutes" --no-pager \
+    | grep -Ei 'emerg|alert|crit|failed|error' || true
+
+tail -n 100 /var/log/nginx/error.log \
+    | grep -Ei 'emerg|alert|crit|failed|timed out|connect\(\) failed' || true
+
+7.4 Application validation
+
+Perform these final operational tests:
+
+Open the Guacamole URL from an approved client.
+Confirm that the login page loads.
+Log in with a test account.
+Start a remote desktop or SSH session.
+Confirm keyboard and mouse interaction.
+Keep the session open long enough to confirm stability.
+Confirm no 502, 503, or 504 errors appear.
+Confirm no new upstream or WebSocket errors appear in the Nginx error log.
+
+An HTTP response alone does not prove that an interactive WebSocket-based Guacamole session is operating correctly.
+
+8. Rollback procedure
+
+Rollback if:
+
+Nginx is not active after reload.
+The frontend becomes unavailable.
+Unexpected HTTP status codes are returned.
+Guacamole login fails because of the change.
+Remote sessions fail to establish.
+WebSocket or upstream errors appear.
+Production users experience change-related disruption.
+8.1 Restore the backup
+echo "=== Nginx rollback ==="
+
+NGINX_CONFIG=$(cat "$ACTIVE_PATH_FILE")
+BACKUP_FILE=$(cat "$BACKUP_PATH_FILE")
+
+if [ -z "$NGINX_CONFIG" ] || [ ! -f "$NGINX_CONFIG" ]; then
+    echo "ERROR: Active configuration path is invalid."
+    exit 1
+fi
+
+if [ -z "$BACKUP_FILE" ] || [ ! -f "$BACKUP_FILE" ]; then
+    echo "ERROR: Backup file is unavailable."
+    exit 1
+fi
+
+if ! cp -a "$BACKUP_FILE" "$NGINX_CONFIG"; then
+    echo "ERROR: Failed to restore the backup."
+    exit 1
+fi
+
+8.2 Verify restored content
+if cmp -s "$BACKUP_FILE" "$NGINX_CONFIG"; then
+    echo "Restored configuration matches the backup."
+else
+    echo "ERROR: Restored configuration does not match the backup."
+    exit 1
+fi
+
+sha256sum "$BACKUP_FILE" "$NGINX_CONFIG"
+
+8.3 Validate and reload
+if ! nginx -t; then
+    echo "CRITICAL: Restored configuration validation failed."
+    echo "Nginx has not been reloaded."
+    exit 1
+fi
+
+if ! systemctl reload nginx; then
+    echo "CRITICAL: Nginx rollback reload failed."
+    systemctl status nginx --no-pager
+    exit 1
+fi
+
+if ! systemctl is-active --quiet nginx; then
+    echo "CRITICAL: Nginx is not active after rollback."
+    systemctl status nginx --no-pager
+    exit 1
+fi
+
+8.4 Validate rollback
+curl -sS \
+    --connect-timeout 5 \
+    --max-time 15 \
+    -o /dev/null \
+    -w 'Rollback backend HTTP=%{http_code} time=%{time_total}\n' \
+    "$BACKEND_URL"
+
+curl -k -sS \
+    --connect-timeout 5 \
+    --max-time 15 \
+    -o /dev/null \
+    -w 'Rollback frontend HTTP=%{http_code} time=%{time_total}\n' \
+    "$TARGET_URL"
+
+journalctl -u nginx --since "-10 minutes" --no-pager
+tail -n 100 /var/log/nginx/error.log
+
+9. Completion criteria
+
+Mark the production change successful only when:
+
+Final nginx -t validation passes.
+Nginx reload completes successfully.
+Nginx remains active.
+Backend HTTP status matches the approved baseline.
+Frontend HTTP status matches the approved baseline.
+Guacamole login succeeds.
+An interactive remote session succeeds.
+Both WebSocket URL paths remain available as required.
+No new critical errors are present in Nginx logs.
+Backup, checksum, baseline, configuration dump, and post-change evidence are retained.
+Main improvements
+
+This procedure uses the resolved configuration path consistently, validates real HTTP response codes, checks ports 443 and 8080 separately, safeguards the reload with a final syntax test, preserves production TLS compatibility, and provides a fully verified rollback route.
+
+
+Mandatory live-server verification
+
+Listing local OpenSSL ciphers does not prove what the Nginx server actually negotiates. After nginx -t and reload, test the live listener.
+
+tls.1.2
+
+openssl s_client \
+    -connect 10.31.7.213:443 \
+    -servername localhost \
+    -tls1_2 </dev/null 2>/dev/null \
+    | grep -E 'Protocol|Cipher|Verify return code'
+
+tls 1.3
+
+    openssl s_client \
+    -connect 10.31.7.213:443 \
+    -servername localhost \
+    -tls1_3 </dev/null 2>/dev/null \
+    | grep -E 'Protocol|Cipher|Verify return code'
+
+    openssl s_client \
+    -connect 10.31.7.213:443 \
+    -servername localhost \
+    -tls1 </dev/null

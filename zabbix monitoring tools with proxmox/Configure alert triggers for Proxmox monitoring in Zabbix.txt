@@ -1,0 +1,292 @@
+For your Proxmox cluster, I recommend using multiple severity levels and monitoring at four layers:
+
+Cluster
+Proxmox Nodes
+Storage
+VMs/LXC Containers
+
+The official Proxmox VE by HTTP template already includes several built-in triggers and warning macros for CPU, memory, storage, swap, and VM/container resources.
+
+1. Critical Cluster Triggers
+Cluster Node Down
+
+Severity: Disaster
+
+Trigger:
+
+last(/Proxmox/pve.node.status[{#NODE.NAME}])<>1
+
+
+Alert:
+
+Proxmox Node {#NODE.NAME} is DOWN
+
+Quorum Lost
+
+Severity: Disaster
+
+Trigger:
+
+last(/Proxmox/pve.cluster.quorum)=0
+
+
+Alert:
+
+Cluster quorum lost
+
+
+This is one of the most important alerts in a multi-node cluster.
+
+2. Node Resource Triggers
+
+The official template exposes resource utilization thresholds through host macros such as CPU, memory, root filesystem, and swap usage.
+
+High CPU
+
+Warning
+
+avg(/Proxmox/node.cpu.util,5m)>80
+
+
+High
+
+avg(/Proxmox/node.cpu.util,5m)>90
+
+High Memory
+
+Warning
+
+avg(/Proxmox/node.memory.used.percent,5m)>80
+
+
+High
+
+avg(/Proxmox/node.memory.used.percent,5m)>90
+
+
+Default template warning macro:
+
+{$PVE.MEMORY.PUSE.MAX.WARN}
+
+High Root Filesystem Usage
+
+Warning
+
+last(/Proxmox/rootfs.used.percent)>80
+
+
+High
+
+last(/Proxmox/rootfs.used.percent)>90
+
+
+Macro:
+
+{$PVE.ROOT.PUSE.MAX.WARN}
+
+Swap Usage Critical
+last(/Proxmox/swap.used.percent)>50
+
+
+Severity:
+
+High
+
+
+Heavy swap on hypervisors usually indicates memory pressure.
+
+3. Storage Triggers
+
+For your infrastructure these are critical.
+
+Storage Pool Usage > 80%
+last(/Proxmox/storage.used.percent[{#STORAGE}])>80
+
+
+Severity:
+
+Warning
+
+Storage Pool Usage > 90%
+last(/Proxmox/storage.used.percent[{#STORAGE}])>90
+
+
+Severity:
+
+High
+
+
+Template macro:
+
+{$PVE.STORAGE.PUSE.MAX.WARN}
+
+Storage Offline
+last(/Proxmox/storage.status[{#STORAGE}])<>1
+
+
+Severity:
+
+Disaster
+
+
+Alert:
+
+Storage {#STORAGE} unavailable
+
+4. VM Monitoring Triggers
+VM Stopped Unexpectedly
+last(/Proxmox/vm.status[{#VMID}])<>running
+
+
+Severity:
+
+High
+
+
+Alert:
+
+VM {#VM.NAME} stopped
+
+VM CPU Usage
+avg(/Proxmox/vm.cpu.percent[{#VMID}],10m)>90
+
+
+Severity:
+
+Warning
+
+
+Template macro:
+
+{$PVE.VM.CPU.PUSE.MAX.WARN}
+
+VM Memory Usage
+avg(/Proxmox/vm.memory.percent[{#VMID}],10m)>90
+
+
+Severity:
+
+Warning
+
+
+Template macro:
+
+{$PVE.VM.MEMORY.PUSE.MAX.WARN}
+
+5. LXC Container Triggers
+Container Stopped
+last(/Proxmox/lxc.status[{#VMID}])<>running
+
+
+Severity:
+
+High
+
+Container Disk Usage
+last(/Proxmox/lxc.disk.percent[{#VMID}])>90
+
+
+Severity:
+
+Warning
+
+
+Macro:
+
+{$PVE.LXC.DISK.PUSE.MAX.WARN}
+
+6. Network Triggers
+
+Since you manage multi-WAN and proxy infrastructure, add these on the Proxmox hosts via Zabbix Agent.
+
+Interface Down
+last(/Linux/net.if.status[vmbr0])=2
+
+
+Severity:
+
+High
+
+Packet Errors
+increase(/Linux/net.if.in.errors[vmbr0],5m)>10
+
+
+Severity:
+
+Warning
+
+Bandwidth Saturation
+avg(/Linux/net.if.in[vmbr0],5m) >
+0.8 * InterfaceSpeed
+
+
+Severity:
+
+Warning
+
+7. Service Triggers
+
+Install Zabbix Agent 2 on every Proxmox node.
+
+Monitor:
+
+pveproxy
+pvedaemon
+pvestatd
+corosync
+
+Corosync Service Down
+last(/Linux/systemd.service.state[corosync])<>0
+
+
+Severity:
+
+Disaster
+
+PVE Proxy Down
+last(/Linux/systemd.service.state[pveproxy])<>0
+
+
+Severity:
+
+High
+
+8. SMART Disk Health
+
+If your nodes use local disks:
+
+SMART FAILED
+Temperature > 60°C
+Pending sectors > 0
+Reallocated sectors > 0
+
+
+Severity:
+
+High
+
+
+The official Proxmox template supports disk discovery and SMART monitoring endpoints.
+
+Alert Priorities I Recommend
+Disaster
+├─ Quorum Lost
+├─ Node Down
+├─ Storage Offline
+└─ Corosync Failure
+
+High
+├─ Root FS > 95%
+├─ RAM > 95%
+├─ VM Stopped
+├─ LXC Stopped
+└─ PVE Services Down
+
+Warning
+├─ CPU > 80%
+├─ Storage > 80%
+├─ VM Memory > 80%
+├─ Network Errors
+└─ Disk Temperature High
+
+

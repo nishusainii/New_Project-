@@ -1,0 +1,75 @@
+
+Name: Nishu Saini
+ Date: 31/08/2026
+ Login: 08:47 AM
+ Logout: 07:40 PM
+ 
+Today's Work Summary
+
+9:00 AM to 12:30 PM
+
+Proxmox server- 10.31.89.26, 10.31.89.28, 10.31.89.30
+-Verified physical NIC mappings and 10Gb interfaces on all three Proxmox nodes using ethtool.
+-Confirmed management network configuration and gateway settings across all nodes.
+-Created and validated the three-node Proxmox cluster (prox22, prox23, prox24).
+-Verified cluster quorum, node communication, and Corosync connectivity.
+-Configured the dedicated 10Gb Ceph storage network on all nodes.
+-Diagnosed and resolved Layer-2/VLAN communication issues affecting Ceph traffic.
+-Verified end-to-end connectivity across the Ceph network.
+-Performed iperf3 testing and achieved approximately 9.4 Gbps throughput.
+-Installed Ceph packages on all cluster nodes.
+-Initialized the Ceph cluster with public and cluster network settings.
+-Deployed and validated three Ceph Monitor (MON) services.
+-Deployed and validated three Ceph Manager (MGR) services.
+
+12:30 PM to 2:00 PM 
+
+-Audited storage devices and identified Ceph-eligible disks.
+-Excluded Proxmox OS disks from Ceph deployment.
+-Removed stale Ceph metadata from previous test configurations.
+-Verified disk availability and prepared storage for OSD deployment.
+-Created and balanced nine OSDs across the three cluster nodes.
+-Verified Ceph health status with all OSDs up and in.
+-Validated the internal .mgr pool configuration.
+-Created the production RBD pool vm-rbd with replication enabled.
+-Added and validated Ceph RBD shared storage in Proxmox.
+
+2:00 PM To 3:00 PM 
+
+- Lunch break.
+
+3:00 PM to 7:40 PM 
+
+-Resolved pvestatd node status issues and restored cluster service functionality.
+-Restored and validated HA services (pve-ha-crm and pve-ha-lrm).
+-Developed and installed the custom Ceph validation script /usr/local/sbin/ceph-safe-test.
+-Implemented safe testing modules for health, network, storage, migration, and HA readiness.
+-Diagnosed and fixed the script logging issue caused by tee process substitution.
+-Executed Ceph RADOS performance benchmarking and verified cluster health.
+-Executed RBD fio benchmarking and validated storage performance results.
+-Verified OpenFortiVPN integration through Squid proxy and validated VPN routing via ppp0.
+-Reviewed production architecture for Proxmox, Ceph, HA, Grafana, Prometheus, and PBS backup deployment readiness.
+
+Current Status
+Proxmox Cluster: Healthy
+Cluster Quorum: Active
+Nodes Online: 3/3
+Ceph MON: Healthy
+Ceph MGR: Healthy
+Ceph OSD: 9 Up / 9 In
+Ceph Capacity: ~164 TiB Raw
+VM RBD Pool: Active
+Shared Storage: Operational
+HA Services: Ready
+RADOS Benchmark: Completed
+RBD fio Benchmark: Completed
+VPN through Squid: Operational
+
+Tommrrow 
+Create VM 900 (ceph-ha-test) on vm-rbd.
+Verify Ceph-backed VM disk placement.
+Perform offline migration testing.
+Perform live migration testing.
+Enable High Availability for the test VM.
+Execute HA failover testing.
+Configure Proxmox Backup Server (PBS).

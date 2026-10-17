@@ -1,0 +1,30 @@
+[Unit]
+Description=Innspark Enterprise 24-Camera Surveillance Operations Center
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+User=inncctv
+Group=inncctv
+WorkingDirectory=/opt/inncctv
+ExecStart=/usr/bin/env node /opt/inncctv/server/index.js
+Restart=always
+RestartSec=5s
+
+# Environment Variables
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=ADMIN_PASSWORD=innspark@2026
+Environment=INNCCTV_SECRET=innspark_secure_production_token_secret_key_2026
+
+# Hardening / Sandboxing Directives (CIS Linux Benchmark)
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+
+# Resource Limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

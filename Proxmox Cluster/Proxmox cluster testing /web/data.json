@@ -1,0 +1,384 @@
+{
+  "timestamp": "2026-09-18 18:41:16",
+  "cluster_name": "cisai-pve",
+  "leader_ip": "10.31.6.172",
+  "all_passed": true,
+  "suites": [
+    {
+      "test_name": "Cluster Health & Quorum Verification",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Corosync Quorum Status",
+          "node": "prox22",
+          "status": "PASS",
+          "details": "Cluster is quorate with active votequorum"
+        },
+        {
+          "name": "Cluster Membership",
+          "node": "prox22",
+          "status": "PASS",
+          "details": "Online nodes: prox22, prox24, prox23 (Expected 3)"
+        },
+        {
+          "name": "PVE Core Services on prox22",
+          "node": "prox22",
+          "status": "PASS",
+          "details": "All core services active"
+        },
+        {
+          "name": "PVE Core Services on prox24",
+          "node": "prox24",
+          "status": "PASS",
+          "details": "All core services active"
+        },
+        {
+          "name": "PVE Core Services on prox23",
+          "node": "prox23",
+          "status": "PASS",
+          "details": "All core services active"
+        },
+        {
+          "name": "Cluster Storage Mounts",
+          "node": "prox22",
+          "status": "PASS",
+          "details": "Ceph: Active, ZFS-HA: Active"
+        }
+      ],
+      "summary": {
+        "total_nodes": 3,
+        "quorate": true,
+        "active_nodes": [
+          "prox22",
+          "prox24",
+          "prox23"
+        ],
+        "overall_status": "PASS"
+      }
+    },
+    {
+      "test_name": "Inter-Node Network Latency & Connectivity Matrix",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Mgmt Ping: prox22 -> prox24 (10.31.6.174)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.234 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox22 -> prox24 (192.168.10.24)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.118 ms (Threshold: <= 1.5 ms)"
+        },
+        {
+          "name": "Mgmt Ping: prox22 -> prox23 (10.31.6.173)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.194 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox22 -> prox23 (192.168.10.23)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.091 ms (Threshold: <= 1.5 ms)"
+        },
+        {
+          "name": "Mgmt Ping: prox24 -> prox22 (10.31.6.172)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.237 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox24 -> prox22 (192.168.10.22)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.102 ms (Threshold: <= 1.5 ms)"
+        },
+        {
+          "name": "Mgmt Ping: prox24 -> prox23 (10.31.6.173)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.232 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox24 -> prox23 (192.168.10.23)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.099 ms (Threshold: <= 1.5 ms)"
+        },
+        {
+          "name": "Mgmt Ping: prox23 -> prox22 (10.31.6.172)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.188 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox23 -> prox22 (192.168.10.22)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.074 ms (Threshold: <= 1.5 ms)"
+        },
+        {
+          "name": "Mgmt Ping: prox23 -> prox24 (10.31.6.174)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.242 ms (Threshold: <= 5.0 ms)"
+        },
+        {
+          "name": "Ceph Ping: prox23 -> prox24 (192.168.10.24)",
+          "status": "PASS",
+          "details": "Loss: 0.0%, Avg RTT: 0.096 ms (Threshold: <= 1.5 ms)"
+        }
+      ],
+      "latency_matrix": {
+        "management": {
+          "prox22": {
+            "prox24": {
+              "loss": 0.0,
+              "avg_rtt": 0.234
+            },
+            "prox23": {
+              "loss": 0.0,
+              "avg_rtt": 0.194
+            }
+          },
+          "prox24": {
+            "prox22": {
+              "loss": 0.0,
+              "avg_rtt": 0.237
+            },
+            "prox23": {
+              "loss": 0.0,
+              "avg_rtt": 0.232
+            }
+          },
+          "prox23": {
+            "prox22": {
+              "loss": 0.0,
+              "avg_rtt": 0.188
+            },
+            "prox24": {
+              "loss": 0.0,
+              "avg_rtt": 0.242
+            }
+          }
+        },
+        "cluster_ceph": {
+          "prox22": {
+            "prox24": {
+              "loss": 0.0,
+              "avg_rtt": 0.118
+            },
+            "prox23": {
+              "loss": 0.0,
+              "avg_rtt": 0.091
+            }
+          },
+          "prox24": {
+            "prox22": {
+              "loss": 0.0,
+              "avg_rtt": 0.102
+            },
+            "prox23": {
+              "loss": 0.0,
+              "avg_rtt": 0.099
+            }
+          },
+          "prox23": {
+            "prox22": {
+              "loss": 0.0,
+              "avg_rtt": 0.074
+            },
+            "prox24": {
+              "loss": 0.0,
+              "avg_rtt": 0.096
+            }
+          }
+        }
+      }
+    },
+    {
+      "test_name": "Ceph Storage Cluster Health & 4-Disk OSD Validation",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Ceph Cluster Health",
+          "status": "WARN",
+          "details": "Cluster health is HEALTH_WARN"
+        },
+        {
+          "name": "Ceph Monitor Quorum",
+          "status": "PASS",
+          "details": "Active Monitors: prox24, prox23, prox22 (Expected >= 3)"
+        },
+        {
+          "name": "Ceph OSD Health (12 Disks / 4 per Node)",
+          "status": "PASS",
+          "details": "Total: 12, Up: 12, In: 12 (Expected 12)"
+        },
+        {
+          "name": "Placement Group (PG) States",
+          "status": "PASS",
+          "details": "Total PGs: 33, Active+Clean: 33, Degraded: 0"
+        },
+        {
+          "name": "Node prox22 Ceph Disks",
+          "status": "PASS",
+          "details": "Assigned 4 OSDs: IDs [9, 6, 3, 0] (Expected 4 disks)"
+        },
+        {
+          "name": "Node prox23 Ceph Disks",
+          "status": "PASS",
+          "details": "Assigned 4 OSDs: IDs [10, 7, 4, 1] (Expected 4 disks)"
+        },
+        {
+          "name": "Node prox24 Ceph Disks",
+          "status": "PASS",
+          "details": "Assigned 4 OSDs: IDs [11, 8, 5, 2] (Expected 4 disks)"
+        }
+      ],
+      "ceph_details": {
+        "health": "HEALTH_WARN",
+        "mons": [
+          "prox24",
+          "prox23",
+          "prox22"
+        ],
+        "osds": {
+          "total": 12,
+          "up": 12,
+          "in": 12
+        },
+        "pgs": {
+          "total": 33,
+          "clean": 33
+        },
+        "distribution": {
+          "prox22": [
+            9,
+            6,
+            3,
+            0
+          ],
+          "prox23": [
+            10,
+            7,
+            4,
+            1
+          ],
+          "prox24": [
+            11,
+            8,
+            5,
+            2
+          ]
+        }
+      },
+      "benchmark": {}
+    },
+    {
+      "test_name": "ZFS RAIDZ2 (7-Disk) Health & Integrity Validation",
+      "passed": true,
+      "checks": [
+        {
+          "name": "ZFS RAIDZ2 Layout & Health on prox22",
+          "status": "PASS",
+          "details": "State: ONLINE, Layout: raidz2 with 7/7 disks, Errors: 0"
+        },
+        {
+          "name": "ZFS Scrub Verification on prox22",
+          "status": "PASS",
+          "details": "scan: scrub repaired 0B in 00:00:13 with 0 errors on Fri Sep 18 17:10:42 2026"
+        },
+        {
+          "name": "ZFS RAIDZ2 Layout & Health on prox24",
+          "status": "PASS",
+          "details": "State: ONLINE, Layout: raidz2 with 7/7 disks, Errors: 0"
+        },
+        {
+          "name": "ZFS Scrub Verification on prox24",
+          "status": "PASS",
+          "details": "scan: scrub repaired 0B in 00:00:13 with 0 errors on Fri Sep 18 14:30:44 2026"
+        },
+        {
+          "name": "ZFS RAIDZ2 Layout & Health on prox23",
+          "status": "PASS",
+          "details": "State: ONLINE, Layout: raidz2 with 7/7 disks, Errors: 0"
+        },
+        {
+          "name": "ZFS Scrub Verification on prox23",
+          "status": "PASS",
+          "details": "scan: scrub repaired 0B in 00:00:11 with 0 errors on Fri Sep 18 14:30:38 2026"
+        }
+      ],
+      "nodes_data": {
+        "prox22": {
+          "online": true,
+          "raid_level": "raidz2",
+          "disk_count": 7,
+          "scrub": "scan: scrub repaired 0B in 00:00:13 with 0 errors on Fri Sep 18 17:10:42 2026"
+        },
+        "prox24": {
+          "online": true,
+          "raid_level": "raidz2",
+          "disk_count": 7,
+          "scrub": "scan: scrub repaired 0B in 00:00:13 with 0 errors on Fri Sep 18 14:30:44 2026"
+        },
+        "prox23": {
+          "online": true,
+          "raid_level": "raidz2",
+          "disk_count": 7,
+          "scrub": "scan: scrub repaired 0B in 00:00:11 with 0 errors on Fri Sep 18 14:30:38 2026"
+        }
+      }
+    },
+    {
+      "test_name": "Proxmox High Availability (HA) Manager & Watchdog Validation",
+      "passed": true,
+      "checks": [
+        {
+          "name": "HA Quorum",
+          "status": "PASS",
+          "details": "HA cluster is quorate"
+        },
+        {
+          "name": "Cluster Resource Manager (CRM) Master",
+          "status": "PASS",
+          "details": "Active CRM Master: prox22"
+        },
+        {
+          "name": "Hardware Watchdog & Fencing Guard",
+          "status": "PASS",
+          "details": "Watchdog fencing armed and protecting nodes"
+        },
+        {
+          "name": "Local Resource Managers (LRM)",
+          "status": "PASS",
+          "details": "Active LRMs: prox22, prox23, prox24 (3/3 nodes)"
+        },
+        {
+          "name": "HA Service States",
+          "status": "PASS",
+          "details": "All 2 HA services clean"
+        }
+      ],
+      "ha_status": {
+        "quorum": true,
+        "master": "prox22",
+        "fencing": true,
+        "services": [
+          "service vm:9001 (prox24, started)",
+          "service vm:9002 (prox24, started)"
+        ]
+      }
+    },
+    {
+      "test_name": "VM Live Migration & Storage Continuity Test",
+      "passed": true,
+      "checks": [
+        {
+          "name": "Ceph VM 9001 (ha-test-ceph-ubuntu2204) Initial State",
+          "status": "PASS",
+          "details": "Located on prox24, status: running"
+        },
+        {
+          "name": "ZFS VM 9002 (zfs-test-prox24-ubuntu2204) Replication Sync",
+          "status": "PASS",
+          "details": "State: All targets synchronized OK. Jobs: 2"
+        }
+      ],
+      "migrations": []
+    }
+  ]
+}

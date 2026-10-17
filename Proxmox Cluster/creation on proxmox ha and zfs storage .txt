@@ -1,0 +1,674 @@
+You want two related but separate things: central management of prox22, prox23, and prox24, plus automatic VM recovery if one node fails. The safest design using your requested ZFS is a 3-node Proxmox cluster + identical local ZFS pools + scheduled ZFS replication + Proxmox HA, but understand that local ZFS replication is not the same as fully shared storage.
+
+Proxmox clustering is multi-master, so after clustering, any node’s Web UI can manage all three nodes. You do not install a separate management server.
+
+Recommended design
+                  Management network
+                  10.31.88.0/22
+                         |
+        +----------------+----------------+
+        |                |                |
+      prox22           prox23           prox24
+   10.31.89.26      10.31.89.28       own fixed IP
+        |                |                |
+    local ZFS        local ZFS        local ZFS
+    pool: tank       pool: tank       pool: tank
+        \                |                /
+         \------ ZFS replication --------/
+                         |
+                 Proxmox HA Manager
+
+How each component works
+Proxmox cluster
+Joins the three servers into one management interface.
+Synchronizes Proxmox configuration through pmxcfs and Corosync.
+Any cluster node can manage the complete cluster.
+It does not automatically copy VM disks by itself.
+ZFS
+Provides local redundant storage on each physical server.
+Each node needs its own direct-attached disks.
+Do not put ZFS disks behind hardware RAID.
+Prefer enterprise SSDs with power-loss protection.
+Proxmox recommends additional memory for ZFS, approximately 1 GB for each TB of used storage.
+ZFS replication
+Periodically copies a VM’s ZFS volumes from its current node to another node.
+This makes HA with local storage possible, but the copy is asynchronous.
+A sudden failure can lose changes made since the most recent successful replication.
+HA Manager
+Monitors only the VMs and containers explicitly added as HA resources.
+If a node fails, HA can restart those resources on another available node.
+HA Manager provides automatic fault detection and failover.
+Important decision: ZFS replication or Ceph?
+
+For your current plan, use ZFS replication if:
+
+Each node has local disks.
+You want an easier design than Ceph.
+A small replication recovery point is acceptable.
+Your network is not suitable for heavy distributed-storage traffic.
+
+Consider Ceph instead of ZFS replication when you require distributed redundant VM storage across all three hosts. Proxmox supports distributed storage such as Ceph RBD and recommends redundant multi-gigabit networking depending on the storage design.
+
+My recommendation for you is:
+
+Build the Proxmox cluster first.
+Create identical ZFS pools on all nodes.
+Test manual migration.
+Configure ZFS replication.
+Add only one noncritical test VM to HA.
+Perform controlled failure testing.
+Add production VMs gradually.
+
+Do not configure HA before storage and replication are proven.
+
+Phase 1: Pre-cluster safety checks
+
+Do this on all three nodes before joining anything.
+
+1. Confirm unique hostname and IP
+
+On prox22:
+
+prox22 = 10.31.89.26
+
+
+On prox23:
+
+prox23 = 10.31.89.28
+
+
+Determine prox24’s fixed management IP:
+
+hostname
+hostname -I
+ip -4 -br address
+ip route
+
+2. Make /etc/hosts consistent on all three nodes
+
+Each node must be able to resolve all node names to their non-loopback management IPs.
+
+Example, replacing PROX24-IP with the real address:
+
+127.0.0.1 localhost.localdomain localhost
+10.31.89.26 prox22
+10.31.89.28 prox23
+PROX24-IP    prox24
+
+
+Do not use the previous incorrect forms:
+
+prox.22
+prox.23
+prox.24
+
+
+Verify on every node:
+
+getent hosts prox22
+getent hosts prox23
+getent hosts prox24
+
+ping -c 3 prox22
+ping -c 3 prox23
+ping -c 3 prox24
+
+
+Each name must return the correct non-loopback IP.
+
+3. Synchronize time
+
+Check on all nodes:
+
+timedatectl
+systemctl status chrony --no-pager -l
+
+
+If Chrony is installed:
+
+chronyc tracking
+chronyc sources -v
+
+
+All nodes must use reliable time synchronization.
+
+4. Confirm matching Proxmox versions
+
+Run on all nodes:
+
+pveversion -v
+
+
+Also:
+
+apt update
+apt list --upgradable
+
+
+All three nodes should use compatible Proxmox releases before clustering.
+
+5. Inventory existing guests
+
+Run on every node:
+
+qm list
+pct list
+
+
+Check VM and container IDs. IDs must be unique across all three servers.
+
+For example, this situation must be fixed before joining:
+
+prox22 has VM 100
+prox23 also has VM 100
+
+
+Back up all important guests before creating the cluster:
+
+vzdump VMID --mode snapshot --compress zstd --storage BACKUP-STORAGE
+
+
+Do not point this backup to storage that will be erased for ZFS.
+
+6. Save node configuration
+
+On each node use a node-specific directory:
+
+BACKUP="/root/pre-cluster-backup-$(hostname)-20260831"
+mkdir -p "$BACKUP"
+
+cp -a /etc/hosts "$BACKUP/"
+cp -a /etc/hostname "$BACKUP/"
+cp -a /etc/network/interfaces "$BACKUP/"
+cp -a /var/lib/pve-cluster/config.db "$BACKUP/"
+cp -a /etc/pve "$BACKUP/" 2>/dev/null || true
+
+qm list > "$BACKUP/qm-list.txt"
+pct list > "$BACKUP/pct-list.txt"
+pveversion -v > "$BACKUP/pveversion.txt"
+ip -br address > "$BACKUP/ip-address.txt"
+ip route > "$BACKUP/ip-route.txt"
+
+ls -lah "$BACKUP"
+
+Phase 2: Plan the networks
+
+For a proper production setup, separate traffic where hardware allows:
+
+Management/Web UI:   existing 10.31.88.0/22 network
+Corosync cluster:    dedicated low-latency network/VLAN
+ZFS replication:    dedicated high-throughput network/VLAN
+VM traffic:          production VM bridges/VLANs
+Backup traffic:      separate network if available
+
+
+At minimum:
+
+All nodes must communicate reliably.
+Corosync needs consistently low latency.
+Replication should not saturate the Corosync path.
+Use redundant switch/network paths for production HA.
+
+Do not use Internet-routed connections for Corosync.
+
+Phase 3: Create the three-node Proxmox cluster
+
+Use one healthy node to create the cluster. I suggest prox24 only if it is healthy, has correct hostname resolution, and its /etc/pve is mounted.
+
+1. Verify prox24 first
+
+On prox24:
+
+hostname
+getent hosts prox24
+systemctl is-active pve-cluster pvedaemon pveproxy
+findmnt /etc/pve
+
+
+Expected services:
+
+active
+active
+active
+
+2. Create the cluster on prox24
+
+Choose a simple cluster name without spaces, for example:
+
+pvecm create cisai-pve
+
+
+Verify:
+
+pvecm status
+systemctl status corosync --no-pager -l
+
+3. Join prox22
+
+Before joining, verify that prox22 can reach prox24:
+
+ping -c 4 PROX24-IP
+
+
+Then on prox22:
+
+pvecm add PROX24-IP
+
+
+Supply the prox24 root@pam password when requested.
+
+Verify:
+
+pvecm status
+pvecm nodes
+
+4. Join prox23
+
+On prox23:
+
+ping -c 4 PROX24-IP
+pvecm add PROX24-IP
+
+
+Verify:
+
+pvecm status
+pvecm nodes
+
+5. Verify quorum
+
+On any node:
+
+pvecm status
+
+
+The expected cluster should list:
+
+prox22
+prox23
+prox24
+
+
+and show:
+
+Quorate: Yes
+
+
+After clustering, access any node:
+
+https://10.31.89.26:8006
+https://10.31.89.28:8006
+https://PROX24-IP:8006
+
+
+The left-hand tree should display all three nodes. Proxmox uses a multi-master design, so there is no special “master management node.”
+
+Critical join warning
+
+Joining a node to an existing cluster changes its /etc/pve cluster configuration. Do not join nodes containing conflicting VM IDs or storage definitions without backups.
+
+Phase 4: Identify disks for ZFS
+
+This step is potentially destructive. Creating a ZFS pool erases the selected disks.
+
+On each node run:
+
+lsblk -e7 -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL
+
+
+Also:
+
+findmnt
+pvs
+vgs
+lvs
+zpool status
+
+
+Check disks by stable ID:
+
+ls -l /dev/disk/by-id/
+
+
+Never create pools using guessed names such as /dev/sdb. Use /dev/disk/by-id/... because /dev/sdX names can change.
+
+Do not select these
+Proxmox OS disk
+/boot or EFI disk
+Existing LVM physical volume
+Disk containing local-lvm
+Mounted filesystem
+Disk holding backups
+Hardware RAID logical disk intended for another purpose
+
+Before creating anything, verify selected disks have no mounted data:
+
+lsblk -f /dev/disk/by-id/SELECTED-DISK
+wipefs -n /dev/disk/by-id/SELECTED-DISK
+
+
+wipefs -n inspects signatures without erasing them.
+
+Phase 5: Choose the correct ZFS layout
+
+Use the same pool name on all nodes, for example:
+
+tank
+
+
+Recommended general layouts:
+
+Two disks per node: ZFS mirror
+Four disks per node: two mirrored vdevs
+Six or more disks: mirrors for VM performance, or RAIDZ depending on capacity requirements
+
+For VM workloads, mirrored vdevs are generally the simpler performance-oriented strategy.
+
+Do not combine ZFS with a hardware RAID layer. Proxmox explicitly states that ZFS and Ceph are not compatible with hardware RAID controllers.
+
+Example only: two-disk mirror
+
+Replace both device IDs with the actual disks on that particular node:
+
+zpool create \
+-o ashift=12 \
+-f tank mirror \
+/dev/disk/by-id/DISK-A \
+/dev/disk/by-id/DISK-B
+
+
+The -f option can overwrite existing signatures. Use it only after confirming the correct disks with lsblk and wipefs -n.
+
+Verify:
+
+zpool status
+zpool list
+zfs list
+
+
+Enable regular trimming for SSDs:
+
+zpool set autotrim=on tank
+zpool get autotrim tank
+
+
+Repeat with each node’s own physical disks, but preserve the same pool name tank.
+
+Phase 6: Add identical ZFS storage to Proxmox
+
+Once tank exists on all three nodes, add it once as cluster storage.
+
+GUI method:
+
+Datacenter
+  → Storage
+  → Add
+  → ZFS
+
+
+Suggested fields:
+
+ID: zfs-vm
+ZFS Pool: tank
+Content: Disk image, Container
+Thin provision: enabled if appropriate
+Nodes: prox22, prox23, prox24
+
+
+CLI equivalent:
+
+pvesm add zfspool zfs-vm \
+--pool tank \
+--content images,rootdir \
+--sparse 1 \
+--nodes prox22,prox23,prox24
+
+
+Verify:
+
+pvesm status
+zpool status
+
+
+Important: using the same storage ID and pool name does not make local ZFS shared storage. Each server still has its own independent pool.
+
+Phase 7: Test with one noncritical VM
+
+Create or move one test VM onto zfs-vm.
+
+Check its disks:
+
+qm config VMID
+
+
+Confirm that VM disks reference:
+
+zfs-vm:
+
+
+Perform a controlled migration:
+
+qm migrate VMID prox23 --with-local-disks
+
+
+Verify after migration:
+
+qm status VMID
+qm config VMID
+
+
+Do not enable HA until basic migration succeeds.
+
+Phase 8: Configure ZFS replication
+
+In the GUI:
+
+Select test VM
+  → Replication
+  → Add
+
+
+Configure:
+
+Target: another node
+Schedule: based on your recovery-point requirement
+Rate limit: set if replication could saturate the network
+
+
+CLI format:
+
+pvesr create VMID-0 \
+--target prox23 \
+--schedule '*/15'
+
+
+Check jobs:
+
+pvesr list
+pvesr status
+
+
+After a scheduled execution, verify the target pool:
+
+zfs list -r tank
+
+
+Start with one target. Do not create overlapping or excessive replication jobs before measuring network and storage load.
+
+Remember: replication is periodic, not synchronous. A host failure can lose changes newer than the last completed replication.
+
+Phase 9: Prepare HA safely
+
+The HA stack is built into Proxmox. HA Manager monitors selected resources and can handle failover, relocation, migration, start, and stop operations.
+
+Verify services on every node:
+
+systemctl is-active pve-ha-lrm
+systemctl is-active pve-ha-crm
+systemctl is-active corosync
+
+
+Verify quorum:
+
+pvecm status
+
+
+Do not enable HA unless all three nodes:
+
+Are online
+Show stable quorum
+Have matching zfs-vm storage
+Have successful replication
+Have compatible CPU/network/bridge configuration
+Can start the test VM
+Network bridge consistency
+
+The VM bridge name must exist on every target node.
+
+Check:
+
+grep -nE '^auto |^iface |bridge-' /etc/network/interfaces
+
+
+For example, if the VM uses vmbr0, then vmbr0 must be valid on every node where HA may start it.
+
+Phase 10: Create an HA group
+
+An HA group is optional, but useful for controlling preferred nodes.
+
+GUI:
+
+Datacenter
+  → HA
+  → Groups
+  → Create
+
+
+Example group:
+
+Group: production-ha
+Nodes: prox22, prox23, prox24
+Restricted: based on your placement policy
+No failback: consider enabling initially
+
+
+CLI example:
+
+ha-manager groupadd production-ha \
+--nodes prox22,prox23,prox24 \
+--nofailback 1
+
+
+Verify:
+
+ha-manager groupconfig
+
+
+nofailback can reduce unnecessary movement back to the originally preferred node after recovery.
+
+Phase 11: Add only the test VM to HA
+
+GUI:
+
+Datacenter
+  → HA
+  → Resources
+  → Add
+
+
+Choose:
+
+Resource: VM:test-VMID
+Group: production-ha
+State: started
+
+
+CLI equivalent:
+
+ha-manager add vm:VMID \
+--group production-ha \
+--state started
+
+
+Check:
+
+ha-manager status
+
+
+Do not add every production VM at once.
+
+Phase 12: Test HA without pulling power initially
+
+Start with a controlled migration/relocation:
+
+ha-manager migrate vm:VMID prox23
+
+
+Check:
+
+ha-manager status
+qm status VMID
+
+
+Then test planned node maintenance:
+
+ha-manager crm-command node-maintenance enable prox22
+
+
+Check whether HA resources leave the node correctly:
+
+ha-manager status
+
+
+Disable maintenance mode after testing:
+
+ha-manager crm-command node-maintenance disable prox22
+
+
+Only after controlled testing is successful should you conduct an unplanned-failure test. Use a noncritical VM and ensure current backups exist.
+
+Backup is still mandatory
+
+HA and ZFS replication are not backups:
+
+HA can replicate accidental deletion or corruption.
+Replication does not provide independent long-term restore points.
+A cluster configuration error can affect all nodes.
+
+Use separate Proxmox Backup Server or independent backup storage. Proxmox includes backup and restore as a separate feature area from HA and storage replication.
+
+Your safest immediate next step
+
+Do not create the ZFS pools yet. First run this inventory on prox22, prox23, and prox24:
+
+echo "=== NODE ==="
+hostname
+hostname -I
+pveversion
+
+echo "=== DISKS ==="
+lsblk -e7 -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL
+
+echo "=== EXISTING STORAGE ==="
+pvesm status
+zpool status 2>&1
+pvs
+vgs
+lvs
+
+echo "=== GUEST IDS ==="
+qm list
+pct list
+
+echo "=== NETWORK ==="
+ip -br address
+ip route
+grep -nE '^auto |^iface |bridge-' /etc/network/interfaces
+
+echo "=== HOST RESOLUTION ==="
+getent hosts prox22
+getent hosts prox23
+getent hosts prox24
+
+
+The disk output must be reviewed before any zpool create command, because ZFS pool creation can permanently erase the chosen disks.

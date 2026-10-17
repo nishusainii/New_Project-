@@ -1,0 +1,34 @@
+Name: Nishu Saini
+ Date: 15/09/2026
+ Login Time: 09:11 AM
+ Logout Time: 06:40 PM
+
+Today’s Work Summary
+
+09:11 AM to 11:00 AM
+
+-Prepared documentation on how to migrate the existing core switch configuration to a Cisco switch.
+-Studied and documented how network traffic flows through the core switch.
+
+11:00 AM to 01:00 PM
+
+-Worked on the WireGuard dashboard UI and added new features.
+-Worked on the Squid proxy server and created a new ACL rule for user access.
+
+01:00 PM to 01:40 PM
+
+Lunch break.
+
+01:41 PM to 04:00 PM
+
+-Tested seven new IP cameras to verify their connectivity and functionality.
+-Worked on improvements to the SARG reporting dashboard.
+
+04:00 PM to 06:30 PM
+
+-Learned how to create and configure virtual machines and networks in the Proxmox server.
+-Studied how to configure firewall rules and explored other Proxmox features.
+-Created a user account, configured password-based authentication, and authorized internet access through the main proxy server allowed ip 10.31.4.190.
+
+
+

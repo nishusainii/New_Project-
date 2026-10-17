@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ceph Manager Configuration Guide - Proxmox VE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+    @page { size: A4; margin: 1cm 1cm 0.9cm 1cm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.35;
+      font-size: 8.5pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .page { page-break-after: always; display: flex; flex-direction: column; justify-content: space-between; min-height: 277mm; }
+    .page:last-child { page-break-after: auto; }
+    .page-content { flex: 1; }
+
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-banner h1 { font-size: 13pt; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+    .header-banner .subtitle { font-size: 7.8pt; color: #93c5fd; margin-top: 3px; }
+    .meta-box { text-align: right; font-size: 7pt; color: #94a3b8; line-height: 1.5; }
+    .meta-box strong { color: #e2e8f0; }
+
+    .badge { display: inline-block; font-weight: 700; font-size: 6.8pt; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .badge-blue { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+    .badge-green { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .badge-orange { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+    .badge-gray { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+    h2 { font-size: 9.5pt; font-weight: 700; color: #0f172a; border-left: 3px solid #2563eb; padding-left: 7px; margin-top: 8px; margin-bottom: 5px; page-break-after: avoid; }
+    h3 { font-size: 8.2pt; font-weight: 700; color: #1e293b; margin-top: 6px; margin-bottom: 3px; page-break-after: avoid; }
+
+    p { color: #334155; margin-bottom: 4px; font-size: 8.2pt; }
+
+    .step-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .step-header {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 5px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-num {
+      background: #2563eb;
+      color: white;
+      font-weight: 700;
+      font-size: 7.5pt;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-title { font-weight: 700; font-size: 8pt; color: #0f172a; }
+    .step-body { padding: 7px 10px; }
+
+    .code-block {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.3pt;
+      line-height: 1.5;
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin: 4px 0;
+      white-space: pre;
+    }
+    .code-comment { color: #64748b; }
+    .code-cmd { color: #7dd3fc; }
+    .code-output { color: #86efac; }
+    .code-var { color: #fbbf24; }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.2pt;
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: #0f172a;
+    }
+
+    table { width: 100%; border-collapse: collapse; margin: 4px 0 6px 0; font-size: 7.8pt; }
+    th { background: #1e40af; color: white; text-align: left; font-weight: 600; padding: 4px 8px; font-size: 7.5pt; }
+    td { padding: 3.5px 8px; border: 1px solid #e2e8f0; color: #334155; vertical-align: middle; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    .callout { border-radius: 5px; padding: 6px 10px; margin: 5px 0; font-size: 7.9pt; border-left: 3px solid; }
+    .callout-info  { background: #eff6ff; border-color: #2563eb; color: #1e40af; }
+    .callout-warn  { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+    .callout-success { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 5px; padding: 8px 10px; }
+    .card-highlight { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .card-success  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .card-title { font-size: 7.9pt; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+
+    .footer { border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 8px; display: flex; justify-content: space-between; font-size: 6.8pt; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<!-- ============ PAGE 1 ============ -->
+<div class="page">
+  <div class="page-content">
+
+    <div class="header-banner">
+      <div>
+        <div style="margin-bottom:4px;"><span class="badge badge-blue">Operations Runbook</span></div>
+        <h1>Proxmox VE &mdash; Ceph Manager (MGR) Configuration Guide</h1>
+        <div class="subtitle">Setting a Specific Node as Active Ceph Manager &bull; Starting Standby MGR Daemons &bull; Future Reference SOP</div>
+      </div>
+      <div class="meta-box">
+        <div><strong>Cluster:</strong> cisai-pve</div>
+        <div><strong>Nodes:</strong> prox22 / prox23 / prox24</div>
+        <div><strong>Goal:</strong> prox22 = Active Ceph MGR</div>
+        <div style="margin-top:3px;"><span class="badge badge-green">Verified &amp; Applied 2026-09-19</span></div>
+      </div>
+    </div>
+
+    <h2>1. Background &amp; Problem Statement</h2>
+    <p>The Ceph Manager (<code>ceph-mgr</code>) daemon provides monitoring, orchestration, and dashboard services for the Ceph distributed storage cluster. Only <strong>one node is active</strong> at a time; the rest run as standbys. By default, whichever node starts first wins the election.</p>
+
+    <div class="grid-2">
+      <div class="card card-highlight">
+        <div class="card-title">&#9888; Problem Observed</div>
+        <p style="font-size:7.5pt;">Only <code>prox24</code> had Ceph MGR running (shown as &#10003; in Proxmox UI). <code>prox22</code> and <code>prox23</code> showed <strong>?</strong> because their <code>ceph-mgr</code> daemons were not started. The goal was to make <code>prox22</code> the active manager (consistent with it being CRM Master).</p>
+      </div>
+      <div class="card card-success">
+        <div class="card-title">&#10003; Result Achieved</div>
+        <p style="font-size:7.5pt;"><code>prox22</code> is now the <strong>Active Ceph Manager</strong>. All 3 nodes show &#10003; in the Proxmox UI Ceph &rarr; Manager view. <code>prox22</code> is now master for both Corosync CRM and Ceph MGR.</p>
+      </div>
+    </div>
+
+    <h2>2. Complete Step-by-Step Commands Executed</h2>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Check current Ceph Manager status (run from any node)</div>
+      </div>
+      <div class="step-body">
+        <p>SSH into any cluster node and check which node holds the active MGR role:</p>
+        <div class="code-block"><span class="code-comment"># SSH into any node (example: prox23)</span>
+<span class="code-cmd">ssh root@10.31.6.173</span>
+
+<span class="code-comment"># Check current active Ceph Manager</span>
+<span class="code-cmd">ceph mgr stat</span>
+
+<span class="code-comment"># Example output (prox24 was active, others offline):</span>
+<span class="code-output">{
+    "epoch": 31,
+    "available": true,
+    "active_name": "prox24",
+    "num_standby": 0
+}</span></div>
+        <div class="callout callout-warn"><strong>Note:</strong> <code>num_standby: 0</code> means only prox24 had ceph-mgr running. prox22 and prox23 daemons were inactive.</div>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Start ceph-mgr daemon on prox22 (SSH into prox22)</div>
+      </div>
+      <div class="step-body">
+        <div class="code-block"><span class="code-comment"># SSH into prox22</span>
+<span class="code-cmd">ssh root@10.31.6.172</span>
+
+<span class="code-comment"># Enable ceph-mgr to start on boot and start it now</span>
+<span class="code-cmd">systemctl enable ceph-mgr@prox22</span>
+<span class="code-cmd">systemctl start  ceph-mgr@prox22</span>
+
+<span class="code-comment"># Verify it is running</span>
+<span class="code-cmd">systemctl is-active ceph-mgr@prox22</span>
+<span class="code-output">active</span></div>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Start ceph-mgr daemon on prox23 (SSH into prox23)</div>
+      </div>
+      <div class="step-body">
+        <div class="code-block"><span class="code-comment"># SSH into prox23</span>
+<span class="code-cmd">ssh root@10.31.6.173</span>
+
+<span class="code-comment"># Enable and start ceph-mgr on prox23</span>
+<span class="code-cmd">systemctl enable ceph-mgr@prox23</span>
+<span class="code-cmd">systemctl start  ceph-mgr@prox23</span>
+
+<span class="code-comment"># Verify</span>
+<span class="code-cmd">systemctl is-active ceph-mgr@prox23</span>
+<span class="code-output">active</span></div>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Wait ~10 seconds, then confirm all 3 are registered as standbys</div>
+      </div>
+      <div class="step-body">
+        <div class="code-block"><span class="code-comment"># Wait for standbys to register, then re-check from any node</span>
+<span class="code-cmd">sleep 10 && ceph mgr stat</span>
+
+<span class="code-comment"># Expected output — all 3 registered (num_standby: 2):</span>
+<span class="code-output">{
+    "epoch": 38,
+    "available": true,
+    "active_name": "prox24",
+    "num_standby": 2
+}</span></div>
+        <div class="callout callout-info"><strong>num_standby: 2</strong> confirms prox22 and prox23 are now registered and ready to take over as active manager.</div>
+      </div>
+    </div>
+
+  </div>
+  <div class="footer">
+    <span>Proxmox VE &mdash; Ceph Manager Configuration Runbook</span>
+    <span>Cluster: cisai-pve &bull; Engineer: Nishu Saini (Innspark)</span>
+    <span>Page 1 of 2</span>
+  </div>
+</div>
+
+<!-- ============ PAGE 2 ============ -->
+<div class="page">
+  <div class="page-content">
+
+    <div class="header-banner">
+      <div>
+        <div style="margin-bottom:4px;"><span class="badge badge-blue">Operations Runbook</span></div>
+        <h1>Ceph MGR Failover Commands &amp; Quick Reference</h1>
+        <div class="subtitle">Forcing Active Manager Election &bull; Verification Commands &bull; Future SOP</div>
+      </div>
+      <div class="meta-box">
+        <div><strong>Cluster:</strong> cisai-pve</div>
+        <div><strong>Active Node:</strong> prox22 (target)</div>
+        <div style="margin-top:3px;"><span class="badge badge-green">100% Verified</span></div>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div class="step-title">Force prox24 to step down (run from prox22 or any node)</div>
+      </div>
+      <div class="step-body">
+        <p>The <code>ceph mgr fail &lt;name&gt;</code> command forces a manager to stop being active. Ceph then holds a new election among the remaining standbys.</p>
+        <div class="code-block"><span class="code-comment"># Force the current active manager (prox24) to step down</span>
+<span class="code-cmd">ceph mgr fail prox24</span>
+
+<span class="code-comment"># Wait ~5-8 seconds for new election to complete</span>
+<span class="code-cmd">sleep 6 && ceph mgr stat</span></div>
+        <div class="callout callout-warn"><strong>Note:</strong> The election is randomized. prox22 or prox23 may win. If prox23 wins, proceed to the next step.</div>
+      </div>
+    </div>
+
+    <div class="step-box">
+      <div class="step-header">
+        <div class="step-num">6</div>
+        <div class="step-title">If prox23 won instead &mdash; fail it too to push prox22 to win</div>
+      </div>
+      <div class="step-body">
+        <div class="code-block"><span class="code-comment"># If prox23 became active, fail it as well</span>
+<span class="code-cmd">ceph mgr fail prox23</span>
+
+<span class="code-comment"># Wait for election</span>
+<span class="code-cmd">sleep 8 && ceph mgr stat</span>
+
+<span class="code-comment"># prox22 should now be the only available candidate and win:</span>
+<span class="code-output">{
+    "epoch": 49,
+    "available": true,
+    "active_name": "prox22",
+    "num_standby": 1
+}</span></div>
+        <div class="callout callout-success"><strong>&#10003; Success!</strong> <code>active_name: "prox22"</code> confirms prox22 is now the active Ceph Manager.</div>
+      </div>
+    </div>
+
+    <h2>3. One-Shot Script (Future Use) &mdash; Run from Any Node</h2>
+    <p>Copy and run this script on any cluster node to automatically elect prox22 as active Ceph Manager:</p>
+    <div class="code-block"><span class="code-comment">#!/bin/bash
+# Script: set_ceph_mgr_prox22.sh
+# Purpose: Force prox22 to become the active Ceph Manager
+# Run from: any Proxmox node (prox22, prox23, or prox24)</span>
+
+<span class="code-comment"># Step 1: Ensure ceph-mgr is running on prox22 and prox23</span>
+<span class="code-cmd">ssh root@10.31.6.172 "systemctl enable --now ceph-mgr@prox22"</span>
+<span class="code-cmd">ssh root@10.31.6.173 "systemctl enable --now ceph-mgr@prox23"</span>
+<span class="code-cmd">sleep 10</span>
+
+<span class="code-comment"># Step 2: Fail active managers until prox22 wins</span>
+<span class="code-cmd">for i in 1 2 3; do</span>
+<span class="code-cmd">  ACTIVE=$(ceph mgr stat | python3 -c "import sys,json; print(json.load(sys.stdin).get('active_name',''))")</span>
+<span class="code-cmd">  [ "$ACTIVE" = "prox22" ] && echo "SUCCESS: prox22 is active!" && break</span>
+<span class="code-cmd">  echo "Failing $ACTIVE ..." && ceph mgr fail "$ACTIVE" && sleep 8</span>
+<span class="code-cmd">done</span>
+
+<span class="code-comment"># Step 3: Final verification</span>
+<span class="code-cmd">ceph mgr stat</span></div>
+
+    <h2>4. Verification &amp; Quick Reference Commands</h2>
+    <table>
+      <thead>
+        <tr><th>Purpose</th><th>Command</th><th>Expected Output</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Check active MGR</strong></td><td><code>ceph mgr stat</code></td><td><code>active_name: "prox22"</code></td></tr>
+        <tr><td><strong>List all MGR daemons</strong></td><td><code>ceph mgr dump</code></td><td>Shows active + all standbys</td></tr>
+        <tr><td><strong>Check MGR service on a node</strong></td><td><code>systemctl status ceph-mgr@prox22</code></td><td><code>active (running)</code></td></tr>
+        <tr><td><strong>Force MGR failover</strong></td><td><code>ceph mgr fail &lt;node-name&gt;</code></td><td>New election triggered</td></tr>
+        <tr><td><strong>Enable MGR at boot</strong></td><td><code>systemctl enable ceph-mgr@&lt;node&gt;</code></td><td>Enabled in systemd</td></tr>
+        <tr><td><strong>Start MGR daemon</strong></td><td><code>systemctl start ceph-mgr@&lt;node&gt;</code></td><td>Daemon starts as standby</td></tr>
+        <tr><td><strong>Cluster overall health</strong></td><td><code>ceph -s</code></td><td><code>HEALTH_OK</code></td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. Node IP Reference</h2>
+    <table>
+      <thead>
+        <tr><th>Hostname</th><th>Management IP</th><th>Storage Fabric IP</th><th>Roles</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>prox22</strong></td><td><code>10.31.6.172</code></td><td><code>192.168.10.22</code></td><td>CRM Master + <strong>Active Ceph MGR</strong></td></tr>
+        <tr><td><strong>prox23</strong></td><td><code>10.31.6.173</code></td><td><code>192.168.10.23</code></td><td>Standby CRM + Standby MGR</td></tr>
+        <tr><td><strong>prox24</strong></td><td><code>10.31.6.174</code></td><td><code>192.168.10.24</code></td><td>Workload Host + Standby MGR</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-info" style="margin-top:6px;">
+      <strong>Why ceph-mgr was inactive on prox22/prox23:</strong> The <code>ceph-mgr@&lt;node&gt;</code> systemd service must be explicitly enabled and started on each node. It does not auto-start after Proxmox VE installation unless configured during initial Ceph deployment. The <code>systemctl enable --now</code> command both enables it for future reboots and starts it immediately.
+    </div>
+
+  </div>
+  <div class="footer">
+    <span>Proxmox VE &mdash; Ceph Manager Configuration Runbook</span>
+    <span>Cluster: cisai-pve &bull; Engineer: Nishu Saini (Innspark)</span>
+    <span>Page 2 of 2</span>
+  </div>
+</div>
+
+</body>
+</html>

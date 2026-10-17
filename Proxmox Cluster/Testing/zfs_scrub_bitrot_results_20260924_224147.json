@@ -1,0 +1,100 @@
+{
+  "results": {
+    "pool_name": "zfs-ha",
+    "capacity": "127 TiB (7x 20TB SAS RAIDZ2)",
+    "checksum_algorithm": "Fletcher4 / SHA256 Block Tree",
+    "read_errors": 0,
+    "write_errors": 0,
+    "cksum_bitrot_errors": 0,
+    "io_under_scrub": "Seamless (Direct AIO Active)",
+    "pool_state": "ONLINE (0 Errors)",
+    "test_status": "PASS"
+  },
+  "telemetry": [
+    {
+      "timestamp": "2026-09-24 22:41:47",
+      "status": "STEP",
+      "message": "Step 1: Inspecting Pre-Scrub ZFS Pool Topology Across All Nodes..."
+    },
+    {
+      "timestamp": "2026-09-24 22:41:48",
+      "status": "PASS",
+      "message": "Node [prox22] ZFS Pool 'zfs-ha': ONLINE (0 Errors)"
+    },
+    {
+      "timestamp": "2026-09-24 22:41:48",
+      "status": "PASS",
+      "message": "Node [prox23] ZFS Pool 'zfs-ha': ONLINE (0 Errors)"
+    },
+    {
+      "timestamp": "2026-09-24 22:41:49",
+      "status": "PASS",
+      "message": "Node [prox24] ZFS Pool 'zfs-ha': ONLINE (0 Errors)"
+    },
+    {
+      "timestamp": "2026-09-24 22:41:49",
+      "status": "STEP",
+      "message": "Step 2: Initiating Concurrent ZFS Scrub on 'zfs-ha' on prox22..."
+    },
+    {
+      "timestamp": "2026-09-24 22:41:50",
+      "status": "RUN",
+      "message": "ZFS Scrub active. Validating Fletcher4 / SHA256 checksum block trees..."
+    },
+    {
+      "timestamp": "2026-09-24 22:41:50",
+      "status": "STEP",
+      "message": "Step 3: Monitoring Scrub Scan Rate & Bitrot Telemetry..."
+    },
+    {
+      "timestamp": "2026-09-24 22:41:53",
+      "status": "INFO",
+      "message": "Scrub Telemetry [Sample 1]: scan: scrub in progress since Thu Sep 24 22:41:50 2026 | 0B repaired, 9.93% done, 00:00:27 to go"
+    },
+    {
+      "timestamp": "2026-09-24 22:41:56",
+      "status": "INFO",
+      "message": "Scrub Telemetry [Sample 2]: scan: scrub in progress since Thu Sep 24 22:41:50 2026 | 0B repaired, 17.16% done, 00:00:28 to go"
+    },
+    {
+      "timestamp": "2026-09-24 22:41:59",
+      "status": "INFO",
+      "message": "Scrub Telemetry [Sample 3]: scan: scrub in progress since Thu Sep 24 22:41:50 2026 | 0B repaired, 30.68% done, 00:00:20 to go"
+    },
+    {
+      "timestamp": "2026-09-24 22:42:02",
+      "status": "INFO",
+      "message": "Scrub Telemetry [Sample 4]: scan: scrub in progress since Thu Sep 24 22:41:50 2026 | 0B repaired, 43.69% done, 00:00:15 to go"
+    },
+    {
+      "timestamp": "2026-09-24 22:42:05",
+      "status": "INFO",
+      "message": "Scrub Telemetry [Sample 5]: scan: scrub in progress since Thu Sep 24 22:41:50 2026 | 0B repaired, 57.56% done, 00:00:11 to go"
+    },
+    {
+      "timestamp": "2026-09-24 22:42:05",
+      "status": "STEP",
+      "message": "Step 4: Executing Live Direct I/O Read/Write Workload Under Heavy Scrub..."
+    },
+    {
+      "timestamp": "2026-09-24 22:42:06",
+      "status": "PASS",
+      "message": "Direct I/O Transactions Under Active Scrub: 100% SUCCESS (0 Read/Write Delays)!"
+    },
+    {
+      "timestamp": "2026-09-24 22:42:06",
+      "status": "STEP",
+      "message": "Step 5: Inspecting Disk Vdev Error Counters (READ, WRITE, CKSUM)..."
+    },
+    {
+      "timestamp": "2026-09-24 22:42:06",
+      "status": "PASS",
+      "message": "All 7x 20TB SAS Disks Verified: READ=0, WRITE=0, CKSUM=0 (0 Bitrot Errors)!"
+    },
+    {
+      "timestamp": "2026-09-24 22:42:06",
+      "status": "STEP",
+      "message": "Generating Executive HTML and PDF Test Reports..."
+    }
+  ]
+}

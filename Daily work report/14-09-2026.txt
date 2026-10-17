@@ -1,0 +1,63 @@
+Name: Nishu Saini
+ Date: 14/09/2026
+ Login: 09:11 AM
+ Logout: 06:30 PM
+
+ Today's Work Summary
+
+9:11 AM to 11:00 PM
+
+-Deployed the WireGuard Enterprise platform to production server 10.31.7.48.
+-Configured the wireguard-manager container to use host networking.
+-Granted the container the required NET_ADMIN capability.
+-Verified that the Web UI is accessible at 10.31.7.48:8000.
+-Confirmed that WireGuard interface wg0 is listening on UDP port 443.
+-Verified that WireGuard peers are active on the production server.
+-Configured ens18 as the internal LAN interface.
+-Configured ens19 as the external WAN and Internet interface.
+-Added bidirectional forwarding and NAT masquerading rules.
+-Updated server.html, setup-host-nftables.sh, and /etc/wireguard/wg0.conf.
+-Enabled VPN peers in 172.29.250.0/24 to access internal networks and the Internet.
+-Added dedicated firewall and ACL edit actions to firewall.html.
+
+11:00 AM TO 1:00 PM 
+
+-Created modal dialogs for editing client ACL and host firewall rules.
+-Integrated firewall edits with the 12-step safe mutation pipeline in nftables.py.
+-Added dry-run syntax validation using nft -c -f.
+-Added automatic rollback protection for safer production firewall changes.
+-Created a VPN ACL for source IP 172.29.250.20.
+-Investigated the nftables error: Statement after terminal statement has no effect.
+-Inspected /etc/nftables.conf and /etc/nftables/acl.nft.
+-Corrected ACL rule ordering and terminal statement placement.
+-Applied unrestricted forwarded access for 172.29.250.20 using counter accept.
+-Successfully validated and loaded the updated nftables ruleset.
+-Verified the ACL counter with 62 packets, 4,157 bytes, and handle 41.
+-Confirmed that traffic from 172.29.250.20 is accepted through the vpn_acl chain.
+-Removed the duplicate logout button and sidebar profile block.
+-Centralized account and sign-out controls in the top navigation header.
+-Removed the legacy Dark SOC theme and set Obsidian Zinc as the default.
+
+
+1:00 PM To 1:50 PM 
+
+- Lunch break
+
+1:51 To 4:30 PM
+
+-Standardized Obsidian Zinc, Nordic Frost, Midnight OLED, and Light Slate themes.
+-Documented automated and manual deployment procedures for fresh and air-gapped servers.
+-Created ARCHITECTURE.md with Mermaid topology diagrams, sequence flows, database models, and a threat model.
+-Documented the separation between the Linux kernel data plane and containerized control plane.
+-Generated clean source-code and complete air-gapped production deployment archives.
+-Verified both ZIP archives using unzip -t, with zero CRC errors.
+-Reviewed the Layer 3 migration from Brocade/RUCKUS ICX 7450-32ZP to Cisco Catalyst 9500-48Y4C.
+-Confirmed that VRRP is unnecessary for a one-to-one core-switch replacement unless gateway redundancy is required.
+-Corrected the data-source port configuration on proxy dashboard servers 10.31.1.24 and 10.31.88.24.
+
+4:30 PM To 6:30 PM 
+
+-Fixed SARG date parsing to support both two-digit and four-digit year formats.
+-Updated fmt_date_str(), parse_events(), and run-sarg-dashboard.sh for reliable data processing and report discovery.
+-Restored Daily Usage reporting to five days and 83 user records on 10.31.1.24, and three days and 7 user records on 10.31.88.24.
+-Confirmed that the 10-minute automated cron jobs use the corrected scripts, ensuring the fixes persist in future reports.

@@ -1,0 +1,56 @@
+
+Nishu Saini
+Date: 28/08/2026
+Login: 9:24AM
+Logout:6:50 PM
+
+
+Today's Work Summary
+
+9:24 AM to 12:30 
+
+-Investigated the accumulated elapsed-time format displayed in the SARG dashboard, such as 406:20:52.
+-Confirmed that CSS alone could not convert accumulated hours into days, hours, and minutes.
+-Implemented JavaScript logic to display SARG elapsed time in a readable format such as 16d 22h 20m.
+-Inserted the elapsed-time conversion directly into generated SARG index.html reports to avoid external JavaScript path and Apache authentication issues.
+-Created a custom SARG wrapper at /usr/local/sbin/sarg and preserved the original binary at /usr/bin/sarg.
+-Automated SARG report customization so that running sudo sarg generates the report and applies the elapsed-time conversion.
+-Prepared MILLISEC column formatting to change values such as 1.705.143.213 to 1,705,143,213 without modifying IP addresses or other dotted values.
+-Reviewed the active SARG dashboard stylesheet at /var/www/html/sarg/assets/sarg-dashboard.css and investigated duplicate footer rules.
+-Prepared footer customization to display Squid Proxy Server - 10.31.1.159 while retaining SARG’s report date and time.
+-Reviewed live traffic, bandwidth, packet rates, and interface statistics for kv6 using vnStat and Linux network commands.
+
+12:30 PM to 2:00 PM 
+
+-Verified that normal outbound traffic was routed through kv1, gateway 192.168.14.1, using source IP 192.168.14.30.
+-Installed and tested Speedtest CLI, confirmed that the test followed the default kv1 route, and removed the Snap package after testing.
+-Installed and configured SquidTailD with the Squid access log and a dedicated Apache report directory.
+-Reduced SquidTailD CPU utilization by creating and using a controlled test log containing the latest 10,000 Squid records.
+-Cleared the default SquidTailD placeholder filters and configured example.com as a controlled test pattern.
+-Successfully generated and validated SquidTailD dashboard, violation-category, and individual client reports with 26 expected matches.
+-Resolved Apache 404 Not Found and 403 Forbidden errors by correcting the report URL path and updating directory ownership and permissions.
+-Evaluated SCALAR, Free-SA, Internet Access Monitor for Squid, and Logrep as alternative reporting tools while retaining SARG as the preferred solution.
+-Reviewed and validated Grafana PromQL queries for current payload, average payload, estimated download rate, and monitoring traffic per minute, hour, and day.
+
+
+2:00 PM To 3:00 PM 
+
+- Lunch break.
+
+3:00 PM To 6:30 PM
+
+-Installed and configured Webmin on the secondary Squid proxy server and added it to the centralized Webmin management dashboard.
+-Configured authenticated and IP-restricted Squid access on ports 8855 and 8848, mapped to Jio-1 through vlan13 and Jio-2 through vlan18.
+-Resolved the Squid unmanaged-process and PID-file conflict, restored proper systemd control, and corrected the listener IP from 10.31.88.24 to 10.31.1.24.
+-Enhanced the kv8 and access-cisai.log formats to record client IP, source port, username, proxy port, transferred bytes, destination, duration, and Squid status.
+-Investigated the reported 4 TiB ISP quota consumption using Squid logs and vnStat, identifying approximately 2.4 TiB in available Squid logs and approximately 71 GiB on kv8.
+-Installed vnStat through APT on CISAI-12345, started monitoring the physical and VLAN interfaces, identified active proxy clients, and prepared client- and ISP-wise data-consumption reporting.
+
+Overall Outcome
+-Automated and enhanced the customized SARG reporting workflow.
+-Improved client-level and ISP-level Squid traffic visibility.
+-Successfully tested SquidTailD in a controlled environment.
+-Validated Grafana monitoring bandwidth calculations.
+-Centralized Webmin administration for the Squid servers.
+-Strengthened Squid authentication, routing, logging, and service management.
+-Established continuous vnStat monitoring for physical and VLAN interfaces.

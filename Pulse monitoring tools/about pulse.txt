@@ -1,0 +1,37 @@
+1. What Pulse can monitor
+
+Pulse can consolidate the following into one dashboard:
+
+Proxmox clusters and individual nodes
+VM and LXC status
+CPU, memory, disk and network utilization
+Allocated versus consumed VM/LXC resources
+Proxmox storage utilization and status
+Ceph cluster health
+ZFS pools, datasets, snapshots and replication information
+Proxmox Backup Server jobs, datastores and verification status
+Replication and backup failures
+Node, guest, storage and capacity alerts
+Metrics history and trends
+Physical-server RAID, SMART and temperature information when the Pulse agent is installed
+
+
+Pulse monitors standard Proxmox inventory, guests, storage, utilization and status through a read-only or narrowly scoped Proxmox API token. 
+A host agent is only required for information that the Proxmox API does not expose, such as SMART health, temperatures and mdadm RAID state.
+
+Network bridge monitoring caveat
+
+Pulse can show network activity for nodes and guests. However, if your requirement includes detailed bridge-level monitoring such as:
+
+vmbr0, vmbr1, vmbr2 throughput
+VLAN-wise bandwidth
+Linux bridge port state
+packet drops and errors
+bond-member health
+physical NIC errors
+per-interface historical graphs
+
+you should validate this during the pilot. Install the unified agent on selected nodes for additional host networking telemetry. 
+For very detailed bridge and interface analytics, Pulse may eventually need to be complemented by Prometheus/node_exporter, Grafana, LibreNMS or another network monitoring platform.
+
+

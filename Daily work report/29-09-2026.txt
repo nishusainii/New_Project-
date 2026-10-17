@@ -1,0 +1,19 @@
+Name: Nishu Saini
+Date: 29/09/2026
+Login Time: 09:19 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:19 AM to 10:40 AM
+
+Juniper TAC Support Coordination & Institutional LOA Workflow (Case #2026-0923-938239)
+
+- Re-engaged with Juniper Customer Support (Agent: Adrian A) to review status on Case Reference ID `2026-0923-938239` for the Juniper EX2300-C compact switch (Serial Number: `HV0217520242`).
+- Reviewed internal compliance and asset ownership progress with Angelica and the Juniper Account Management team regarding device registration under Amrita Vishwa Vidyapeetham.
+- Finalized compliance authorization pathway:
+  * Confirmed that Juniper internal account owners have initiated direct outreach to Amrita Vishwa Vidyapeetham to obtain the formal Letter of Authorization (LOA).
+  * Secured confirmation that upon receipt of the institutional LOA, software download entitlement will be provisioned directly to `itsupport@innspark.in`.
+- Maintained local readiness for deploying the Junos ARM 32-bit recovery image (`junos-arm-32-*.tgz`) to the switch via FAT32 USB loader recovery upon receiving portal download unlock.
+
+Status: In Progress / Actively Tracking Institutional LOA Processing & Case Updates on `itsupport@innspark.in`.

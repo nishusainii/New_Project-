@@ -1,0 +1,56 @@
+Name: Nishu Saini
+ Date: 08/09/2026
+ Login: 09:07 AM
+ Logout: 07:20 PM
+
+ Today's Work Summary
+
+9:10 AM to 1:00 PM
+
+-Investigated network traffic activity originating from host 192.168.14.30.
+-Analyzed firewall kernel logs (BANDWIDTH_IN / BANDWIDTH_OUT) for traffic visibility.
+-Identified active outbound HTTPS sessions over TCP port 443.
+-Tracked communications to Fastly CDN, Cloudflare, and additional cloud endpoints.
+-Confirmed traffic was legitimate client-initiated outbound communication.
+-Verified no evidence of inbound attack activity against the monitored host.
+-Evaluated the impact of blocking external CDN and cloud-service IP addresses.
+-Prepared firewall policies for selective destination-IP blocking.
+-Developed options for bi-directional communication restrictions.
+-Prepared complete Internet isolation controls for host 192.168.14.30 if required.
+-Recommended packet-capture validation using tcpdump and conntrack before enforcement.
+-Completed security review and traffic classification for access-control decision making.
+-Investigated reported proxy outage between 12:01 AM and 01:00 AM.
+-Analyzed journalctl, syslog, and Squid service logs for root-cause analysis.
+-Confirmed Squid service remained continuously operational for over 11 days.
+-Verified there were no server reboots, Squid restarts, or NIC link failures.
+-Confirmed all production proxy ports were actively listening and available.
+-Reviewed Squid access logs and identified TCP_TUNNEL/503 and TCP_MISS_TIMEDOUT/503 errors.
+-Verified proxy authentication was functioning correctly.
+-Determined proxy failures occurred after authentication during outbound Internet connectivity attempts.
+-Validated routing across the environment's 9 ISP links (kv1-kv9).
+-Documented interface-to-gateway mappings for all WAN connections.
+-Developed an enhanced proxy-health monitoring framework.
+-Implemented DNS, gateway, Internet reachability, proxy availability, and response-time checks.
+-Secured monitoring credentials using /etc/proxy-monitor/credentials.
+-Improved monitoring logic to eliminate false proxy-down alerts caused by authentication responses.
+-Correlated intermittent Internet failures with observed Squid 503 errors.
+-Identified probable root causes including ISP instability, WAN routing issues, and gateway reachability problems.
+
+
+ 1:00 PM To 1:40 PM 
+
+- Lunch break
+
+1:40 PM TO : 7:20 PM
+
+-Evaluated and documented the existing production WireGuard VPN architecture and reload workflow.
+-Designed, deployed, and tested multiple versions of a WireGuard VPN Manager Web UI and wg-easy in isolated environments while keeping production WireGuard services unchanged.
+
+Overall Status
+
+✅ Network traffic investigation completed
+ ✅ Proxy monitoring and WAN instability analysis completed
+ ✅ Enhanced proxy-health monitoring framework developed
+ ✅ WireGuard Manager and wg-easy testing completed in isolated environments
+ ✅ Production WireGuard configuration remained unchanged throughout testing
+ 🔄 WAN stability monitoring and firewall-blocking decisions pending final approval and validation.

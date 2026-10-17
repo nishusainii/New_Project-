@@ -1,0 +1,41 @@
+###############################################
+# MediaMTX Configuration for Central TV Streaming
+# Supports: WebRTC (WHEP/WHIP), HLS, RTSP, RTMP
+###############################################
+
+logLevel: debug
+logDestinations: [stdout]
+
+# Global API (for inspecting active streams)
+api: yes
+apiAddress: :9997
+
+# RTSP Server (e.g., for IP Cameras / FFmpeg)
+rtsp: yes
+rtspAddress: :8554
+
+# RTMP Server (e.g., for OBS Studio / encoders)
+rtmp: yes
+rtmpAddress: :1935
+
+# HLS Server (low-latency fallback for older TVs / browsers)
+hls: yes
+hlsAddress: :8888
+hlsSegmentCount: 7
+hlsSegmentDuration: 1s
+hlsPartDuration: 200ms
+
+# WebRTC Server (ultra-low latency < 300ms for live screen / camera)
+webrtc: yes
+webrtcAddress: :8889
+webrtcEncryption: no
+webrtcLocalUDPAddress: :8189
+webrtcLocalTCPAddress: :8189
+# webrtcAdditionalHosts: []
+webrtcIPsFromInterfaces: yes
+webrtcHandshakeTimeout: 30s
+
+# Paths configuration
+paths:
+  all:
+

@@ -1,0 +1,308 @@
+Your attached install.sh already supports a local archive, so you do not need to edit the download section. It includes the --archive PATH option specifically for installing a
+ manually downloaded .tar.gz package.
+
+1. Required files
+
+Place both files in /opt/pulse-install:
+
+/opt/pulse-install/install.sh
+/opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz
+/opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz.sshsig
+
+
+Check them:
+
+cd /opt/pulse-install
+
+ls -lh \
+  install.sh \
+  pulse-v6.3.1-linux-amd64.tar.gz \
+  pulse-v6.3.1-linux-amd64.tar.gz.sshsig
+
+
+The script’s help explicitly states that --archive PATH requires the corresponding PATH.sshsig sidecar signature file.
+
+2. Run the local installation
+
+Use:
+
+cd /opt/pulse-install
+
+sudo bash ./install.sh \
+  --version v6.3.1 \
+  --archive /opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz
+
+
+This tells the installer to use your manually downloaded archive instead of downloading it again.
+
+3. If the signature file is missing
+
+Check:
+
+test -f /opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz.sshsig \
+  && echo "Signature file found" \
+  || echo "Signature file missing"
+
+
+If missing, manually download the corresponding signature file from the same release location and copy it to:
+
+/opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz.sshsig
+
+
+Do not rename it differently. The script derives the signature path by appending .sshsig to the archive path.
+
+4. Validate before installation
+
+Check archive integrity:
+
+tar -tzf \
+  /opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz \
+  | head -20
+
+
+Check the installer syntax:
+
+bash -n /opt/pulse-install/install.sh
+
+
+Display the supported option directly:
+
+sudo bash /opt/pulse-install/install.sh --help
+
+
+You should see:
+
+--archive PATH     Install from a local Pulse release tarball
+
+5. Verify after installation
+sudo systemctl status pulse --no-pager
+sudo journalctl -u pulse -n 100 --no-pager
+sudo /usr/local/bin/pulse --version
+sudo ss -lntp | grep 7655
+
+
+Retrieve the bootstrap token:
+
+sudo /usr/local/bin/pulse bootstrap-token
+
+
+The correct command for your case is therefore:
+
+sudo bash /opt/pulse-install/install.sh \
+  --version v6.3.1 \
+  --archive /opt/pulse-install/pulse-v6.3.1-linux-amd64.tar.gz
+  
+  
+  what is next step we do 
+  
+  
+  Great, the Pulse server installation is complete. Next, verify the service, retrieve the bootstrap token, create the admin account, and then add the systems you want to monitor.
+
+1. Verify the Pulse service
+sudo systemctl status pulse --no-pager
+
+
+It should show:
+
+Active: active (running)
+
+
+Also verify that it starts automatically after reboot:
+
+sudo systemctl is-enabled pulse
+
+
+Expected result:
+
+enabled
+
+
+If necessary:
+
+sudo systemctl enable --now pulse
+
+2. Check the web-interface port
+
+Pulse normally listens on TCP port 7655:
+
+sudo ss -lntp | grep 7655
+
+
+Test it locally from the VM:
+
+curl -I http://127.0.0.1:7655
+
+
+If it is not listening, inspect the logs:
+
+sudo journalctl -u pulse -n 100 --no-pager
+
+
+For live logs:
+
+sudo journalctl -u pulse -f
+
+3. Retrieve the bootstrap token
+
+For your systemd installation, run:
+
+sudo pulse bootstrap-token
+
+
+If pulse is not found through PATH, use:
+
+sudo /usr/local/bin/pulse bootstrap-token
+
+
+Copy only the token displayed by this command. Do not copy the contents of the .bootstrap_token file directly because Pulse v6 may store an encrypted JSON snapshot there rather than the usable token.
+
+4. Open the Pulse dashboard
+
+Check the VM IP address:
+
+hostname -I
+
+
+From your workstation browser, open:
+
+http://VM-IP-ADDRESS:7655
+
+
+For example:
+
+http://10.31.0.50:7655
+
+
+Do not use 127.0.0.1 from your workstation because that would refer to the workstation itself.
+
+5. Allow the firewall port
+
+If UFW is active:
+
+sudo ufw status
+
+
+Preferably allow only your administration subnet:
+
+sudo ufw allow from 10.31.0.0/23 to any port 7655 proto tcp
+sudo ufw status
+
+
+Replace 10.31.0.0/23 with the actual subnet from which you will access the dashboard.
+
+If UFW is inactive, also verify that the VM’s upstream firewall, VLAN ACL, or hypervisor firewall allows TCP 7655.
+
+Test from another Linux system:
+
+nc -vz VM-IP-ADDRESS 7655
+
+
+Or:
+
+curl -I http://VM-IP-ADDRESS:7655
+
+6. Complete the first-time configuration
+
+On the Pulse web page:
+
+Paste the bootstrap token.
+Configure the administrator username and password.
+Complete the Quick Security Setup wizard.
+Copy and securely save the generated credentials and API token before leaving the setup page.
+
+The official setup process states that Pulse generates an API token for agents and automation during this wizard.
+
+7. Add systems to monitor
+
+After signing in, go to:
+
+Settings → Infrastructure
+
+
+There are two main approaches.
+
+For a standalone Linux VM
+
+Open:
+
+Settings → Infrastructure → Install on a host
+
+
+Select Linux and copy the command generated by Pulse. Run that generated command on the VM you want to monitor.
+
+Use the generated command rather than manually creating an agent service because it contains the server address and enrollment information required by that Pulse instance.
+
+For Proxmox
+
+Start with API-based monitoring if you only require:
+
+Inventory
+Node status
+VM and container status
+Storage metrics
+
+Install the unified agent only when you need local telemetry such as Docker or Podman visibility, SMART data, temperatures, or local ZFS, Ceph, or mdadm details. This is the approach documented by Pulse.
+
+8. Verify monitoring connectivity
+
+After installing or registering the first monitored host:
+
+Return to Settings → Infrastructure.
+Confirm that the host appears.
+Check that its status is online.
+Open the host and verify that metrics are being populated.
+If it remains offline, check the agent logs on that monitored host and verify connectivity to the Pulse server.
+
+Basic connectivity test from a monitored Linux host:
+
+nc -vz PULSE-SERVER-IP 7655
+
+
+If the monitored host uses your Squid proxy, add the Pulse server’s internal IP or hostname to NO_PROXY. Internal agent-to-server traffic should normally connect directly rather than traverse the proxy:
+
+export NO_PROXY="localhost,127.0.0.1,PULSE-SERVER-IP"
+export no_proxy="$NO_PROXY"
+
+9. Configure basic operational settings
+
+After the first host reports successfully, review:
+
+Notifications and alert destinations
+CPU, memory, storage, and availability alert thresholds
+Data retention
+User access
+Time zone and server name
+Backup or copy procedure for /etc/pulse
+Update settings
+
+For a native systemd installation, Pulse provides Settings → System → Updates for enabling automatic server updates. Manual systemd updates use:
+
+sudo /bin/update
+
+
+The Pulse server and Pulse agents have independent update paths, so check both server and agent update status.
+
+10. Final health check
+
+Run:
+
+echo "=== Pulse version ==="
+sudo pulse --version
+
+echo "=== Service status ==="
+sudo systemctl is-active pulse
+sudo systemctl is-enabled pulse
+
+echo "=== Listening port ==="
+sudo ss -lntp | grep 7655
+
+echo "=== Recent service logs ==="
+sudo journalctl -u pulse -n 30 --no-pager
+
+
+Your immediate next command should be:
+
+sudo pulse bootstrap-token
+
+
+Then open http://VM-IP-ADDRESS:7655, create the administrator account, and enroll the first monitored host from Settings → Infrastructure → Install on a host.

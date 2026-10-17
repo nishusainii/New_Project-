@@ -1,0 +1,74 @@
+Created proxmox_sdn_implementation_summary.md
+
+A complete implementation report has been created: [proxmox_sdn_implementation_summary.md](file:///home/nishusaini/.gemini/antigravity-ide/brain/927844dc-4022-48b9-be15-2be9a46360c7/proxmox_sdn_implementation_summary.md).
+
+Here is the step-by-step summary of the entire process:
+
+---
+
+# Proxmox VE SDN Implementation Summary
+
+### 1. Topology & Network Discovery
+- **Management Interface:** `vmbr0` on `10.31.6.172/22` (used for Web GUI & SSH).
+- **Dedicated Backend Interconnect:** `nic3` on `192.168.10.22/24` (dedicated for inter-node cluster & VXLAN traffic).
+- **Cluster Node Peers:**
+  - `prox22`: `192.168.10.22`
+  - `prox23`: `192.168.10.23`
+  - `prox24`: `192.168.10.24`
+
+---
+
+### 2. Step-by-Step Configuration Applied
+
+#### Step 1: Created VXLAN Zone (`myzone`)
+- **Zone Type:** VXLAN Overlay (encapsulates Layer 2 Ethernet frames into UDP port `4789`).
+- **Peers:** Configured all 3 cluster nodes (`192.168.10.22, 192.168.10.23, 192.168.10.24`).
+- **MTU:** Set to **`1450`** to accommodate the 50-byte VXLAN encapsulation header over the physical 1500 MTU link.
+
+#### Step 2: Created Virtual Network (`vnet10`)
+- **VNet Name:** `vnet10`
+- **Zone:** Attached to `myzone`
+- **VNI Tag:** `10010` (VXLAN Network Identifier)
+
+#### Step 3: Configured Subnet
+- **Subnet:** `10.10.10.0/24`
+- **Gateway:** `10.10.10.1`
+- **SNAT:** Enabled (`snat 1`) for outbound internet capability.
+
+#### Step 4: Applied Cluster Changes
+- Synchronized cluster SDN settings via CLI/API:
+  ```bash
+  pvesh set /cluster/sdn
+  ifreload -a
+  ```
+- Proxmox automatically generated and activated `/etc/network/interfaces.d/sdn`.
+
+#### Step 5: Connected VM 9002
+- Changed VM `9002`'s network adapter from `vmbr0` to **`vnet10`**.
+- Hypervisor confirmed the connection: `fwpr9002p0` became an active member of bridge `vnet10`.
+
+---
+
+### 3. Current Live Status
+
+| Component | Status | Verification Detail |
+| :--- | :---: | :--- |
+| **`vnet10` Bridge** | **UP** | `<BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450` |
+| **`vxlan_vnet10`** | **CONNECTED** | Remote endpoints: `192.168.10.23`, `192.168.10.24` |
+| **VM 9002** | **PLUGGED IN** | Port `fwpr9002p0` attached to `vnet10` |
+| **Physical Switches** | **UNTOUCHED** | Works entirely as an overlay over the existing physical network |
+
+---
+
+### 4. How to Test Communication
+1. Inside **VM 9002**, assign:
+   - **IP:** `10.10.10.2`
+   - **Subnet:** `255.255.255.0` (`/24`)
+2. On another node (`prox23` or `prox24`), attach a second VM to `vnet10` and assign:
+   - **IP:** `10.10.10.3`
+   - **Subnet:** `255.255.255.0` (`/24`)
+3. Ping between them:
+   ```bash
+   ping 10.10.10.3
+   ```
+   Traffic will flow directly through the VXLAN tunnel across your physical servers!

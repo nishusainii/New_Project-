@@ -1,0 +1,278 @@
+{
+  "cluster_name": "cisai-pve",
+  "nodes": {
+    "prox22": {
+      "id": "2",
+      "mgmt_ip": "10.31.6.172",
+      "cluster_ip": "192.168.10.22",
+      "bmc_ip": "10.31.5.78",
+      "role": "CRM Master Leader",
+      "is_leader": true
+    },
+    "prox23": {
+      "id": "3",
+      "mgmt_ip": "10.31.6.173",
+      "cluster_ip": "192.168.10.23",
+      "bmc_ip": "10.31.5.61",
+      "role": "Member Node",
+      "is_leader": false
+    },
+    "prox24": {
+      "id": "1",
+      "mgmt_ip": "10.31.6.174",
+      "cluster_ip": "192.168.10.24",
+      "bmc_ip": "10.31.5.62",
+      "role": "Member Node",
+      "is_leader": false
+    }
+  },
+  "execution_date": "2026-09-24 21:42:55",
+  "total_tests": 22,
+  "passed": 18,
+  "warned": 4,
+  "failed": 0,
+  "results": [
+    {
+      "tc_id": "PRE-01",
+      "title": "Cluster Baseline Pre-Flight Health Audit",
+      "category": "Pre-Flight",
+      "target_node": "prox22",
+      "status": "WARN",
+      "duration_sec": 75.12,
+      "timestamp": "2026-09-24 21:07:53",
+      "physical_action": null,
+      "details": "=== Corosync Quorum Check (prox22) ===\n\n\n=== Ceph Storage Health ===\n\n\n=== Proxmox HA Manager State ===\n\n\n=== 10G DAC Fabric Ping Matrix ===\nprox22 -> prox23 (192.168.10.23): FAIL\nprox22 -> prox24 (192.168.10.24): FAIL\nprox23 -> prox22 (192.168.10.22): FAIL\nprox23 -> prox24 (192.168.10.24): FAIL\nprox24 -> prox22 (192.168.10.22): FAIL\nprox24 -> prox23 (192.168.10.23): FAIL\n\n=== Dedicated BMC IPMI Reachability ===\nprox22 BMC (10.31.5.78): UNREACHABLE\nprox23 BMC (10.31.5.61): UNREACHABLE\nprox24 BMC (10.31.5.62): UNREACHABLE\n"
+    },
+    {
+      "tc_id": "TEST-5.1",
+      "title": "Single PSU Pull (Redundant Power Supply)",
+      "category": "Power Redundancy",
+      "target_node": "prox24",
+      "status": "WARN",
+      "duration_sec": 150.03,
+      "timestamp": "2026-09-24 21:10:23",
+      "physical_action": "Unplug Power Cord 1 from the rear of prox24 (keep PSU 2 plugged in).",
+      "details": "Action: Unplug Power Cord 1 from the rear of prox24 (keep PSU 2 plugged in).\nVerification on prox24:\n\nPing prox22->prox24: Packet Loss\nBMC Log:\n"
+    },
+    {
+      "tc_id": "TC-08",
+      "title": "Simulate Node Failure (Power Off / HA Failover)",
+      "category": "Power / HA",
+      "target_node": "prox24",
+      "status": "WARN",
+      "duration_sec": 462.27,
+      "timestamp": "2026-09-24 21:18:06",
+      "physical_action": "Unplug BOTH power cords simultaneously from prox24 (or execute power drop simulation).",
+      "details": "HA Failover State:\n\nQuorum During Outage:\n\nPost-Recovery Quorum:\n"
+    },
+    {
+      "tc_id": "TC-09",
+      "title": "Dual Node Failure (Split-Brain Safety Freeze)",
+      "category": "Power / HA",
+      "target_node": "prox23, prox24",
+      "status": "PASS",
+      "duration_sec": 500.85,
+      "timestamp": "2026-09-24 21:26:27",
+      "physical_action": "Unplug power simultaneously from BOTH prox23 and prox24 (or simulate dual node stop).",
+      "details": "Survivor (prox22) 1-Vote Freeze Status:\n\nHA Safe State:\n\nPost-Restore Cluster State:\n"
+    },
+    {
+      "tc_id": "TC-01",
+      "title": "Remove 1 Disk from 1 Server",
+      "category": "Ceph Storage",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 108.26,
+      "timestamp": "2026-09-24 21:28:15",
+      "physical_action": "Unlatch and pull drive caddy for Slot 1 (/dev/sdb / osd.0) on prox22.",
+      "details": "Ceph Degraded PG State (Zero VM freeze):\n\nPost-Rejoin Ceph Health:\n"
+    },
+    {
+      "tc_id": "TC-02",
+      "title": "Remove 2 Disks from 1 Server",
+      "category": "Ceph Storage",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 81.69,
+      "timestamp": "2026-09-24 21:29:37",
+      "physical_action": "Unlatch Slot 1 and Slot 2 drives on prox22.",
+      "details": "Ceph Degraded PG Check:\n"
+    },
+    {
+      "tc_id": "TC-03",
+      "title": "Remove 3 Disks from 1 Server",
+      "category": "Ceph Storage",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 102.07,
+      "timestamp": "2026-09-24 21:31:19",
+      "physical_action": "Unlatch Slot 1, 2, 3 drives on prox22.",
+      "details": "3-Disk Outage Ceph Response:\n"
+    },
+    {
+      "tc_id": "TC-04",
+      "title": "Drive Slot Mobility Swap",
+      "category": "Ceph / HBA",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 71.01,
+      "timestamp": "2026-09-24 21:32:30",
+      "physical_action": "Move drive from Slot 1 to Slot 3 (or alternate slot) on prox22.",
+      "details": "Disk Identification Pre:\n\nPost-Swap WWN Mapping:\n"
+    },
+    {
+      "tc_id": "TC-05",
+      "title": "Remove All Disks from Node",
+      "category": "Ceph Storage",
+      "target_node": "prox24",
+      "status": "PASS",
+      "duration_sec": 133.63,
+      "timestamp": "2026-09-24 21:34:43",
+      "physical_action": "Unseat all 4 Ceph drive caddies on prox24.",
+      "details": "Node OSD Tree during full node disk removal:\n"
+    },
+    {
+      "tc_id": "TC-06",
+      "title": "Remove 2 Disks Across 2 Nodes",
+      "category": "Ceph Storage",
+      "target_node": "prox22, prox23",
+      "status": "PASS",
+      "duration_sec": 64.04,
+      "timestamp": "2026-09-24 21:35:47",
+      "physical_action": "Pull 1 drive on prox22 and 1 drive on prox23.",
+      "details": "Ceph Cross-Node Degraded Status (min_size=2 safe):\n"
+    },
+    {
+      "tc_id": "TC-07",
+      "title": "Hot Remove Disks While Running Active I/O",
+      "category": "Ceph Storage",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:35:55",
+      "physical_action": "Unlatch Ceph OSD drive during active I/O benchmark.",
+      "details": "SCSI Hot-Unplug kernel trace:\n"
+    },
+    {
+      "tc_id": "TC-12",
+      "title": "Software Disk Failure (ZFS)",
+      "category": "ZFS Storage",
+      "target_node": "prox24",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:36:03",
+      "physical_action": null,
+      "details": "ZFS Pool Health Inspection:\n"
+    },
+    {
+      "tc_id": "TC-13",
+      "title": "Physical Disk Failure (ZFS OS SSD)",
+      "category": "ZFS Storage",
+      "target_node": "prox23",
+      "status": "PASS",
+      "duration_sec": 196.4,
+      "timestamp": "2026-09-24 21:39:20",
+      "physical_action": "Unlatch and pull 1 mirrored OS SSD from prox23.",
+      "details": "ZFS OS Mirror Degraded Status:\n\nPost-Resilver:\n"
+    },
+    {
+      "tc_id": "TC-14",
+      "title": "Replace a Disk with a New One (Resilver)",
+      "category": "ZFS Storage",
+      "target_node": "prox23",
+      "status": "PASS",
+      "duration_sec": 196.4,
+      "timestamp": "2026-09-24 21:39:20",
+      "physical_action": null,
+      "details": "Scrub Status:\n"
+    },
+    {
+      "tc_id": "TC-15",
+      "title": "Disk Pull During Live Migration",
+      "category": "Live Migration",
+      "target_node": "prox22 -> prox24",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:39:28",
+      "physical_action": null,
+      "details": "VM 10G Live Migration Validation:\n"
+    },
+    {
+      "tc_id": "TC-16",
+      "title": "Multiple OSD Failures Exceeding Min Size",
+      "category": "Ceph Storage",
+      "target_node": "Cluster",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:39:36",
+      "physical_action": null,
+      "details": "Ceph Pool Size/Min Size Protection Rules:\n"
+    },
+    {
+      "tc_id": "TC-17",
+      "title": "Ceph Monitor Failure",
+      "category": "Ceph MON",
+      "target_node": "prox24",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:39:44",
+      "physical_action": null,
+      "details": "Ceph MON Quorum (3 MONs active):\n"
+    },
+    {
+      "tc_id": "TC-19",
+      "title": "Ceph Single-Monitor (SPOF) Test",
+      "category": "Ceph MON",
+      "target_node": "Cluster",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:39:44",
+      "physical_action": null,
+      "details": "MON Quorum Dump:\n"
+    },
+    {
+      "tc_id": "TC-18",
+      "title": "CRUSH Map Rebalance Benchmark",
+      "category": "Ceph Storage",
+      "target_node": "Cluster",
+      "status": "PASS",
+      "duration_sec": 8.01,
+      "timestamp": "2026-09-24 21:39:52",
+      "physical_action": null,
+      "details": "Ceph OSD Utilization & Weight Distribution:\n"
+    },
+    {
+      "tc_id": "TC-10",
+      "title": "Network Failure (10G DAC Cable Pull)",
+      "category": "Network / Ceph",
+      "target_node": "prox24",
+      "status": "PASS",
+      "duration_sec": 70.75,
+      "timestamp": "2026-09-24 21:41:03",
+      "physical_action": "Unplug 10G SFP+/DAC optical cable (192.168.10.24) from prox24.",
+      "details": "Mgmt Network during 10G pull: Down\nCorosync Quorum: 3/3 Maintained\nCeph Fabric Isolation Details:\n"
+    },
+    {
+      "tc_id": "TC-11",
+      "title": "Network Failure (1G Mgmt Cable / Watchdog Fencing)",
+      "category": "Network / HA",
+      "target_node": "prox24",
+      "status": "PASS",
+      "duration_sec": 88.46,
+      "timestamp": "2026-09-24 21:42:31",
+      "physical_action": "Unplug 1G RJ45 management cable (10.31.6.174 / vmbr0) from prox24.",
+      "details": "Quorum during management cable loss:\n\nHA Manager Fencing & Recovery:\n"
+    },
+    {
+      "tc_id": "POST-01",
+      "title": "Post-Test Cluster Quorum & Ceph Final Health Verification",
+      "category": "Post-Verification",
+      "target_node": "Cluster",
+      "status": "WARN",
+      "duration_sec": 24.04,
+      "timestamp": "2026-09-24 21:42:55",
+      "physical_action": null,
+      "details": "Final Corosync Quorum:\n\n\nFinal Ceph Health:\n\n\nFinal HA Manager State:\n"
+    }
+  ]
+}

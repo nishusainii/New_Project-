@@ -1,0 +1,20 @@
+read -s -p "Proxy password for nishu: " PROXY_PASS
+echo
+
+if [ -z "$PROXY_PASS" ]; then
+    echo "ERROR: Password variable is empty"
+else
+    for port in 8860 8859 8878 3128 8888 8898 8858; do
+        code=$(curl -sS \
+            --proxy-basic \
+            --proxy-user "nishu:${PROXY_PASS}" \
+            --proxy "http://10.31.1.159:${port}" \
+            --output /dev/null \
+            --write-out "%{http_code}" \
+            http://example.com/)
+
+        printf "Port %-5s HTTP %s\n" "$port" "$code"
+    done
+fi
+
+unset PROXY_PASS

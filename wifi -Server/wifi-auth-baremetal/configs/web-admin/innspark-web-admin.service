@@ -1,0 +1,21 @@
+[Unit]
+Description=Innspark Enterprise Wi-Fi & LDAP Management Console
+After=network.target slapd.service freeradius.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/innspark/web-admin
+Environment="PORT=8088"
+Environment="LDAP_HOST=127.0.0.1"
+Environment="LDAP_PORT=389"
+Environment="LDAP_BASE_DN=dc=innspark,dc=in"
+Environment="LDAP_ADMIN_DN=cn=admin,dc=innspark,dc=in"
+Environment="LDAP_ADMIN_PASSWORD=AdminPassword123!"
+Environment="SECRET_KEY=innspark-super-secure-production-session-key-2026#V9"
+ExecStart=/opt/innspark/web-admin/venv/bin/gunicorn --bind 0.0.0.0:8088 --workers 2 app:app
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

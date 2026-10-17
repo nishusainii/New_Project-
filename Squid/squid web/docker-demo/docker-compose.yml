@@ -1,0 +1,101 @@
+# ==============================================================================
+# Innspark Solutions - Complete Local Docker Demo Environment
+# Services: OpenLDAP (389), Squid Proxy (3128), SARG Reports (8082), Portal (5000)
+# Network Mode: host (ensures flawless DNS resolution & zero bridge iptables conflicts)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. OpenLDAP Server (Identity Provider)
+  # ----------------------------------------------------------------------------
+  openldap:
+    container_name: innspark-ldap-demo
+    image: osixia/openldap:latest
+    network_mode: host
+    environment:
+      LDAP_ORGANISATION: "Innspark Solutions"
+      LDAP_DOMAIN: "innspark.in"
+      LDAP_ADMIN_PASSWORD: "Innspark@LDAPAdmin2026!"
+      LDAP_CONFIG_PASSWORD: "Innspark@LDAPConfig2026!"
+      LDAP_TLS: "false"
+      LDAP_READONLY_USER: "true"
+      LDAP_READONLY_USER_USERNAME: "squidbind"
+      LDAP_READONLY_USER_PASSWORD: "SquidBindPassword@2026"
+    command: ["--copy-service"]
+    volumes:
+      - ./bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 2. Squid Forward Caching Proxy with LDAP Auth & ACLs
+  # ----------------------------------------------------------------------------
+  squid:
+    container_name: innspark-squid-demo
+    build:
+      context: ./squid
+      dockerfile: Dockerfile
+      network: host
+    network_mode: host
+    depends_on:
+      - openldap
+    environment:
+      LDAP_HOST: "127.0.0.1"
+      LDAP_PORT: "389"
+      BASE_DN: "dc=innspark,dc=in"
+    volumes:
+      - ./squid/squid.conf:/etc/squid/squid.conf:ro
+      - ./squid/acl:/etc/squid/acl
+      - ./shared-logs:/var/log/squid
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 3. Innspark Custom Unified Web Management Portal
+  # ----------------------------------------------------------------------------
+  portal:
+    container_name: innspark-portal-demo
+    build:
+      context: ./portal
+      dockerfile: Dockerfile
+      network: host
+    network_mode: host
+    depends_on:
+      - openldap
+      - squid
+    environment:
+      LDAP_HOST: "127.0.0.1"
+      LDAP_PORT: "389"
+      BASE_DN: "dc=innspark,dc=in"
+      ADMIN_DN: "cn=admin,dc=innspark,dc=in"
+      ADMIN_PASSWORD: "Innspark@LDAPAdmin2026!"
+      BIND_DN: "cn=squidbind,dc=innspark,dc=in"
+      BIND_PASSWORD: "SquidBindPassword@2026"
+      ACCESS_LOG_PATH: "/shared-logs/access.log"
+      WHITELIST_PATH: "/etc/squid/acl/whitelist_domains.txt"
+      BLACKLIST_PATH: "/etc/squid/acl/blacklist_domains.txt"
+      SARG_WEB_URL: "http://localhost:8082"
+      PORTAL_PORT: "5000"
+    volumes:
+      - ./squid/acl:/etc/squid/acl
+      - ./shared-logs:/shared-logs
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------------
+  # 4. SARG-Style Log Analyzer & HTML Report Web Server
+  # ----------------------------------------------------------------------------
+  sarg-reports:
+    container_name: innspark-sarg-demo
+    build:
+      context: ./sarg
+      dockerfile: Dockerfile
+      network: host
+    network_mode: host
+    environment:
+      ACCESS_LOG_PATH: "/shared-logs/access.log"
+      SARG_OUTPUT_DIR: "/shared-sarg"
+      SARG_PORT: "8082"
+    volumes:
+      - ./shared-logs:/shared-logs
+      - ./shared-sarg:/shared-sarg
+    restart: unless-stopped

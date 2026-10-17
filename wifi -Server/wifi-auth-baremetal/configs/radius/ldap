@@ -1,0 +1,64 @@
+ldap {
+	server = '192.168.2.12'
+	port = 636
+	identity = 'cn=radius-bind,ou=Services,dc=innspark,dc=in'
+	password = 'InnsparkRadiusBind2026!'
+	base_dn = 'dc=innspark,dc=in'
+
+	tls {
+		start_tls = no
+		ca_file = '/etc/ssl/certs/ldap-ca.pem'
+		require_cert = 'allow'
+	}
+
+	update {
+		control:Password-With-Header	+= 'userPassword'
+		control:			+= 'radiusControlAttribute'
+		request:			+= 'radiusRequestAttribute'
+		reply:				+= 'radiusReplyAttribute'
+	}
+
+	user {
+		base_dn = "ou=Users,${..base_dn}"
+		filter = "(uid=%{%{Stripped-User-Name}:-%{User-Name}})"
+		scope = 'sub'
+	}
+
+	group {
+		base_dn = "ou=Groups,${..base_dn}"
+		filter = '(objectClass=posixGroup)'
+		membership_attribute = 'memberUid'
+		scope = 'sub'
+	}
+
+	client {
+		base_dn = "${..base_dn}"
+		filter = '(objectClass=radiusClient)'
+		attribute {
+			ipaddr				= 'radiusClientIdentifier'
+			secret				= 'radiusClientSecret'
+		}
+	}
+
+	options {
+		chase_referrals = yes
+		rebind = yes
+		res_timeout = 10
+		srv_timelimit = 5
+		net_timeout = 5
+		idle = 60
+		probes = 3
+		interval = 3
+	}
+
+	pool {
+		start = 5
+		min = 4
+		max = 32
+		spare = 4
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+	}
+}

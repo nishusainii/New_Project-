@@ -1,0 +1,259 @@
+Since you're planning to monitor Proxmox, VMs, Squid proxy, VPN servers, and Linux infrastructure, I recommend:
+
+Zabbix Server → Dedicated Ubuntu 24.04 VM
+Zabbix Agent 2 → Install on every Proxmox node and important Linux VM
+Proxmox API Template → Monitor cluster, VMs, storage via API
+Zabbix Agent → Monitor OS-level metrics on PVE nodes
+Architecture
+Zabbix Server VM
+      |
+      +-- Proxmox API
+      |
+      +-- PVE01 Agent2
+      +-- PVE02 Agent2
+      +-- PVE03 Agent2
+      |
+      +-- Squid VM Agent2
+      +-- VPN VM Agent2
+      +-- DNS VM Agent2
+
+Step 1: Prepare Ubuntu Server
+
+Update OS:
+
+sudo apt update
+sudo apt upgrade -y
+sudo reboot
+
+Step 2: Add Zabbix Repository
+
+For Ubuntu 24.04, Zabbix provides official repositories for Server, Frontend, Proxy, Agent, and Agent 2 packages.
+
+wget https://repo.zabbix.com/zabbix/7.4/release/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.4+ubuntu24.04_all.deb
+
+sudo dpkg -i zabbix-release_latest_7.4+ubuntu24.04_all.deb
+
+sudo apt update
+
+Step 3: Install Database
+
+I recommend MariaDB:
+
+sudo apt install mariadb-server -y
+
+
+Secure it:
+
+sudo mysql_secure_installation
+
+Step 4: Create Zabbix Database
+
+Login:
+
+sudo mysql
+
+
+Create DB:
+
+CREATE DATABASE zabbix
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_bin;
+
+CREATE USER 'zabbix'@'localhost'
+IDENTIFIED BY 'StrongPassword';
+
+GRANT ALL PRIVILEGES
+ON zabbix.*
+TO 'zabbix'@'localhost';
+
+FLUSH PRIVILEGES;
+EXIT;
+
+Step 5: Install Zabbix Server Components
+sudo apt install \
+zabbix-server-mysql \
+zabbix-frontend-php \
+zabbix-apache-conf \
+zabbix-sql-scripts \
+zabbix-agent2 -y
+
+
+The official Zabbix installation packages include the server, frontend, and Agent 2 components.
+
+Step 6: Import Database Schema
+zcat /usr/share/zabbix-sql-scripts/mysql/server.sql.gz \
+| mysql -uzabbix -p zabbix
+
+
+Enter database password.
+
+Step 7: Configure Database Access
+
+Edit:
+
+sudo nano /etc/zabbix/zabbix_server.conf
+
+
+Set:
+
+DBName=zabbix
+DBUser=zabbix
+DBPassword=StrongPassword
+
+Step 8: Start Services
+sudo systemctl restart zabbix-server
+sudo systemctl restart apache2
+sudo systemctl restart zabbix-agent2
+
+sudo systemctl enable zabbix-server
+sudo systemctl enable apache2
+sudo systemctl enable zabbix-agent2
+
+
+Check:
+
+systemctl status zabbix-server
+
+Step 9: Open Web Interface
+
+Browse:
+
+http://SERVER-IP/zabbix
+
+
+Example:
+
+http://10.31.212.50/zabbix
+
+
+Complete:
+
+Database Name
+Database User
+Database Password
+
+
+Default login:
+
+Admin
+zabbix
+
+Step 10: Install Agent 2 on Proxmox Nodes
+
+On every Proxmox node:
+
+wget https://repo.zabbix.com/zabbix/7.4/release/debian/pool/main/z/zabbix-release/zabbix-release_latest_7.4+debian12_all.deb
+
+dpkg -i zabbix-release_latest_7.4+debian12_all.deb
+
+apt update
+
+apt install zabbix-agent2 -y
+
+Step 11: Configure Agent
+
+Edit:
+
+nano /etc/zabbix/zabbix_agent2.conf
+
+
+Set:
+
+Server=10.31.212.50
+ServerActive=10.31.212.50
+Hostname=pve01
+
+
+Start:
+
+systemctl restart zabbix-agent2
+systemctl enable zabbix-agent2
+
+
+Verify:
+
+systemctl status zabbix-agent2
+
+Step 12: Add Hosts in Zabbix
+Data Collection
+ └── Hosts
+      └── Create Host
+
+
+Add:
+
+pve01
+pve02
+pve03
+
+
+Interface:
+
+Agent
+IP Address
+Port 10050
+
+
+Templates:
+
+Linux by Zabbix Agent
+
+Step 13: Add Proxmox API Monitoring
+
+Create host:
+
+Proxmox-Cluster
+
+
+Attach template:
+
+Proxmox VE by HTTP
+
+
+Configure macros:
+
+{$PVE.URL.HOST}
+{$PVE.URL.PORT}
+{$PVE.TOKEN.ID}
+{$PVE.TOKEN.SECRET}
+
+
+This template uses the Proxmox API to discover cluster resources, nodes, storage, VMs, and containers.
+
+Step 14: Firewall Rules
+
+Allow from Zabbix server:
+
+10050/tcp
+10051/tcp
+
+
+Example:
+
+ufw allow 10050/tcp
+ufw allow 10051/tcp
+
+Recommended for Your Environment
+
+Monitor:
+
+Proxmox Cluster
+├── PVE01
+├── PVE02
+├── PVE03
+├── Squid Proxy
+├── VPN Servers
+├── WAN Monitoring
+├── Storage
+└── VMs/LXC
+
+
+Then configure:
+
+Telegram Alerts
+Email Alerts
+Trigger Dependencies
+Proxmox Dashboards
+Storage Monitoring (ZFS/Ceph)
+
+This will give you a complete monitoring platform for your Proxmox and network infrastructure.

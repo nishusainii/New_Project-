@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Palo Alto PA-500 Hardware Recovery & Restoration Report</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 15mm 18mm 15mm;
+    @bottom-right {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 9pt;
+      color: #718096;
+    }
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #1a202c;
+    line-height: 1.55;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .header {
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .header-title h1 {
+    font-size: 18pt;
+    color: #2b6cb0;
+    margin: 0 0 4px 0;
+    font-weight: 700;
+  }
+
+  .header-title .subtitle {
+    font-size: 11pt;
+    color: #4a5568;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .meta-box {
+    background: #ebf8ff;
+    border: 1px solid #bee3f8;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    font-size: 9.5pt;
+  }
+
+  .meta-item strong {
+    color: #2c5282;
+  }
+
+  h2 {
+    font-size: 13pt;
+    color: #2b6cb0;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 4px;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 11pt;
+    color: #2d3748;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 8px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 10px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e0;
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f7fafc;
+    color: #2d3748;
+    font-weight: 600;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  pre, code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  }
+
+  pre {
+    background-color: #1a202c;
+    color: #edf2f7;
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 8.5pt;
+    overflow-x: auto;
+    margin: 8px 0 12px 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    page-break-inside: avoid;
+  }
+
+  code {
+    background: #edf2f7;
+    color: #c53030;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 9pt;
+  }
+
+  pre code {
+    background: transparent;
+    color: #edf2f7;
+    padding: 0;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 8.5pt;
+    font-weight: 600;
+    border-radius: 4px;
+  }
+
+  .badge-success { background-color: #c6f6d5; color: #22543d; }
+  .badge-danger { background-color: #fed7d7; color: #742a2a; }
+  .badge-info { background-color: #bee3f8; color: #2a4365; }
+
+  .callout {
+    border-left: 4px solid #3182ce;
+    background: #f7fafc;
+    padding: 8px 12px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 9.5pt;
+  }
+
+  .callout-success {
+    border-left-color: #38a169;
+    background: #f0fff4;
+  }
+
+  .callout-warning {
+    border-left-color: #dd6b20;
+    background: #fffaf0;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .footer {
+    margin-top: 30px;
+    padding-top: 10px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 8.5pt;
+    color: #718096;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <h1>Standard Operating Procedure & Engineering Report</h1>
+    <div class="subtitle">Physical Palo Alto PA-500 Hardware Recovery, Disk Forensics & PAN-OS Restoration</div>
+  </div>
+</div>
+
+<div class="meta-box">
+  <div class="meta-item"><strong>Author / Engineer:</strong> Nishu Saini</div>
+  <div class="meta-item"><strong>Date of Execution:</strong> September 23, 2026</div>
+  <div class="meta-item"><strong>Target Hardware:</strong> Palo Alto Networks PA-500 Appliance</div>
+  <div class="meta-item"><strong>Device Serial Number:</strong> <code>0006C114241</code></div>
+  <div class="meta-item"><strong>Architecture:</strong> Cavium Octeon CN5220 (MIPS64), 2 GB RAM</div>
+  <div class="meta-item"><strong>Final Operational OS:</strong> PAN-OS 8.0.10 (Clean Factory Reinstall)</div>
+</div>
+
+<h2>1. Executive Summary</h2>
+<p>
+This document details the complete end-to-end incident analysis, low-level disk forensics, configuration preservation, operating system restoration, and <strong>live Web GUI operational verification</strong> performed on a previously bricked physical <strong>Palo Alto PA-500</strong> hardware firewall appliance.
+</p>
+<p>
+The device was initially experiencing a fatal kernel panic on boot (<code>Unable to mount root fs on unknown-block(8,3)</code>) accompanied by a memory corruption crash in the internal Maintenance Recovery Tool (MRT). Through physical chassis extraction of the internal SATA hard drive, deep inspection of filesystem tables, reconstruction of corrupted mount maps, filesystem block healing, and factory recovery execution, the appliance was fully restored to 100% operational health with <strong>complete Web UI management and console connectivity confirmed live</strong>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Stage / Metric</th>
+      <th>Initial Condition</th>
+      <th>Final Remediated State</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Hardware Status</strong></td>
+      <td>Unbootable / Boot Loop</td>
+      <td>Healthy & Fully Operational</td>
+      <td><span class="badge badge-success">RESOLVED</span></td>
+    </tr>
+    <tr>
+      <td><strong>Operating System</strong></td>
+      <td>Corrupted Kernel / Filesystem</td>
+      <td>PAN-OS 8.0.10 (Clean Factory Install)</td>
+      <td><span class="badge badge-success">RESOLVED</span></td>
+    </tr>
+    <tr>
+      <td><strong>Configuration Data</strong></td>
+      <td>At Risk of Permanent Loss</td>
+      <td>100% Extracted & Saved to Workstation</td>
+      <td><span class="badge badge-success">SAVED</span></td>
+    </tr>
+    <tr>
+      <td><strong>Management Network</strong></td>
+      <td>Inaccessible</td>
+      <td>192.168.1.1/24 (Ping & HTTPS Live)</td>
+      <td><span class="badge badge-success">OPERATIONAL</span></td>
+    </tr>
+    <tr>
+      <td><strong>Web UI (HTTPS Dashboard)</strong></td>
+      <td>Inaccessible / Dead</td>
+      <td>100% Operational & Verified Live</td>
+      <td><span class="badge badge-success">LIVE & VERIFIED</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. Initial Failure Analysis & Serial Logs</h2>
+<h3>2.1. Kernel Panic on Boot</h3>
+<p>
+When booting from the active partition (<code>sysroot1</code> / <code>/dev/sda3</code>), the Linux kernel halted with the following panic signature:
+</p>
+<pre><code>Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(8,3)
+CPU 0 Unable to handle kernel paging request at virtual address 0000000000000000
+Call Trace:
+[&lt;ffffffff8013e8bc&gt;] panic+0x88/0x1ec
+[&lt;ffffffff80540d9c&gt;] mount_block_root+0x240/0x294
+[&lt;ffffffff80540f0c&gt;] mount_root+0xbc/0xd4
+[&lt;ffffffff80541094&gt;] prepare_namespace+0x170/0x1b4</code></pre>
+
+<h3>2.2. Maintenance Recovery Tool (MRT) Failure</h3>
+<p>
+Attempting to invoke the onboard recovery environment via U-Boot (<code>run maint</code>) resulted in a glibc memory allocation fault in the hardware identification daemon:
+</p>
+<pre><code>*** glibc detected *** /usr/local/bin/sysf: free(): invalid pointer: 0x10043df0 ***
+Could not determine platform! Using 2000
+Traceback (most recent call last):
+  File "/usr/local/bin/mrt", line 324, in &lt;module&gt;
+    main()
+RuntimeError: Unable to initialize Maintenance Recovery UI</code></pre>
+
+<div class="page-break"></div>
+
+<h2>3. Hardware Disassembly & Disk Forensics</h2>
+
+<h3>3.1. Physical Disassembly</h3>
+<ol>
+  <li>Unscrewed top chassis retaining screws and removed the metal enclosure cover.</li>
+  <li>Disconnected 7-pin SATA data and 15-pin SATA power cables from the internal 2.5-inch 250 GB Western Digital SATA hard drive.</li>
+  <li>Unfastened drive mounting bracket screws and extracted the drive.</li>
+  <li>Connected the drive to a forensic Linux workstation via a SATA-to-USB 3.0 bridge adapter.</li>
+</ol>
+
+<h3>3.2. Partition Mapping Table</h3>
+<p>The Linux host automatically recognized the storage device as <code>/dev/sda</code> with the following partition structure:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Device</th>
+      <th>Volume Label</th>
+      <th>Filesystem</th>
+      <th>Size</th>
+      <th>Description / Role</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>/dev/sda1</code></td>
+      <td><code>maint</code></td>
+      <td>ext3</td>
+      <td>1.9 GB</td>
+      <td>Maintenance Mode Recovery Tool (MRT) Partition</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda2</code></td>
+      <td><code>sysroot0</code></td>
+      <td>ext3</td>
+      <td>3.8 GB</td>
+      <td>Primary System OS Partition (PAN-OS 7.1.0)</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda3</code></td>
+      <td><code>sysroot1</code></td>
+      <td>ext3</td>
+      <td>3.8 GB</td>
+      <td>Secondary Active System Partition (PAN-OS 7.1.15 - Corrupted)</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda5</code></td>
+      <td><code>pancfg</code></td>
+      <td>ext3</td>
+      <td>7.6 GB</td>
+      <td>Firewall Configs, Saved Snapshots, SSL Certificates</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda6</code></td>
+      <td><code>panrepo</code></td>
+      <td>ext3</td>
+      <td>3.8 GB</td>
+      <td>Firmware Software Repository (RPM releases)</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda7</code></td>
+      <td><em>swap</em></td>
+      <td>swap</td>
+      <td>1.9 GB</td>
+      <td>Linux Virtual Memory Swap Space</td>
+    </tr>
+    <tr>
+      <td><code>/dev/sda8</code></td>
+      <td><code>panlogs</code></td>
+      <td>ext3</td>
+      <td>126 GB</td>
+      <td>Traffic, Threat, System, and Config Audit Logs</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>4. Complete Command Execution Log</h2>
+
+<h3>4.1. Configuration Extraction & Safe Backup</h3>
+<p>All running and historical XML firewall configurations were safely backed up before performing disk modifications:</p>
+
+<pre><code># Create local backup directory
+mkdir -p "/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /PA500_Saved_Configs"
+
+# Copy all saved configuration XML snapshots
+cp /media/nishusaini/pancfg/mgmt/saved-configs/*.xml \
+   "/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /PA500_Saved_Configs/"
+
+# Verify backed up configurations
+ls -lh "/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /PA500_Saved_Configs/"
+# -> running-config.xml (Current active configuration)
+# -> latest_backup.xml
+# -> autosave-*.xml</code></pre>
+
+<h3>4.2. Root Cause Discovery & <code>fstab</code> Rebuilding</h3>
+<p>
+Inspection of <code>/media/nishusaini/sysroot1/etc/fstab</code> revealed that the root partition mount line and swap space had been completely truncated.
+</p>
+
+<pre><code># Original broken fstab (Missing root mount line):
+LABEL=pancfg    /opt/pancfg             ext3    defaults    1 2
+LABEL=panrepo   /opt/panrepo            ext3    defaults    1 2
+proc            /proc                   proc    defaults    0 0
+tmpfs           /dev/shm                tmpfs   defaults    0 0
+devpts          /dev/pts                devpts  defaults    0 0
+sys             /sys                    sysfs   defaults    0 0
+nfsd            /proc/fs/nfsd           nfsd    defaults,auto 0 0
+sunrpc          /var/lib/nfs/rpc_pipefs rpc_pipefs defaults,auto 0 0
+
+# Rebuilt corrected fstab (fstab.sysroot1.fixed):
+cat &lt;&lt; 'EOF' &gt; fstab.sysroot1.fixed
+# PAN version 7.1.15
+LABEL=sysroot1  /                       ext3    defaults    1 1
+LABEL=pancfg    /opt/pancfg             ext3    defaults    1 2
+LABEL=panrepo   /opt/panrepo            ext3    defaults    1 2
+/dev/sda7       swap                    swap    defaults    0 0
+proc            /proc                   proc    defaults    0 0
+tmpfs           /dev/shm                tmpfs   defaults    0 0
+devpts          /dev/pts                devpts  defaults    0 0
+sys             /sys                    sysfs   defaults    0 0
+nfsd            /proc/fs/nfsd           nfsd    defaults,auto 0 0
+sunrpc          /var/lib/nfs/rpc_pipefs rpc_pipefs defaults,auto 0 0
+EOF
+
+# Apply the repaired fstab to the mounted sysroot1 partition
+sudo cp fstab.sysroot1.fixed /media/nishusaini/sysroot1/etc/fstab</code></pre>
+
+<div class="page-break"></div>
+
+<h3>4.3. Filesystem Integrity Check & Unmounting</h3>
+<p>Flushed disk buffers and performed non-destructive automated filesystem repairs:</p>
+
+<pre><code># Flush write cache to storage
+sync
+
+# Unmount all partitions cleanly
+sudo umount /media/nishusaini/*
+
+# Run deep filesystem check and repair journal blocks
+sudo e2fsck -f -y /dev/sda2
+sudo e2fsck -f -y /dev/sda3
+sudo e2fsck -f -y /dev/sda5
+sudo e2fsck -f -y /dev/sda6</code></pre>
+
+<h2>5. Firmware Deployment & Factory Recovery</h2>
+<ol>
+  <li>Reinstalled the repaired SATA hard drive into the PA-500 chassis and connected power and console cables (9600 baud, 8-N-1).</li>
+  <li>Intercepted U-Boot during the 5-second boot countdown by pressing <code>Spacebar</code> / <code>Ctrl + C</code>.</li>
+  <li>Entered the Maintenance Recovery Tool:
+    <pre><code>Octeon &gt; run maint</code></pre>
+  </li>
+  <li>Selected <code>&lt; Continue &gt;</code> and authenticated with the maintenance authorization key:
+    <pre><code>Advanced Password: MA1NT</code></pre>
+  </li>
+  <li>Navigated to <code>&lt; Factory Reset &gt;</code>:
+    <ul>
+      <li>Selected target firmware release: <code>(*) panos-8.0.10</code></li>
+      <li>Ensured <code>[ ] Scrub</code> remained <strong>unchecked</strong> (to avoid 48-hour secure erase).</li>
+      <li>Executed <code>&lt; Factory Reset &gt;</code>.</li>
+    </ul>
+  </li>
+  <li>The installer bootstrapped <code>panos-8.0.10</code> into partition <code>sysroot0</code>:
+    <pre><code>Factory Reset Status: Success
+&lt; Reboot &gt;</code></pre>
+  </li>
+  <li>Selected <code>&lt; Reboot &gt;</code> to restart into the fresh PAN-OS 8.0.10 installation.</li>
+</ol>
+
+<h2>6. Post-Boot System Verification & Management Configuration</h2>
+
+<h3>6.1. Console Verification Commands</h3>
+<p>After allowing initial autocommit and cryptographic certificate generation to complete (~8-10 minutes):</p>
+
+<pre><code># Login with factory credentials:
+PA-500 login: admin
+Password: admin
+
+# 1. Verify Chassis and Management Subsystems:
+admin@PA-500&gt; show chassis-ready
+yes
+
+# 2. Inspect System Overview:
+admin@PA-500&gt; show system info
+hostname: PA-500
+ip-address: 192.168.1.1
+netmask: 255.255.255.0
+default-gateway:
+mac-address: 00:1b:17:9f:44:00
+uptime: 0 days, 0:11:17
+family: 500
+model: PA-500
+serial: 0006C114241
+sw-version: 8.0.10
+
+# 3. Monitor Real-Time System Resources:
+admin@PA-500&gt; show system resources
+# Confirmed Load Average: 0.82 (Idle CPU: ~37%+)
+# Confirmed Swap Space: 1.46 GB free</code></pre>
+
+<h3>6.2. Web UI (HTTPS) & Live Dashboard Verification</h3>
+<ol>
+  <li>Configured workstation Ethernet adapter with a static IP on the management subnet:
+    <ul>
+      <li><strong>IP Address:</strong> <code>192.168.1.2</code> | <strong>Netmask:</strong> <code>255.255.255.0</code> | <strong>Gateway:</strong> <code>192.168.1.1</code></li>
+    </ul>
+  </li>
+  <li>Tested ICMP ping reachability:
+    <pre><code>ping -c 4 192.168.1.1
+64 bytes from 192.168.1.1: icmp_seq=1 ttl=64 time=0.244 ms (0% loss)</code></pre>
+  </li>
+  <li><strong>Live Web UI Dashboard Confirmed:</strong>
+    <ul>
+      <li>Navigated to <code>https://192.168.1.1</code> in Google Chrome.</li>
+      <li>Authenticated with default credentials (<code>admin</code> / <code>admin</code>).</li>
+      <li>Successfully loaded and verified all primary dashboard widgets:
+        <ul>
+          <li><strong>System Resources Widget:</strong> Displaying CPU and memory utilization.</li>
+          <li><strong>General Information Widget:</strong> Displaying PA-500 model, serial <code>0006C114241</code>, and PAN-OS 8.0.10.</li>
+          <li><strong>Interfaces & High Availability:</strong> All hardware interfaces active.</li>
+        </ul>
+      </li>
+      <li><strong>Web UI Status:</strong> 100% functional, responsive, and verified live.</li>
+    </ul>
+  </li>
+</ol>
+
+<h3>6.3. Graceful Shutdown Best Practice</h3>
+<p>To prevent future filesystem corruption when powering down the appliance:</p>
+<pre><code>admin@PA-500&gt; request shutdown system
+# Wait for console message: "System halted"
+# Safely turn OFF the physical power switch / disconnect power cable.</code></pre>
+
+<div class="callout callout-success">
+  <strong>Final Verdict:</strong> Physical Palo Alto PA-500 appliance (Serial <code>0006C114241</code>) has been 100% recovered, verified, and confirmed operational across both the CLI Console and the live HTTPS Web UI Dashboard.
+</div>
+
+<div class="footer">
+  Palo Alto PA-500 Engineering Recovery SOP &bull; Innspark Solutions &bull; Confidential
+</div>
+
+</body>
+</html>

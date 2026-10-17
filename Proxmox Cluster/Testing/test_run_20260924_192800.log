@@ -1,0 +1,14 @@
+[2026-09-24 19:28:00] [HEADER] STARTING PROXMOX DATACENTER PHYSICAL TESTING & VALIDATION SUITE
+[2026-09-24 19:28:00] [HEADER] Connecting to Proxmox Nodes via SSH...
+[2026-09-24 19:28:00] [SUCCESS] SSH Connected to prox22 (10.31.6.172) [Role: CRM Master Leader]
+[2026-09-24 19:28:01] [SUCCESS] SSH Connected to prox23 (10.31.6.173) [Role: Member Node]
+[2026-09-24 19:28:01] [SUCCESS] SSH Connected to prox24 (10.31.6.174) [Role: Member Node]
+[2026-09-24 19:28:01] [HEADER] Discovering Live Cluster Topology & Workloads...
+[2026-09-24 19:28:04] [INFO] Discovered 6 VMs across cluster: ['9001', '9003', '101', '9004', '100', '9002']
+[2026-09-24 19:28:04] [INFO] Discovered OSDs by host: {'prox22': [9, 6, 3, 0], 'prox23': [10, 7, 4, 1], 'prox24': [11, 8, 5, 2]}
+[2026-09-24 19:28:04] [HEADER] PHASE 1: PRE-FLIGHT BASELINE INSPECTION & CLUSTER HEALTH AUDIT
+[2026-09-24 19:28:11] [SUCCESS] [PRE-01] Cluster Baseline Pre-Flight Health Audit -> Result: PASS (7.44s)
+[2026-09-24 19:28:11] [HEADER] Generating Comprehensive Test Reports (JSON, Markdown, HTML)...
+[2026-09-24 19:28:11] [SUCCESS] JSON results written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_results_20260924_192811.json
+[2026-09-24 19:28:11] [SUCCESS] Markdown report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_report_20260924_192811.md
+[2026-09-24 19:28:11] [SUCCESS] HTML report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_report_20260924_192811.html

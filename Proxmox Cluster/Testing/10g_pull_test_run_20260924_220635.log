@@ -1,0 +1,75 @@
+[2026-09-24 22:06:35] [HEADER] PHASE 1: PRE-FLIGHT 10G FABRIC BASELINE CHECK
+[2026-09-24 22:06:35] [STEP] Testing 10G DAC interconnect ping matrix between all nodes...
+[2026-09-24 22:06:35] [SUCCESS] SSH Connected to Cluster Master prox22 via 192.168.99.1
+[2026-09-24 22:06:36] [INFO] 10G Ping: prox24 (192.168.10.24) -> prox23 (192.168.10.23): 2 packets transmitted, 2 received, 0% packet loss, time 1042ms
+rtt min/avg/max/mdev = 0.121/0.129/0.138/0.008 ms
+[2026-09-24 22:06:38] [INFO] 10G Ping: prox24 (192.168.10.24) -> prox22 (192.168.10.22): 2 packets transmitted, 2 received, 0% packet loss, time 1012ms
+rtt min/avg/max/mdev = 0.125/0.135/0.145/0.010 ms
+[2026-09-24 22:06:39] [INFO] 10G Ping: prox23 (192.168.10.23) -> prox24 (192.168.10.24): 2 packets transmitted, 2 received, 0% packet loss, time 1036ms
+rtt min/avg/max/mdev = 0.098/0.122/0.146/0.024 ms
+[2026-09-24 22:06:40] [INFO] 10G Ping: prox23 (192.168.10.23) -> prox22 (192.168.10.22): 2 packets transmitted, 2 received, 0% packet loss, time 1013ms
+rtt min/avg/max/mdev = 0.123/0.123/0.123/0.000 ms
+[2026-09-24 22:06:41] [INFO] 10G Ping: prox22 (192.168.10.22) -> prox24 (192.168.10.24): 2 packets transmitted, 2 received, 0% packet loss, time 1018ms
+rtt min/avg/max/mdev = 0.092/0.117/0.142/0.025 ms
+[2026-09-24 22:06:42] [INFO] 10G Ping: prox22 (192.168.10.22) -> prox23 (192.168.10.23): 2 packets transmitted, 2 received, 0% packet loss, time 1040ms
+rtt min/avg/max/mdev = 0.114/0.134/0.154/0.020 ms
+[2026-09-24 22:06:43] [INFO] Ceph Baseline Health:
+cluster:
+    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f
+    health: HEALTH_WARN
+            4 osds down
+            2 hosts (8 osds) down
+            Reduced data availability: 17 pgs inactive, 8 pgs down
+            Degraded data redundancy: 1308/7194 objects degraded (18.182%), 9 pgs degraded, 25 pgs undersized
+            36 daemons have recently crashed
+            30 slow ops, oldest one blocked for 155 sec, daemons [osd.4,osd.7] have slow ops.
+ 
+  services:
+    mon: 3 daemons, quorum prox24,prox23,prox22 (age 7m) [leader: prox24]
+    mgr: prox23(active, since 41m), standbys: prox24, prox22
+    osd: 12 osds: 4 up (since 7m), 8 in (since 13m); 16 remapped pgs
+ 
+  data:
+    pools:   2 pools, 33 pgs
+    objects: 2.40k objects, 9.0 GiB
+    usage:   19 GiB used, 127 TiB / 127 TiB avail
+    pgs:     51.515% pgs not active
+             1308/7194 objects degraded (18.182%)
+             2290/7194 objects misplaced (31.832%)
+             16 active+undersized+remapped
+             9  undersized+degraded+peered
+             8  down
+ 
+  io:
+    client:   170 B/s rd, 0 op/s rd, 0 op/s wr
+[2026-09-24 22:06:43] [INFO] Quorum Baseline (3/3 votes):
+Cluster information
+-------------------
+Name:             cisai-pve
+Config Version:   4
+Transport:        knet
+Secure auth:      on
+
+Quorum information
+------------------
+Date:             Thu Sep 24 22:06:43 2026
+Quorum provider:  corosync_votequorum
+Nodes:            3
+Node ID:          0x00000002
+Ring ID:          1.ff
+Quorate:          Yes
+
+Votequorum information
+----------------------
+Expected votes:   3
+Highest expected: 3
+Total votes:      3
+Quorum:           2  
+Flags:            Quorate 
+
+Membership information
+----------------------
+    Nodeid      Votes Name
+0x00000001          1 10.31.6.174
+0x00000002          1 10.31.6.172 (local)
+0x00000003          1 10.31.6.173

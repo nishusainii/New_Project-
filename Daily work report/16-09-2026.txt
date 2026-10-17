@@ -1,0 +1,56 @@
+Name: Nishu Saini
+ Date: 16/09/2026
+ Login Time: 09:32 AM
+ Logout Time: 06:40 PM
+
+
+ Today’s Work Summary
+
+09:31 AM to 11:00 AM
+
+-Deployed a production-safe monitoring stack using Docker containers for Node Exporter, Squid Exporter, and Blackbox Exporter on the Squid proxy server.
+-Ensured zero downtime, zero service restarts, and no impact on live proxy traffic during deployment.
+-Resolved Squid Cache Manager authentication issues by reordering ACL rules and performing a safe hot reload using squid -k reconfigure.
+-Verified successful Squid Cache Manager access with HTTP 200 responses via squidclient.
+-Fixed Docker image deployment issues by updating the Squid Exporter image tag to a supported release version.
+-Identified and removed conflicts with a legacy native Node Exporter service occupying port 9100.
+-Implemented resource limits for all monitoring containers to protect production Squid services from CPU and memory contention.
+
+11:00 AM to 01:00 PM
+
+-Configured host-network-based monitoring architecture for minimal overhead and direct localhost communication.
+-Validated Node Exporter metrics collection and availability on port 9100.
+-Verified Squid Exporter functionality, confirming successful collection of live Squid performance and request statistics.
+-Verified Blackbox Exporter monitoring of Squid service availability through TCP health checks.
+-Documented remaining Prometheus and Grafana integration activities required on the remote monitoring server.
+-Developed and optimized vnStat-based bandwidth monitoring scripts for multiple proxy interfaces and ISP links.
+-Generated comprehensive 30-day bandwidth utilization reports including daily consumption, interface totals, and overall usage summaries.
+-Implemented enhanced reporting logic to automatically display traffic values in MiB, GiB, or TiB based on utilization levels.
+-Validated traffic collection and historical data availability across all monitored proxy and ISP interfaces.
+-Investigated workstation/server performance degradation on a high-performance system hosting multiple workloads and virtual machines.
+
+01:00 PM to 01:35 PM
+
+Lunch break
+
+01:36 PM to 04:00 PM
+
+-Analyzed probable root causes including memory pressure, insufficient swap allocation, and high resource consumption by security tools and browsers.
+-Designed system stability improvements including swap expansion, EarlyOOM implementation, and kernel memory tuning recommendations.
+-Reviewed and validated SARG-to-Prometheus exporter architecture for future Squid usage analytics and Grafana visualization.
+-Created and tested exporter scripts for Prometheus metric collection and monitoring validation.
+-Improved monitoring report accuracy, readability, and consistency for operational and management reporting purposes.
+
+4:00 PM TO  6:50 PM 
+
+-Performed comprehensive diagnostics on Ubuntu-based physical server experiencing random freezes and hard crashes during cybersecurity workloads involving multiple VMware VMs, browsers, and terminal sessions; confirmed repeated unclean shutdowns from system crash history.
+-Conducted CPU stress testing and thermal analysis using stress-ng and turbostat; validated stable operation at 100% CPU utilization, 4.8–5.1 GHz sustained frequency, 240–253W power draw, and 95°C maximum temperature with no thermal throttling or overheating issues detected.
+-Upgraded server memory from approximately 32 GB to 48 GB and increased swap space from 2 GB to 16 GB; reviewed memory utilization, OOM diagnostics, and system logs, confirming no memory exhaustion, OOM Killer activity, or swap-related resource issues.
+-Performed NVMe SSD health assessment using SMART diagnostics; verified WD_BLACK SN850X SSD health status as PASSED with zero media errors, zero NVMe controller errors, normal operating temperature (47°C), and only 1% SSD wear, ruling out storage-related failures.
+-Analyzed kernel, firmware, and system logs; identified repeated BERT hardware error records and VMware-related service issues. Ruled out CPU, storage, RAM capacity, swap exhaustion, and thermal causes. Current suspected root causes are DDR5 memory subsystem stability, VMware/virtualization instability, firmware/motherboard hardware issues, or potential PSU/power delivery instability under workload.
+
+
+
+
+Key Outcome
+Successfully implemented a production-safe observability framework for Squid proxy infrastructure, enhanced bandwidth monitoring and reporting, and documented system performance optimization measures to improve reliability, visibility, and operational efficiency.

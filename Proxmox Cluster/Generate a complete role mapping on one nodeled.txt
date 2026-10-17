@@ -1,0 +1,214 @@
+Run on all thre nodes 
+
+PERC=/usr/local/sbin/perccli64  
+
+PERC_DATA="/tmp/perc-slots-$(hostname -s).txt"  
+
+  
+"$PERC" /c0/e252/sall show all > "$PERC_DATA"  
+
+
+echo "Host: $(hostname -s)"  
+
+echo  
+
+
+for disk in /dev/sd{a..l}; do  
+
+serial="$(lsblk -dn -o SERIAL "$disk" | xargs)"  
+
+wwn="$(lsblk -dn -o WWN "$disk" | xargs)"  
+
+  
+slot="$(  
+
+awk -v serial="$serial" '  
+
+/^Drive \/c0\/e252\/s[0-9]+ :/ {  
+
+drive=$2  
+
+gsub(/:$/, "", drive)  
+
+}  
+
+$1 == "SN" && $2 == "=" && $3 == serial {  
+
+print drive  
+
+}  
+
+' "$PERC_DATA"  
+
+)"  
+
+  
+role="UNKNOWN"  
+
+  
+
+case "$disk" in  
+
+/dev/sda|/dev/sdb|/dev/sdc|/dev/sdd)  
+
+osd="$(  
+
+ceph-volume lvm list "$disk" 2>/dev/null |  
+
+awk '/^[[:space:]]+osd id/ {print $3; exit}'  
+
+)"  
+
+  
+if [[ -n "$osd" ]]; then  
+
+role="CEPH-osd.${osd}"  
+
+else  
+
+role="CEPH-disk-unmapped"  
+
+fi  
+
+;;  
+
+/dev/sde|/dev/sdf|/dev/sdg|/dev/sdh|/dev/sdi|/dev/sdj|/dev/sdk)  
+
+role="ZFS-RAIDZ2"  
+
+;;  
+
+/dev/sdl)  
+
+role="RESERVED"  
+
+;;  
+
+esac  
+
+  
+printf "%-8s %-18s %-12s %-20s %-20s\n" \  
+
+"$disk" "$slot" "$serial" "$role" "$wwn"  
+
+done
+
+## Generate mapping across all three servers
+Run from `prox24`:
+
+for node in prox22 prox23 prox24; do  
+
+echo  
+
+echo "================ $node ================"  
+
+
+ssh root@"$node" '  
+
+PERC=/usr/local/sbin/perccli64  
+
+TMP="/tmp/perc-slots-$(hostname -s).txt"  
+
+  
+
+"$PERC" /c0/e252/sall show all > "$TMP"  
+
+  
+
+printf "%-9s %-8s %-16s %-12s %-20s %-20s\n" \  
+
+"HOST" "DISK" "PERC-SLOT" "SERIAL" "ROLE" "LINUX-WWN"  
+
+  
+
+for disk in /dev/sd{a..l}; do  
+
+serial="$(lsblk -dn -o SERIAL "$disk" | xargs)"  
+
+wwn="$(lsblk -dn -o WWN "$disk" | xargs)"  
+
+  
+
+slot="$(  
+
+awk -v serial="$serial" '\''  
+
+/^Drive \/c0\/e252\/s[0-9]+ :/ {  
+
+drive=$2  
+
+gsub(/:$/, "", drive)  
+
+}  
+
+$1 == "SN" && $2 == "=" && $3 == serial {  
+
+print drive  
+
+}  
+
+'\'' "$TMP"  
+
+)"  
+
+  
+
+role="UNKNOWN"  
+
+  
+
+case "$disk" in  
+
+/dev/sda|/dev/sdb|/dev/sdc|/dev/sdd)  
+
+osd="$(  
+
+ceph-volume lvm list "$disk" 2>/dev/null |  
+
+awk "/^[[:space:]]+osd id/ {print \$3; exit}"  
+
+)"  
+
+  
+
+if [ -n "$osd" ]; then  
+
+role="CEPH-osd.${osd}"  
+
+else  
+
+role="CEPH-unmapped"  
+
+fi  
+
+;;  
+
+/dev/sde|/dev/sdf|/dev/sdg|/dev/sdh|/dev/sdi|/dev/sdj|/dev/sdk)  
+
+role="ZFS-RAIDZ2"  
+
+;;  
+
+/dev/sdl)  
+
+role="RESERVED"  
+
+;;  
+
+esac  
+
+  
+
+printf "%-9s %-8s %-16s %-12s %-20s %-20s\n" \  
+
+"$(hostname -s)" "$disk" "$slot" \  
+
+"$serial" "$role" "$wwn"  
+
+done  
+
+'  
+
+done  
+
+``

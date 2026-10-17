@@ -1,0 +1,42 @@
+Name: Nishu Saini
+Date: 29/09/2026
+Login Time: 09:01 AM
+Logout Time: 
+
+Today’s Work Summary
+
+09:01 AM to 10:00 AM
+- Whitelisted AWS Sign-in and Console domains (`signin.aws.amazon.com`, `*.amazonaws.com`) on Squid Proxy (10.31.212.14:8085).
+- Resolved Squid 6.14 subdomain hierarchy validation conflicts by consolidating root parent domains (`.amazon.com`, `.amazonaws.com`).
+- Configured multi-layered Squid ACLs combining client IP allowlists, proxy authentication, and domain filtering.
+- Audited `/etc/nftables.conf` rules on `offsec-asianetproxy`, confirming port 8085 input rules and output policy acceptance.
+- Diagnosed initial `TCP_TUNNEL/503` errors via DNS lookups, curl probes, and MTR traceroutes; isolated drops to gateway router (10.31.212.1).
+
+10:00 AM to 10:45 AM
+- Implemented and committed outbound FQDN address groups and NAT rules on the Palo Alto firewall.
+- Verified AWS console access and authentication flows via client browser through Squid proxy (10.31.212.14:8085).
+- Coordinated with the network team regarding gateway routing (10.31.212.1) and HTTPS inspection policies.
+- Monitored live traffic via Squid `access.log` and firewall traffic logs to ensure zero drops or 503 errors.
+
+10:46 AM to 01:05 PM
+- Integrated KSEB SAMAST destination IPs (`3.21.193.9`, `18.222.140.241`, `13.235.72.170`) and client allowlists into Squid.
+- Simplified access rules in `squid.conf` and audited `nftables` to remove redundant Layer 3 NAT masquerade rules.
+- Investigated intermittent 503 errors on subpath `/KSEB/OA/` and static JS/CSS bundles; isolated blocks to Palo Alto Deep Packet Inspection (DPI).
+- Formulated Palo Alto remediation: moving rule to Position #1, setting Application/Service to `any`, and disabling Security Profiles (`None`).
+- Status: Resolved — Issue successfully resolved by Girish regarding Palo Alto policy adjustments, confirming full portal asset delivery with 200 OK.
+
+01:05 PM to 01:55 PM
+- Lunch Break
+
+01:56 PM to 02:40 PM
+- Implemented automated 15-character password generator for User Creation and Password Reset modals in Squid Web Portal.
+- Enforced strict exclusion of `@` symbol from password pool to prevent HTTP proxy credential URL parsing errors (`http://user:pass@host:port`).
+- Added auto-prefill on modal launch, "Generate 15-Char" button, "Copy to Clipboard" with toast alerts, and password visibility toggle.
+- Implemented strict 5-archive retention policy (`MAX_ARCHIVE_BACKUPS = 5`) in `squid_manager.py`, auto-purging older `.tar.gz` archives from disk and UI.
+- Executed `update_all_proxies.py` and successfully deployed updates across all 4 proxy servers (`10.31.1.159`, `10.31.212.14`, `10.31.1.24`, `10.31.88.24`).
+
+03:30 PM to 04:40 PM
+- Expanded and optimized comprehensive AWS domain whitelists (`.api.aws`, `.awsapps.com`, `.aws.dev`, `.signin.aws`, `.media-amazon.com`) for Squid 5.9.
+- Resolved asset rendering and media CDN blocking on AWS marketing and documentation portals (`https://aws.amazon.com/`).
+- Diagnosed client-side interceptor issues (`Unknown host` in Burp Suite); configured upstream proxy chaining to route client tools through Squid (`10.31.212.14:8085`).
+- Validated end-to-end IAM regional authentication redirect flows (`eu-north-1.signin.aws.amazon.com`) and confirmed account login functionality.

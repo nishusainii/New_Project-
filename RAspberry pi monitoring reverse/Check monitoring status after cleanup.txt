@@ -1,0 +1,254 @@
+Run these checks on Grafan-Pi after removing the stopped backup containers. This validates the active containers, Prometheus, Nginx, Blackbox, website probes, and Grafana data path.
+
+1. Confirm the expected containers are running
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+
+
+Expected active containers include:
+
+blackbox-exporter
+prometheus
+blackbox-nginx-proxy
+grafana
+openwa-api
+openwa-docker-proxy
+
+
+Confirm that the deleted backup names are gone:
+
+docker ps -a --format '{{.Names}}' \
+  | grep -E 'blackbox-exporter-(pre-head-2|before-head|current-old|old)|prometheus-old'
+
+
+Expected: no output.
+
+2. Check Prometheus readiness and health
+curl -fsS http://127.0.0.1:9090/-/ready
+
+
+Expected:
+
+Prometheus Server is Ready.
+
+curl -fsS http://127.0.0.1:9090/-/healthy
+
+
+Expected:
+
+Prometheus Server is Healthy.
+
+3. Check Nginx reverse-proxy health
+curl -fsS http://127.0.0.1:9117/proxy-health
+
+
+Expected:
+
+Nginx reverse proxy is healthy
+
+
+Validate the running Nginx configuration:
+
+docker exec blackbox-nginx-proxy nginx -t
+
+
+Expected:
+
+syntax is ok
+test is successful
+
+4. Check Blackbox Exporter health
+
+Direct Blackbox health check:
+
+curl -fsS http://127.0.0.1:9115/-/healthy
+
+
+Expected:
+
+Healthy
+
+
+Check recent startup or runtime errors:
+
+docker logs --since 10m blackbox-exporter 2>&1 \
+  | grep -Ei 'error|failed|panic|fatal|authentication required'
+
+
+No output is ideal. Probe errors for genuinely unavailable targets may still appear.
+
+5. Confirm Nginx can access Blackbox
+
+Test a normal direct website probe through Nginx:
+
+curl --max-time 35 -sG \
+  -H 'X-Prometheus-Scrape-Timeout-Seconds: 30' \
+  --data-urlencode 'target=https://innspark.in' \
+  --data-urlencode 'module=http_2xx' \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success |^probe_http_status_code |^probe_duration_seconds |^probe_http_ssl '
+
+
+Expected:
+
+probe_http_ssl 1
+probe_http_status_code 200
+probe_success 1
+
+6. Confirm the Jio2 proxy module
+curl --max-time 35 -sG \
+  -H 'X-Prometheus-Scrape-Timeout-Seconds: 30' \
+  --data-urlencode 'target=https://care.innspark.in' \
+  --data-urlencode 'module=http_2xx_proxy_jio2' \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success |^probe_http_status_code |^probe_duration_seconds |^probe_http_ssl '
+
+
+Expected:
+
+probe_http_ssl 1
+probe_http_status_code 200
+probe_success 1
+
+7. Confirm the Amritaserve HEAD probe
+curl --max-time 35 -sG \
+  -H 'X-Prometheus-Scrape-Timeout-Seconds: 30' \
+  --data-urlencode 'target=https://amritaserve.org' \
+  --data-urlencode 'module=http_head_proxy_jio2' \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success |^probe_http_status_code |^probe_duration_seconds |^probe_http_ssl '
+
+
+Expected:
+
+probe_http_ssl 1
+probe_http_status_code 200
+probe_success 1
+
+8. Check Prometheus active target health
+curl -s http://127.0.0.1:9090/api/v1/targets | python3 -c '
+import sys
+import json
+
+data = json.load(sys.stdin)
+
+for target in data["data"]["activeTargets"]:
+    job = target.get("labels", {}).get("job", "")
+
+    if job.startswith("blackbox-"):
+        print(
+            job,
+            "|", target.get("labels", {}).get("instance", ""),
+            "| health=" + target.get("health", ""),
+            "| error=" + target.get("lastError", "")
+        )
+'
+
+
+Healthy scrape targets should show:
+
+health=up
+error=
+
+
+Remember that health=up confirms Prometheus successfully obtained Blackbox metrics. Actual website availability is represented by probe_success.
+
+9. Display actual failed websites
+curl -sG \
+  --data-urlencode 'query=probe_success{job=~"blackbox-domains-pi|blackbox-domains-pi-proxy|blackbox-amritaserve-jio2"} == 0' \
+  http://127.0.0.1:9090/api/v1/query | python3 -c '
+import sys
+import json
+
+data = json.load(sys.stdin)
+results = data["data"]["result"]
+
+if not results:
+    print("No failed website probes")
+else:
+    for item in results:
+        print(
+            item["metric"].get("job", ""),
+            "|",
+            item["metric"].get("instance", ""),
+            "| DOWN"
+        )
+'
+
+
+Best result:
+
+No failed website probes
+
+10. Check the Amritaserve result stored in Prometheus
+curl -sG \
+  --data-urlencode 'query=probe_success{job="blackbox-amritaserve-jio2",instance="https://amritaserve.org"}' \
+  http://127.0.0.1:9090/api/v1/query | python3 -c '
+import sys
+import json
+
+data = json.load(sys.stdin)
+results = data["data"]["result"]
+
+if not results:
+    print("No Amritaserve sample stored")
+else:
+    for item in results:
+        print(
+            item["metric"].get("instance", ""),
+            "| probe_success=" + item["value"][1]
+        )
+'
+
+
+Expected:
+
+https://amritaserve.org | probe_success=1
+
+11. Confirm Prometheus traffic in Nginx
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep 'Prometheus/' \
+  | tail -20
+
+
+Confirm Amritaserve HEAD requests:
+
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep 'module=http_head_proxy_jio2' \
+  | grep 'Prometheus/'
+
+
+Check for non-200 Nginx responses:
+
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe' \
+  | grep -v '" 200 '
+
+
+No output means Nginx returned HTTP 200 for all logged probes during that period.
+
+12. Check Grafana availability
+curl -fsS -o /dev/null \
+  -w 'Grafana HTTP status: %{http_code}\n' \
+  http://127.0.0.1:3000/login
+
+
+Expected:
+
+Grafana HTTP status: 200
+
+Successful cleanup status
+
+Your monitoring stack is healthy when:
+
+Prometheus: Ready and Healthy
+Nginx: proxy-health successful
+Blackbox Exporter: Healthy
+Direct probe: probe_success=1
+Jio2 probe: probe_success=1
+Amritaserve HEAD probe: probe_success=1
+Active targets: health=up
+Failed-site query: no failures, except any genuinely unreachable site
+Grafana login: HTTP 200
+Old stopped backup containers: absent
+

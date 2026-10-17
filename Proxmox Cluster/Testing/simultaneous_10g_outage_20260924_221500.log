@@ -1,0 +1,8 @@
+[2026-09-24 22:15:00] [HEADER] STARTING SIMULTANEOUS 3-NODE 10G TOTAL FABRIC OUTAGE TEST
+[2026-09-24 22:15:00] [SUCCESS] SSH Connected to Cluster Master prox22 via 192.168.99.1
+[2026-09-24 22:15:00] [STEP] STEP 1: CAPTURING PRE-FLIGHT BASELINE BEFORE OUTAGE
+[2026-09-24 22:15:01] [INFO] Baseline Quorum: Quorate:          Yes | Total votes:      3 | Flags:            Quorate
+[2026-09-24 22:15:01] [INFO] Baseline Ceph: health: HEALTH_WARN
+    osd: 12 osds: 4 up (since 15m), 8 in (since 21m); 16 remapped pgs
+[2026-09-24 22:15:01] [STEP] STEP 2: SIMULTANEOUS 10G FABRIC OUTAGE (ALL 3 NODES)
+[2026-09-24 22:15:01] [ACTION] Unplug the 10G SFP+/DAC optical cables SIMULTANEOUSLY from the rear of ALL THREE NODES (prox22, prox23, prox24).

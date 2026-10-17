@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Innspark CCTV Dashboard - Deployment, Systemctl & VAPT Manual</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  @page {
+    size: A4 portrait;
+    margin: 14mm 14mm 14mm 14mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #1e293b;
+    line-height: 1.5;
+    font-size: 9pt;
+    background: #ffffff;
+  }
+
+  .cover-header {
+    border-bottom: 2px solid #0284c7;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo-img {
+    height: 36px;
+    width: auto;
+  }
+
+  .doc-meta {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5pt;
+    color: #64748b;
+  }
+
+  .doc-badge {
+    display: inline-block;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 7pt;
+    margin-bottom: 3px;
+  }
+
+  h1.main-title {
+    font-size: 18pt;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+
+  p.subtitle {
+    font-size: 9.5pt;
+    color: #475569;
+    margin-bottom: 14px;
+  }
+
+  h2 {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: #0369a1;
+    border-left: 4px solid #0284c7;
+    padding-left: 8px;
+    margin: 14px 0 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  h3 {
+    font-size: 9.5pt;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 10px 0 3px 0;
+  }
+
+  p, ul, ol {
+    margin-bottom: 6px;
+  }
+
+  ul, ol {
+    padding-left: 18px;
+  }
+
+  li {
+    margin-bottom: 2px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 12px 0;
+    font-size: 8pt;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+
+  .code-block {
+    background-color: #0f172a;
+    color: #f1f5f9;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.8pt;
+    line-height: 1.4;
+    margin: 4px 0 8px 0;
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border-left: 3px solid #38bdf8;
+  }
+
+  .cmd-comment {
+    color: #94a3b8;
+  }
+
+  .callout {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-left: 4px solid #22c55e;
+    border-radius: 5px;
+    padding: 6px 10px;
+    margin: 8px 0;
+    font-size: 8pt;
+  }
+
+  .callout-title {
+    font-weight: 700;
+    color: #15803d;
+    margin-bottom: 2px;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  .footer-stamp {
+    margin-top: 20px;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 7.5pt;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="cover-header">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWEAAAB6CAYAAABumeI7AAAQAElEQVR4AexdB3wcxdV/b1ayjW1sIAnYdLDKyTj03gIBNwKEElsnG1MTSsCWISGUYO2t6IEPbNMCpFCtkxV6Ai4UhxaKIZhi3VkyPdgJ1WAbS7qd97056eQru3tFd/LJnv3t3s68aW/+M/Pm7ZvZPQH60AhoBDQCRYCA3wwd77eWPuy3mhfVWM2XjZ/d0r8I2Co4C1oIFxxiXYBGQCOQDgF/fehcEPAYgDgRAH9CgNcM+Ub+DTaBQwvhTaCRdRU1AkWNABEC0VXJPCLRsTVm+NBkeo/9RZaBFsJF1iCaHY3ApobAFGv5jwDwB+BwSEHlDuSNiqSF8EbVnLoyGoG+h8CuNOILSfA/J84Nie850TcmmhbCG1Nr6rpoBIoSAW+mLAslCryYAPiMj4sNc6zK1+IpG6NbC+GNsVV1nTQCfQyBxrrK+wTB0SyGHyDEhwHw7EpZcQpsAocWwptAI+sqagT6AgINAd+zwYBvCgvkk4Nm5d1KQ+4LfPeURy2Ee4qgTq8RKD4ENEd9CAEthPtQY2lWNQKbCgIzl4054ObWMSfMbhk/ZGOvsxbCG3sL6/ppBPoYAjNbxlq8UPeKAHwE0H73tg+OGdbHqpAVuyKr2DqyRkAj4IiAJuYHAdZ8+yPAJbHcCHAH25a/jPk3xrsWwhtjq+o6aQT6KAJffvq9ncy6DfLgZNrG5NdCeGNqTV0XjUAfR8A6clGEq7CEr+4TCQ8gVom7CXGOI8znSqrrmy+org8/5LfC99TUNx8UF9wrzglzyZhgvrtjrh8c0kK4V5pJF5J3BHSGGy8CiK/GVw4Rtrp5+dgR8bSomwi3FsMfZiF9CxKdBECnSYnPV1uhn0fDe+GHyzrPWBr+yhAlHw352v6vmhCyLVYL4WwR0/E1AhqBgiJABClvyRkI+ycX6q9f9lMWYMfF01lgl7BN+YZ4WqHcfmvZz7is2wEhuoOD3UPVhFBjNSfwlK58rkO6KDpcI6AR0Aj0HgIo7ARNWJVMJA9Q9/gLkX4c749zl+dqGojLI60TyXZ8o4+N2qelTRwXQQvhODC00wsBHaYR6B0Epu26sJVNC1/Gl4aUqglLmzhefKxONwF99NS08rZOX+F+SeAWjrkjbuZIdyFqIewCjCZrBDQCGwYBNikQEi5OLF3spbavxdPkbr6ngODFeBqx9AbA30MvHGyHftKpGAPwH050N5oWwm7IaLpGQCOwwRCQAIkmCYT+UtDu8Qw1TUS7dFDbOJa7FtNfUB/+YS14fKPpe5D9BT9XyJV38CQwJ6EggjkRX8WdCbQ0HpEmXAdvOAR0yRqBTRYBIVIX51DaKYtz91+8x5qgWRUImr7D1Yd/5ppV8/MNmtLAZ7WMuX1m65i2ma2jP53ZMm6sKmORdWQkGPBNFlLsxRr4RHVXfjU5qPBMLy2EM0VKx9MIaAR6DQHRHnmFNVyWbXFFokhZnIsLLYjzjtYxW9tIzwDieQjYD0FsB0gPmM8dUQJdxxyr4i3WvpvUvYuU1U0L4azg0pE1AhqB3kDggqpnviQQH8SXxRI5RROOD7+5ZdwRs5ePnX5Ty9jdIA/HrNYxo9oAXxVAh8Rnh0A/2GJnGBxP64lbC+E49LRTI6ARKB4E2L6bYBdm4Vdx+0c/29KJQxaYUwXSc0RwM9/fnP3+2MOc4mVKm7V83DFA+BIC7AwpBz554S6Lvkkh50jQQjhH4HQyjYBGoLAIGJhsF0aMtLfv51QqAZ4foyNgP5I0NebP9j5r+dhaIHocul7CiE/PE8GjJeva/PG0nrq1EO4pgjq9RkAjUBAEbIkJmnC0EDQcTRIsHDui4V0/LIj36nJmfJtLE4zZrWNvAYKZAGDwlXASyeu/HHHQyeePWrQ6IaCHng0rhHvIvE6uEdAIbLwIbFGy7t9skmiPryE5vL7cGY7/7rx3/kqgXW9YMmZQpy/9723vHjH4s5ZVjxLABSmxCdp4kfD06eULL7XQkinhPSRoIdxDAHVyjcCmisCka9/e0m+FT6y2QpOnBFq3zjcOZ+yyaB2BeDs+X+nw+rIKR4Q31T12IaAYMIj2jPm97jeFj90u0r//8yjw2JR4BJ+TwKNryxbcmxKWJ4IWwnkCUmejEdiUEPAHmg+W7f2bWUN8GAEe6MDI+9Vmc6oQ6yEoiDLhYz4CcOubPxiXulgmRYImrIolMPZRd6/rluXH/Ngw2l9m+2+K+YLr1WoI49DpI+YlvJXnlV8GYSlRRApFEzQCGgGNgAcCpkksN/BBFsDbxEUbBIj3Hn99aPM4Ws+dlGoXRjv1Yz5cEAthIr6vP4X0FMKzW0aPkdJmAYs7rk/U6ZKAL7Xb/Q66YMSTyzopAJPNlu39VmhudaD5O9b+P62uD9d1YhGLkdudwcwtoU6lEdAIbJoILMNlFYCQoo0iwlaDvgfH3QuQ42EYlKAJq2wQcX91j7+mlT/1LQIuj6eRTfvG++Pds1rG/lIi/oPrEf0MZXwYL/I1bmGsO/q3lU98EaOfbn4wQAr7afZP4PIHI8B2SGSFRfgapvXo1EK4R/DpxBqBTQ+BiEG8UOVcbyTs3jlwfej4zWe1jhl15+J9Sp1jp6desPOCMC/OJe7JdfiimsqJ47E2rFydFyH6FA+dvs5f1pVxVsu4AAvfuxGw+6237lBCa+qIBTVnsD26k9b524bt41jNruz0rf/l/KaefefinOunctJCWKGgL42ARiBjBJpm+D5ggfRMcgKmLSmHiujXz2a1jh03oGTdZwD4zrqhP/zPzNbRs25ZPtpVMwWXA1ktBQmvxwcT0l4mmSmyixwW5/qLdXvF0qrdErcsH/MwIJkxWvedoI1InFpbPi8QLbM7oMsh4IddroQbxx3Y/tkPBiUQs/SkVCTL9Dq6RkAjsAkiIAj9LHQf48vmi/h6RsrI8ZaFUsGBADcCYOervQg/QhDTJInXZ7WMfm/28rGXzG4Zvz1keKBBUcEei87a9qAfffD6DjF/9x3hjW53lwMF1ignl7dX6WB4kQBPUP74iwi+IqIx08vnPRBPj3dLxJeAeDqIJ7KbK/vOPdYuiZo607M5tRDOBi0dVyOgEYgi0BCo/KLR9J3AgneL7wfAUHYf3WSN+jgayD8EtDnfUk8UI1noXSfR/mjm8jH/nLV87Lk3ho9z1DJjiYlwScwdu9sysl3MHbsPxfYXuNzvYv7OO50zs3VsiFC+zsI7dcsa0XIw8ODpFQue74zv/Ns4o6JZCkjQoAlgFUp5tnOKzKlaCGeOlY6pEdAIJCHAgnf145f4kgQfAKK8DoBYToHjgcA6KuHhQHBHidG24ubWMU+ysDyVNdaUhTID4PPkTHhRrFPLjgs4g+24SNAUR2InIgIoWy5nw964UwK+1CH7Hzh913nhOHLUedsHxwy7pXXM+JnvH9W9A2Rune8qIfEAiTADEGpFSUdlozXylWiCHvxoIdwD8HRSjYBGwBmBaSOevoND9mMBeCsL4y/Z7XoiL5AJwPEIcC+h/d+bW8c+NLtlzC9u+mTCZioR23qHq3v8ZYORIvhVeD+Ey1j0f6XcXheBvPObdZv/NH4HRCz+7OVjzoxE7A9ZSD+J0mi9pXV091fU5liVrylhHKzzzW74/Y//G0vTk7voSWKdViOgESgGBIqTh9qyBW9MK5s/9at1Q7eVQCfyGtujBJTwGnIq5ziAhdJJhNgk2ld9Pqtl7JuS6O7EeESlkY7u/bvxYeeVLfgfK+AnsuD/Op4ec7Nq/iFr0cdPL1t4rjWqKYEXFt44q3VsPRH+mTXd/p1pcLAt8dJOd2F+ub6FyVjnqhHQCGgEFAJK2F1YtuDRaWULTizpsLdlAXcekPwnC2Spwt0uJBzEcfdCEFGNGNYf/1LfG17vTXQp+y4Ju4oI6jnkaRbIL7PZYw7fazb75ouKaeULnmB6wjlXfbxn+bg/MnEGXwknGoJldwIprx4thPMKp85MI6AR8EJACc/aEfP/WFu+8AhBxk5A+BsJmLD7wSs9APEhlHD1jDZ912f+O718vllbNn90bdmCQ2rL50/me/Ccfd/oSE7Iduj+n7WsauS8UxbZCGkNIl2VnCaffi2E84mmzmtTQUDXMw8ITCt/6tPa8nk3XVg2bz9AWcEraCZrx80eWdtA4rfTy+fN94iTVZD6ehoJepyXCU9OTUgrDaAjpu06P+WtvdS4uVO0EM4dO51SI6ARyBMCtSMWtkwbMb9+etmCkVLKvVhDtkDAPCC5lDXUN4DoLwLlgUpo56lIUP8fFxnQbxHnPSY1T2oRETh46oiFWWjpqblkQtFCOBOUdByNgEag1xC4sGLhWyxsA7W7zh/PZovd2Iywb235grPyKRDV68zthPMA0OEjP/SuiNARU30LEv7jDgp0aCFcIGB1tvlFQOemEcgnAgNK2v6kFv2S80QBi5CMQ6b6Fn4GvXRoIdxLQOtiNAIageJAYPb7Y/dgE8eEZG6Q4PFI6ZBj2Fb9bXJYIf1aCBcSXZ23RkAjUHQISEmTAXgZEBKOucPKhpx00Q5N3ydQe8GjhXAvgNwni9BMawQ2UgQIcERy1UREXjgRm+xkem/4u4XwBPPdYROt5rH++mUHTJhLKe9Z9wYzfbWMCde0/Ki6PrzfRDN8dI21dPTEwLLDawJhX0+/M1pIPCabLUMUjzX1zQcpvidaoSNrzNDuef9nhDxUwjRJTLpq6U7dvDLO/kDzwX6zeWfdV/MAcA5ZTDKX7Vld33x2jdV83HGBxQNzyCIvSSZdubRc8cHj79RTrl6a8nqzUyEs9P6XTJel4jfqU5fJ9N7wCyBCfyB0pUDjIwG8WkjyFdEcerXabK4oNAMTbvpks+jgt5p/Ux0I36n+OqSmfunCifWhR5in+/1W2PSboV/UXP1O90c0Cs1TJvnzhLWVvz50bpRPq/kLo8P+HxK9JgQtJBALBMp/ElLzqhWD1/qtpW9OtMI3KqGRSd6FiqP+GYAHzMk1geZ7q63QUhvtrxWP3PwvK74FwLMkYMnAdfBtdSD0UY0VesBf3zxpQwnl6sDSUcyr5bdCz4dEeLW0xYfdvDLO/DT5Egj8QDSH13B9XvQHwlf761u6vx1bKBwzyXfCdcuHch/ZcZIZ3tV/VesOG1JIOfGr+gJPYEdwf7iM8b1P4VdtNS/m+2vcV2dP8frTTm4EfyB0hxTy30h4J2uVjw+EzZeoCd2prELSuH/+1rbxXcUHj7972zvEUr+17GfpyhRAj6fEIbioZBC8P6t17Ez1rQin7xWnpMkTQdTUh84GhCsQsV8sTwTcB4V4ePzslq73p2MhPb+bJglusBOUABPfrfk6OvgBb0Skszn3CUTiaEFwAvN0ChvPAyCgiSKlK1kwvOG3whdOuvbtLWEDHTX17+3GHfB+nrBWAMEdUT4Bf+DGDiKUAIi9uNF/A4gv1VihkN8KncUDtBvr9WkL4+JJbFu/1Xzr96JtJQ+YvxHiqQhQBcjIgvPBfO9I8gzyaAAAEABJREFUAJOB8EEWyit4cN6uBIpz7PxRTdU3rOYaxvh1RPEO81rHuR/G/Ca/tsrkzpPD+vN1CCBdDmS/yby+VV0fPvUI8znGvjNOIX+jPJvhQ/1W+Bo/TxjVgdCXRlvHN4Yo+UgKWg525ONBOHiN3wqv5GsBX+ak+uZ9CsmTW97V5tID/VbovnXY9l8Q+BwBqr/mmaLwQzXmAfbjvjq1AyKv8hj9oVM+/vplpwDCufFhPHbLCOjeeFqh3WqCBsIbME5uCYQtiOR9p17T7DomFV9fjDhIvezxtHLHXwJwa/bXShAvbrn85Y9ntY6bPbtl/E9MSv2APMfL2yl4Yvu1c26029Cv5THOYTlQuSA/a1ZhEQ6xBvaIEmAIkLGQR4S9Aegmau/3EXek6ybz43QOXOSURAl+Hty3kzTe5g54CiLmJEQJQH1S70+GKHm32mx22CCeE3uOiaLajhW6jgS0AuD5jPVQyO0YxGnPs1E2s3C8oVBaXQ2bRcKieTEBzmGM982NVeCksAcS3TtMbPvWRCt0JBToUP2vpj70u5AIt5KgF7hvXsZFHYYIW/Hd4SR+mqPRHC8gCRdXB5rDNVbz1Ck3LBnkEDmvpElmeH8eM8+jEP/ijKcwSEP47n4i7MyT2nRwOCTInzuQgfPcP1NzAPTwqAk0W4SoJuiUnBT+He3isJSAOIKFlkS2cHFbpHwEPhYNQWzH4VMJ5aKtlv/rP7Naxtx+S+uYn86lCQbk+WBZCK5fuOcKZWRjSccTP/rszB1uEbBmxXHL+cr5JAD1sehLOkQkxILRuUPknHtqQtWB7fZ+byhBxB1NpMbIiVKOAufzwLhPmWRyysEjEWuCe6wT7epNn0uY7808omYchGriQfjtQBj072pz6d4ZJ0wT0TRJ+AOhKyUhCzKxV5roWQTTblz3Z/gp4KZ8asWKX+5353Wg3UIE13MZu2TBVHdUxrOCAGe3re3XwvmdocyC3YF5cqgJc6IVnm0LeoWz9BRMHJ5wEoKjts4DYNuEiHGeDttwlSVx0XrkrPEQwLGMmXdulpjP+T6t/KnPBwzsfzgh3szCNuV7EompcBggnicBn1nR+u2K2a1j7lL/1NyT/86Lz18IkO/GExLcNryd4M/BU202H0sC3yIUh+eQ3DWJAFQTxCMTA6Gbc1yccc07FqA0d36kfJFbNKeBFsvH4z5FfLv22XSPTx7pU4KqrfB4HtCs8dBuKYF5ICjhgUI8X22FejwBqgmINcmHQZnDAPKuYSBwzoAXDje2eWpyHp6clGknbIQXcr63CwT16Ao9PVQ/5vz+4r8y/GRNHtc+lC16IA5+WQBN5fz5zI5TJFiRXYrCx85EAEuCb+xS8WIm3Jyz7RNrp4+Yd5E0RAURzZRAKQt2Kfkg/Ignz1+xPJv//dAfrmQN+c8zW8aNNZ87Imfzl7DJuBIIZHJhiPLpBqsyo8okp435WdM7CwQ+igBDY7R83jlfVihhOobCf8u3nZUX3s4kQvWfU6VQwAORDmzvoIVqMaenxdQEwicASYV3XrRfD36UiaLJb4VP9IjjGaTMJcZ3ax/jNuyxMPcsiAOJ1xkiwn6S+8hg9uZ0+tWin8A3geCnOWWQLhHBONlR+praoZIuarpw7gc+iEReYWz3SBfXKZwIIijxj05hG4qWiQDmtpEG0q+bLi9P+ScOL74v3GXeh9PLF1w48JsvlSY/nk0Qf2bt2PND9Co/VKYnxDN5DM/bcof+K3hR745cbMhirlX5NM8CPyeAZpUxX2u4Ef4k7FKHrwpxaIZnTX3oFAblLu4Ieddwkllgm8oJhtHvwXxpxFHtnUDxzuwnl1YIv9jLaLcfPbsHf52ttgyxoWsOIvbLlENJ8Cm30WvIEy63/xIJtCLTtByvFIjmsOljP3ZnfbaJtj9xR2cbaYZJCdZxY4SZ3xeR5PN8D3HKNXxldHLaQ4QoecA0SWSUIC6SP9B8MEh7EfPLdt24gDw7EWFHifCcastcs1Zb+dh+/yw/A7iaDTzzJvgMESeqf5DwjNeLgZkIYO6/RAgXNJhVDbmyds6+b3TUls2fN33Ewl9+9Un7MLb187oN3gUEaYU69y+1kHkuC3BlQ/5kZsuYm2ctH52R6TXaIRutqr83mr6RawfAkCHDVm/ZGPD96kGr/NtcK+OvX3aAlPRn7gjR/GP5FPRO8hfG0mX1PS1D2a9R4H0MasaTR7QDAPyH76/zQP0n35uJYG1WvJA84ruVg6/OKk1XZNYqt5AoH2Ke02rAqAQYwlm2jAyfG/DtEAz4DmioGzma23/PuWbVtkzfibP9JdeDTRrs8joRBoCkv03O8lGfnzLOZYwme2XdFbaGB8BsfjQ+atVWxhYNps/H/B7WEBj5E75XrZQrtgDEw7neN3B+q7rSuN443s+XGeHfukZwCGDtuQwAHwOEIZD50cHt/zHz/j4rOKszTwaArF2xCWweY6q0Msjm4H4wwI6IhwVETXXeSYlbDuAlJOIxgydxwYcLIStW0oqdgmblI96Jey+UbfoBQqzzKpHbnk84n/uw+kslr6gZh1lHLopM33XBwtqyeecMLxsynM06R7HScQcBZfCXRrgtIk4HwjdvXX5M2q2+Ip4r9Yd9d52zbxojdXyKVDd3niFAsomZ6Jca6kAheJtn/xkgYT8s6RgWNH1YOrBtsC3Ax8ieyWGPcoeOOKRMIRHSZTXW0tEpAdkQDPwzR9+SrwxOfI/reX6JNHbkDrA9X/sHzaoj+D5y6PDVW0iJo5l31vggI0wlwG+jWlcGJcdHacN1MwBh13haspuxbOZhd2RUgNX5/tJkjVqZHEf5mf5x0PT9OWhWHayEHwKEFd3tQoQdbbSvdwtPpitbJef7h2R6vJ955b4OLHxxZxa2tQ0B37NPTStvi4+j3IusIyPBusoXGkzf72T/Up488FpOa6swt4skWGqDv1t4Ap0IEUuaGFul5SQEJXs4aisg/R7Q2JsVmUGsyOzEvI9oDFRtvoZWDwLAowHg+syeNmgbW0T+lu2CIvcDExH25nK8zg7uZ3cKQ/q4nx7aEKgyldBVOM6ZMbJFYeqVuDfDlAAGQBM8Dm5vPjMTwDPfP2qbmS1jL5+1fFzTrJaxD85sHfOHmcvHHZpuC9pEbLKnli14trZ8wa+3HTF0OyRxBPeJ27jgFR6scRAOtqmjmh2dJ3cSJZ/YjHcNX+erXVcqQKiffF4daF/L+e3AV7qzhSSdzB1gz+gf51m+xbE/zrv/4j3WNM3whbmT/JXDTpQGjAKQaWdnFhgoQdx5XI5v8DAw1ZCBzY8AVvF1pl1VsUdDXeXt/NTwaXJl1WSmTD2N/FTB2uVIjv9Ucpxkfyf/eJtpUsbtMuHK0C4S8fzkvOL9nO+DcvNB+wStKn6kjg/xdjew8CsZ2LaPSu8VkxB+xXyo7Xde0TrD7I4ZjIXa4dLpT/rlsFWGxGNZgLHwrfwiKdjV23TpiFXcly4XSEdJAvcFFtbepS2ucs0oLqDmytDhAmFP8DiIYCUhnuajispgXdU1wbryf6u2j0/yRGDftczbM0HTd+lAOWBX5PZiHr+Jj5PqxgO2EcMvTKU7U5TGLgE9tXzGdjmgOGyu6TtXCVznnIqD6reaA5BPAdwy7niURisiXA1Ev2AhOgkBL0aiF7Za/q/Q7OVjzsxkt4MSyNPKn/pn7Yj5F3w94sDtJeGRBPJOxtaxryLif6DrqLbCdxGIBQB0GV+3Rtr6harN5oqMB3tXPp431REQQL104RlPIjw5QPbfv9Gq4pVxZP49o4MSyEFz5EmEdA7H9NQqufxdBuJgT6HEeaScSvAhSc/HHpWICFtBiIMaTd9fmyaip9al4quryRrV6pOVxyLRdcrvdalBv0yEMl7wKpFQy3Xu75Hn/RWy8tSmi3b43iOOa5CaEFV6IJjjFonLNwwbfucWHqNz/xgGgKeDy0EEaxHxOLZHPukSJS25oa7qnyUkxkoCVyFHCBOYFzYzgOdBJJhfjygoFvWDkj0a6yrvsyye/z2ixoLusXZZpybukhK5JxGqrWOxoJQ7j4wrMt05Y2Dp7xGhJCWTGIFg8Way/77BuopXY6RivfvzLIBnq6+moWwCQJeFWSzntvjzui1+0DqzdewFN30yIa1ZD/hQ+40vLJ+3aHrZwnO//qRtOJPGszC7hwXs1wQkEajxy++HqsV9qAmEfsrtw2Y+jtV18ljfGgzxf3kVwiWi5HIuyL0jcOGE+HCVXXkcd0bXQcLRHM/Guqq7AHAKV5RPcD248/7udPODAa4RHAJaYNk45m2kQ1A3SbKGZZTYRzfOqGjuJmboUIO0IVB1GQvim9IlIRIXpYsTDeeeQwQTom6HH0nwFk92Z6uyHYIzJqn0Q4avPp1BX+KaCKE63SvOhig5jdOX8uV4oqDzg2xecAzMgjjHqniLF2tVWY6pEAANUXompDmEhNe5znw6RESYt2oLHHd/oMxd63ZIFiPNuWLkR5I62FzlIYgRhrR3YG0sjdudJ5SteOD73cKJaJlNkbH3WLtkPebc8iwUPd8CWPHJDXgdQiYL1rgjAtxitK16f3bruIvVh99V+kwuZUOuVYt6ZfPP+OqT9q071sCQaWUL/OpPTlV6XuQ7UN2TL7YGHNothCeZ4WMUADVW89Rc3nxhobcFD/r19o/k0tjPYCxZK7+bogY1e3M6g2ZlIwN1lWdihB9+L9qy2t0hkVwHrSqLeedTTFCDR/lzvSIjfb8D1qC80rPGf1AmdssJgfe24ccq11VwIXAaD7x1XmVlGhZ9xJbyXAaBT8dUgwZ9j0c5hsSIhMfHnA73F4IzfHl79TVo+R5nRh9zKCdKQpJpt8bNsSp5YQ1mRRPE/bCW88ba/jDRyU4dFy2tk5+QVkvq+Jn02JXCdTgz3a6fEqOUF9Z4kdShRE5PrFycy2V95RBcVCQlf6DnJgiIP2ayHZgF3Zh4mnJzG7aru/OFwzj8D/2Ntg9nLR9j3vTJWJ7knGM6UZVAvniPBUk7d9BxDYYF8EoxfnZL/4lW6HFekf0HMAAEODvTD2FA3LHOWHcCIgyMIyU4iadqIfECZR9LCMjBwzbWqzi/5V5J+VGgxis8PkwtgDDv4+NpyW5B1Dg3UPF8Mj1bvzJhoC1r+fFeuqXlSYZlhKfAiiY1oMR9BZ3g/XxoldGCun4arZGvIIDr3nHuuK6vCR/HdnoO378rq5QbEt4EiNysKUE5ExDx/9wSs2AamcnLEVVU+RueFM8BhGe5zV7j+l/9/QA8Ui1iu+WdDV0JRwHC1fbL5W1nLA0d4JUna7pHu4UTwlNsA37OLbxY6IUQwNG6kbEfArKsi/qiP9zNzvr6k/ZB3K7HMcG1PyPCVkAYEG304cyW0dfdGD4u7QItuByGbfwNeEwmB3P7/EEM/UrWMYeKme5wgbAFgLyfH3O8bWIQdxCOi/OlOhH/0dOXP2KZcsdVs5gZ8zvdefo/krXzAYMwVcMAABAASURBVE5hybRhOGx/Hv2bJ9Pj/REquTLe3xN3g+V7G1A+5pWHjZj2pQDDoJQdA7E8WcIPVpNLzJ+vOyIGXfMSMMotbCAN9CFCiVM4Y78qQh1POoX1hBacUaEG2CeueXSU7uYa1hVgWSiVGSxY5zuKFwsPaDB9V+RLAHcVAerpjt0tfDmf6P2Ewfjt65wQeO7A+6HIj4IJYK43StqJbwkndsBzSludPmLB32vL5h9GiIextvx3AGIoE6JGPSzEN0cUl5SUtH04s3X0rNs+OCZzuRjNAYAX77/l7I9iQTyXC1HbWZcg0OlqbUkAwlld8ZJvW0Yfc5Kp7v6D3YMAWMd5APJ4rKXVardEksq/vgAe8APXGR0ZvTGEQuy5PmWqC4mWNlnlS1NDcqcQiIe8UgsJnjwBH1Ta8Sk3KJ/sSTp5It16OA67khsek4J65LWB3O3CBO67YoRwDePOGOqaWHvEW0piVnl4YL2dQu8isJ1uxy7nBr9xH/N6yeDHbgyyotSPw3bmy/HsXyIXOgbkkdiTrAopgKN8oRgUvcf9iP4lCYvU00fMe3F6xYLjCMUB3Bcf5T7jOKaQcBCCmBaxIy2zWsZdm61mHLSqPuSJvJoFr9rOumeDWRU1v/H6BW0NLgc/5mQk8U83P2DN2X0Aco1o7QDKq6ajzBqE6PmYxYC6dt74KtuSPN9ssQEXxMfPh1sQzvfKhxCG8wBzWc3tTDnnst2/RkDXyYEQL62uD78wyVyWVqB35pj+l+yIu2YJOMQtB54UNncLkwApW/zc4mZLl4Aeebvzm205PY1PaLzmmgfBLm5hA3DAFghgOIXz+F193+VVXzqFFQOt4AKYK4mA6/iWcNoRcrTxsjB+fVrZArUzaXfWWNVuIDshYbcHB7NWeWmp0bbk1vePSdG0u6Nl6OCxAZhhXNdobcba7VwDOYBtgSvz/QjH2YKQcpm6u11E0t1mGpeIQfhBnDfFaQj4KIXYQ0JDoPILInJ9m4obhU9w7CzxRbOyd1+8P9nNmRxiC7m4OhC+pWuyTI6SnX+33dSjVIIm0Z0BkevbRJLAdVcET0jO+XVnnLtDALm+ucjapytPuZeYW0qU0n1yQxjqlqtd0r6ZWxggpn3d1jVtgQN6QwCrKvCiZ8qOEEK5jQpzu2rLFrxbWz5/sg3gA4K/svyKOMfFbaW0027JdU67nirWO3vgsks83zDjQebewXpQrET82Cs5kfAUrrG0rDGmPLLEwtSdGyGnbUgqrfclHFdMY2lKDHTVHmNxsLT9bkngyR8LYoOF9QVrsS1cbYXOACImxXLI7q4WFoGc7Ywo4K/Z5aZjxxCIlMB3MXfynftfvwRanEd2sOEtzh/vRE4Y7y8Wd28JYFVfQTJljCFiRk/4F5XNb2VhfKYgwweA9zKcKcKYx14Crab+vd0mmeH9s1mPyYsQJpCOCy6w/lALaet9+XN55svmiHR8RTkhIE8cWGZ5viASzSSXHyTvfG3D8TEzvqioSYLoPGXyiac7uVnj35ql71/89aGXqnvwTWBJHb8hxIdjZXDZbCqG2RV25ewYTd97BwFRSgy/c1mEgM4hG47amwJY1RJFacqrxSRBvVihgjO6ppU/tby2bN7piDSSE6iFTlaS2QWwDIzI7cqldtpw3V4mMt6Vgl7dBod/MjGwLKPP93oKH5W5voofgUar6mFEmM6jkc9M+MWDQIjXWCu+ne3OaU0eyTk2WaNWN9ZVnmzLSDkSHIUSduQFh1q1kyA5rvZrBGIIsJAKAKAJHgd3YD4z+xaERzbdQSQpRRPmqSkrIRzLrHbEwpbasvmnssq5A5I4iK/dp+/6TNQEJyOl/BTI46orMo/HYQjykUw+UauFcBdoff0WrPPNJqDxbANLmfmd6sYqksHXeQJL1D871KZ7IcApDxbGrQ0B37NBy/eZU/jGQyvemnR0SCW0ipfBLs42hABWRU8te+oLHhcJT8yEdkbmCJXe6bpw5/krWDt+ha/oFtHJnV8RTHkhhAXxVkZbJO1WUy2EnVDuo7S5ZtX8kn4duwEBC2SIPTJ51kZ1FBbGM8XS8GtsojjQM7IOdEXguMDigfxUUab+xNPpOuXqpTlpX64FZhCABNy0GUQscJQNJYBVtbh/ExImrJkgiby2hRi81magHU2HJCUHKU7cLy2E3bHpkyHKRqxMAyDl/gCU/pvAXbXkzro3myhe9luh+yZc0/KjLrK+uSAw4arwdjX14V/7rfACfyC0ahAOXmOIkhZJuNjpikTEZzWB5vfyPdEZpQPIhcWiINdYzedAGhMEEChJ9atG03cHFOAglIlPhyTzKoTVR64I8e+prNOX3w/EtPu0tRBORW6joDRaI99kE8Uh3DlO41Ga0VYlnrL5hClGh612UeRkosgTeEWbTdcCzK2GTR8Q0W080Y1mfdN1f3R8RbgtRqIQTyoBHk8vlJtYBSxU3pnkq54OJMGNnnFZADN+ZwdNn/qOt2fUXAMFiUQhjJhXIaz4Eka7+kLaC8qtLgL6CKU4IZOtuVoIK8Q21ouXc3kB7T6jX3slaxuzWRhnZKJgOLZkaRw1UdTUNx/Efn0yAjX1oYkQKW0BQPWp1Fz3GG9ZImkybALH5mJQFSIO9qwqwuWFFMCqbJmsCQNumennKlX6TC71LXSux+Hqzyh4oXoPKe2KTD/ToIVwJgj38TgxEwWisR8QvpxpdRBhb0n4kp9NFFMCra5vVmaaX5+NR4RsSrAkQZAnsrR7t9PVU0p0fYU7XdrkcKODmKVkapefuAW7nBviJm1M1ECdmTir0E8GSEbKDgmMfOf5woYzq+mp6tvnDZbvbV60TlgM9EqphbAXOhtZWLCu/N9Bs+JQHpunsUBJWKxwqyprxHzClDaIbLImCv+VocsYszoGgk83pDKnC5SLM4/dd2MGLd9nEsjzGylcu3LDpucmmy0Zvd3K8bM+eSpKnQwi2e0VzrrQLBJoIZwFWBtFVERqrKu8byD1z8pEIRDUNwpm4tLwYn+g2fNjTbARHTWB8AkgMW9f0CPCV1bIlQ/mC6L2Up5O85VZAfIxSJwrAd5Jk3W5LexnC6URM0IpQpj787A0PPVasBbCvQZ1cRV0j7XLN2oXRdREkcUuCu68e7JW+KLfar5ryg1LPF/3Lq4aZ88Na2dDJNJdgJB2nLBNwObB/imob8Y6Xy/yIp4lhwz8aW/9mSZrgHnR3KEHR4P6RkqpcVQmgtiI0Ivq3857UJxjUmGkvrBBpDVhR7A2KWKRVDaoTBR1vkMA6QwWIlmYKPBXHWv6L55wZcj1C19FUsWc2bDRvpilWJrtevgeT0o1/Qa2DZ0b8O3AE9sIl+uwoFkVyPW//twq4WkTdkvUy/Smy8s/p0wEMcLOgPhcvgVxh6QUTRgwv9vUoAeH6EFanbQIEFCfqZxYH3qkOhBuqbFCz/qtZT/Lmi02UQTrqu5RJgoJeIvS6jLKA8FnSJg/ZSNctItq+Qiu/3ih8OFJ6/aV8rM9G+sqg2qvqKIV08X88RxSHBxtSEE8+JsvVxKQTEACKe/b1BLyz8KjhXAWYBVb1Gpz6d62kC8LghNYjpax8DySQD5RUx86BXI4lIlirlk5DRD34cdqfnzOKJPyDojcklHMPhSpY+0A9Rqqu7mF4AHWfM/vLdOCG3Ql/VjUugUWGX1DCeJz9n2jAwAT/mMPSWibMPT6sfEViIYwWdXZLL5m7EdbwrVAxM74kMzdrNktCZqVhxPiaUSQsr0nJSeEiayNH5JC79uEn7uxz5h8NYD6T3ULLxZ6MdiEk7HYUIIYIPGtOcZGa8LJjaP92SNARHs4peLFs+0nBN7r2T5IVq1ZGN8nB5T6WJrPIoKE76YmlysIzkmmFYnf9WUBCehaJ+mCraoTP3Hcp54alHtDX23tfUcTjmG1QQSxxARlglHTQjjWIPreAwRI8GOWc3phlOblhYCmS0esajB900sE7Q0EIefSgIPA+49e3RIWmo4eL0Ygfu1R/LZuYQbSs25hmp4ZAtkIYhKwqKeLdaIEEhbnWLHYei5NcPzoTmY1yF+sQtqE88elzskNgS/cAgRQXnctPFhX9Y4g/JmbRsyd+kcb4kthbvVXdPV5TpLg+v96QpLj/8+ZJgkeGD8El4NkRm+CuaR2IUeMBLNSfCwkzOnvn5CAmyU+p+JyZyqIEXCnngpiaafskDA+/3DNj4oBEe5rxcCG5iEXBBDAVTMFguNzydMrzRyr8n0u82O3OFKC66O/W5pC0vG9ZUey7c91AaYESt51Kt+ykJ9WyfW/6Vjvz3s9UUTcn1wEfObEp6KV9ONpUTn66NVbglgIkWCOUHDZkeLYIaGFsGqNvnoJetWNdbZp/nyC+W7W/5rhlp+iqz8KJSD310sRMn5fXuVX6AsFXepWhgR45/5Amde+aFfBB0Ls5ZZvrnR+yjjaNa10F8KuaThAIvGcyY4iP3tDEPNUFUqEgUiKjvz/E3ViIRn5tBDOCKbijGQjzCdWy5y4Q8TBhjCucwrLldYm2gKcbz+n9Dzav5vz+ypXLdkpTSFpfis8hXk6yq0M7viPuoVF6QI+BLeDaFJPdp8kZ3v89aHNeVI4NZne7Ud8s9ud5Cjp2Iy7QBKxD3oLLYi/+qTtaUB8Yj004v+mj3i6KPor98X1bGlX30KgaYbvA0Gy+xumKdwTnlVtNp+UQs+BwPkcy4LiArekrCE/z528KASCvz58GPNzpxuvbKqRIOkvruEcIACf4pvzibBvdX14knNg9tTNvsdrBILrV+qEhMeyzxWAFWGeh6DPHNkK4mze1rSOXBSpHTHveIHG7oCyorZs3sXFAowoFkY0H7khQCRucU2JIEDgnBoz1KOdCyyAxwBCA49oA1wPUbCPcrsW6RDAGvCJRPQE8+q60MV1eTBoVblrupxvBMFb8BH90Z+HDxlVW6GLEcljcoMlyhbPLDme6/q4TTi5UtkIYl5YfW7Cldm9Nj91xJPv1I5Y2JJc7ob0ayG8IdHPQ9nBQOVDbO9yfVxlYdRfCvi7+h7uEeZzJdkUqeLXWM2XocC/sxnCdTGK1d/XK2WFt9DKpuAc4k42W7avDoTuZuvMw1znoW5ZsIBeLQw5wy08RldPGRLE/Jg/+d6JBz6jhCjb3h1NNMlp4v2TzPCu/vplTczrH+LpyW4EvDaZtrH7Cy2Iiw0/LYSLrUWy5YfVKNZ2z2VB7PriAQIYhFi3DW7b7LdCZ0246RN3LZHLV+H8uH3qcBy2hACvYZLrv0gQgA1SnmtZyNYKjtmLp1ooZC39JH8g/NcIRpYjgvqLGU8OEMWlc64Y+ZFnpK5AhvaSqOmiy59yQxiAAH8QWLKixgo9wJjVMb6XeF/NN/kDoRdsQcuA5C9S8owjMLavB+sq5saRUpwlHi9rIB8pCfoIoVCCWE2YNfXNP+F+M0b182KAQwvhYmiFHvLQWFf5OiAEIM3BQqWMo/xJfLfmy+r65vlF1RvnAAAIz0lEQVRKO/Zb4fNZm5vgZ+Hst8Kmvz70mPHdms+R6F4W3CM5vveJeEWjNdJVE/dOnHmoaZJgns9m/p5iPt9lnv+3TrR9zVr6Q4B0OsubtNooC8wHg2blbZmWyrgu4bh38eV5IsJWBDAZiSyOqBZDPS68kNvqUObFw7TD+jzA92pyA240zrOYzl7jJd+CuPrKZVUGljQT4SLuN/ON71Z/MjGw7PBeq5BLQVoIuwDT18gsMFhjxYZM+EaAzXjRZgyxdszD/Vb2K23rT+wOAEX3F7t/uCa+AIIHuNzr4kmFci/D0F+Z5zuZP7Zv027Mc1Yb7SWbFvrL/mk15WT+hwxfPY1x+WcyvZB+4gJZ9v4yk8mt1OMDPpKlTSH57I28sxHEhg1P+69qdd9vbdtzAWHX9XzjDxBkY/SLeeuJve7KixBGg4dGr7MOgNg75fKDNo8L6PVDGJR5uTxqV8rP1Danpl5i9H4WUGf2RllsOz2AJwxVt5yKk0AP0eabnXiPtcu6bDO465x9O7AkUg2A70FvHARswqeLg3VVc3qjuL5QRqaCGFjAUsSeq96UTK6XssEj4qhkOiIM61jdb79kem/6lRBe41YgS4Dv3MLi6RINr03vAA5vq8Snz9VNNnmWyzLaM7y7XIL/drsdHAiJH/9wiJITSZD83Cthu217hienXWQdGamUlX6mX89txye78n2ykADAa4N1lacpAQW9csgDcimGF+HauQ9cPrfON6EnH1NX/6Rry44DGdCCLj4yv6u5r53cYFb9X3x9tRsgU0HMusiBuLTlkGTMEITri0Qc5rqeAr1wCNYS5jmWowYb4gLHsCRi4xXlIdZJQ0nkOK/9SJwnb065Wb9nANBRgLIOGZFCPAwZHIYE9437BJ9tvu13rm+mQU8OYTS6JUeSzzdZo1JetXSLH6OrBbKg6buUgMZLAsdvI8TiZn0n+BCIjmK76uXAvR166SDAzCbTOH4UfgYZB7BAuzYfvHJbrPbJypMQ8XzGNWt+4lhLcRKbHwCwQRq4e0Og0r0vQurxcdvKVTz2HDV8noDyyme0dETX71gIiHi86h1N3aOfTAWxQNopuaAHrfJPEeC5ZDr7WyK7VfyL7xvsFKWyZDoROA32a9jepxYm0jPHAxIFncmVTNGcWcg/FJzha0ifSfYx1Be+APAs7sQJHYP9xPyYmfLfYPl4IqK7IfkgWMfayRmF0vgq7Io/ElLKRKcGuST8VTI72fjnmlXzv4fVlZymjsd4j17PlAT/48Wvi0sHtY0KWlWLOM9ePftttu4J5iHthKLana9nCPCYhsDIn8yxKt7KJ6Nqgmuoq7ydKDKC81UT3RvE4LI7x1MpEHS3gbQfT2yT1La4bDNSTz8k8GmndAjI/dopJHealLDYMTXBtyvs/4Udw/JIzEQQGyid272ko4bbi/sH8I2ZIlhsCziuaSLa7Ntgp1AzhAD8MbM1mwhfkQhP8gLIicGAL+1eyniuG+qq/oVC7iMB7uR+yZojLmSt4VdV0jcxH5pIfFnx7qBZ8Q9BuDcA3st1eI3Lf0KAHMs2tWsgiyNoVp3NgmYyt85TKh8E+KshaP9GqypFSGaRrWdUNailbR+HQNMQ5dMKN6n+XqifMYrLXeaZOIPAJwL7rg2avitLB7azZoBcP3iWCDJ99OpQfQEAT+0/qG1XxvPGDfUXPqrcUkHH8ISY8sEdrs9KQHic2206GiU7NZq+oxvNSve33SCDI02UJmvUasb1+kazal9VJkk6OdqGAFdz0us9L6SLmddTCHH/SlmxbZD73Zy6qjc4Tc6nIewLiLA1MQN61aaIlUjruc8AvIHHx2fJOZGgi9WEkEwvhD8miJmPt5PzV+NWffEvma78yqzUyP0DJWxvG7h90Kzcnye+gk8cqmyvS6hAfgT6Ihjw1TYGKg9i+9nP2J/VI5HKQ11zZoxsmWv6zuWOdSBXcAxrDX9SgkaFFfJifkNc3ulchwO4/OMbzJELcymPBc0cbqRjVD4Npu9Mt8bMJW+3NDyg2xvMqlsa6kaOVrjNNSunqU7mFj8XuhJijM/dwTrfUZIiWyLIMQB4EQ/cW/munlJ4MY8nMaCbEeFClHhY6cC2LVVf4HT3q/SwgQ/VFtw2u7Pm4uPHzX3Vfe0AGNIY8A3nev2cw2YFryj7pLfZVGU2WlUPR9vQ9F0RNH2Xel51VTcyrw/yU9rr+Robat/zWvhuD1YizmDBdBUA+lfKlYc28WQBeT54rH2BpR1780RyBxG8yXe2k4tjG+uq0m7lyycraozYQwYdGK0vwWK+v8i8TI9UVaZ9ggxavs+arqj8DyByknxylVteUSGcW1Kdqi8ioAammqRYuN7Mk+5Uvk9ioTGR76cHzaqLGup8MxusyheLQfCm4MuDRmkuc1hzVPfHL/GlmL9S0mwihOhTT13VPaxAzOC2bFxkHZnpE0/WCHVplL/mCXAfnlBOCPLTaNaZ5CGBWmyN1jfg24/vhzEvs5o2sGkhl2ppIZwLajpNnhHQ2WkENl0EtBDedNte11wjoBEoAgS0EC6CRtAsaAQ0ApsuAloIb5ptr2utEdAIFAkCWggXSUNoNjQCGoFNEwEthDfNdte11ghoBIoEAS2Ee6khdDEaAY2ARsAJAS2EnVDRNI2ARkAj0EsIaCHcS0DrYjQCGgGNgBMCG68QdqqtpmkENAIagSJDQAvhImsQzY5GQCOwaSGghfCm1d66thoBjUCRIZBHIVxkNdPsaAQ0AhqBPoCAFsJ9oJE0ixoBjcDGi4AWwhtv2+qaaQQ0AgVGIB/ZayGcDxR1HhoBjYBGIEcEtBDOETidTCOgEdAI5AMBLYTzgaLOIy0CKMHrXzBWp81AR9AIKAQ2wksL4Y2wUYuxSqJUvk4AthNvJPBfTnRN0whsCghoIbwptHIR1FH9GSUSqn8iTuSG4EXpq3gwkah9GoFNBwEthDedtt7gNQ0GKn+PCNWE+DCifJoZunTVVsbRffHPGZn3TeTU1Sw0Av8PAAD//9wUWs8AAAAGSURBVAMA9HIj6Y9sex0AAAAASUVORK5CYII=" alt="Innspark Logo" class="logo-img">
+    <div class="doc-meta">
+      <span class="doc-badge">UNIVERSAL LINUX DEPLOYMENT</span><br>
+      DELHI REGIONAL OFFICE // 4 FLOORS<br>
+      REF: INN-CCTV-SYSTEMCTL-V1.0
+    </div>
+  </div>
+
+  <h1 class="main-title">24-Camera Surveillance Operations Center</h1>
+  <p class="subtitle">Complete Linux Server Deployment, Systemd / Systemctl Configuration, and VAPT Hardening Manual</p>
+
+  <!-- CHAPTER 1 -->
+  <h2>1. System Specifications & Compatibility</h2>
+  <p>Engineered to run seamlessly across <strong>ANY modern Linux distribution</strong> (Ubuntu 20.04/22.04/24.04, Debian 11/12, RHEL 8/9, Rocky Linux, AlmaLinux, CentOS Stream, Fedora, openSUSE):</p>
+  <ul>
+    <li><strong>Architecture:</strong> x86_64 (64-bit Linux).</li>
+    <li><strong>Processor:</strong> Minimum 4 CPU Cores (8 Cores recommended for high-volume 24-channel viewing).</li>
+    <li><strong>System Memory:</strong> Minimum 8 GB RAM (16 GB recommended).</li>
+    <li><strong>Storage:</strong> Fast NVMe/SSD with minimum 20 GB free space.</li>
+    <li><strong>Runtime Stack:</strong> Node.js LTS (v20+) + Embedded MediaMTX (v1.21.2) RTSP/WebRTC gateway.</li>
+  </ul>
+
+  <!-- CHAPTER 2 -->
+  <div class="avoid-break">
+    <h2>2. Network & Firewall Port Allocation</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Port</th>
+          <th>Protocol</th>
+          <th>Scope</th>
+          <th>Service / Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>3000</strong></td>
+          <td>TCP</td>
+          <td>Internal / Proxy</td>
+          <td>Node.js Express Web Dashboard & REST API</td>
+        </tr>
+        <tr>
+          <td><strong>80 / 443</strong></td>
+          <td>TCP</td>
+          <td>Public / LAN</td>
+          <td>HTTP / HTTPS Nginx Reverse Proxy & WebSockets</td>
+        </tr>
+        <tr>
+          <td><strong>8554</strong></td>
+          <td>TCP</td>
+          <td>LAN / Subnet</td>
+          <td>MediaMTX RTSP Ingestion & Camera Proxy</td>
+        </tr>
+        <tr>
+          <td><strong>8889</strong></td>
+          <td>TCP</td>
+          <td>LAN / WAN</td>
+          <td>MediaMTX WebRTC (WHEP) HTTP Signaling</td>
+        </tr>
+        <tr>
+          <td><strong>8189</strong></td>
+          <td>UDP</td>
+          <td>LAN / WAN</td>
+          <td>MediaMTX WebRTC ICE Media Streaming</td>
+        </tr>
+        <tr>
+          <td><strong>8888</strong></td>
+          <td>TCP</td>
+          <td>LAN / WAN</td>
+          <td>MediaMTX Low-Latency HLS Fallback Stream</td>
+        </tr>
+        <tr>
+          <td><strong>9997</strong></td>
+          <td>TCP</td>
+          <td><strong>Localhost Only</strong></td>
+          <td>MediaMTX Dynamic REST Control API (Bound to 127.0.0.1)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CHAPTER 3 -->
+  <div class="avoid-break">
+    <h2>3. Automated 1-Command Production Setup</h2>
+    <p>To deploy the entire stack automatically on any Linux server (creates unprivileged user, extracts files, installs dependencies, and configures systemd):</p>
+    <div class="code-block"><span class="cmd-comment"># 1. Unzip the deployment archive</span>
+unzip inncctv-enterprise-linux.zip -d /tmp/inncctv-pkg
+cd /tmp/inncctv-pkg
+
+<span class="cmd-comment"># 2. Run the automated installer with root privileges</span>
+sudo bash deploy/setup-server.sh</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 4 -->
+  <h2>4. Step-by-Step Manual Linux Deployment</h2>
+  <p>If you prefer full control over every step on your Linux server, run the following commands:</p>
+
+  <h3>Step 4.1: Install Prerequisites (Ubuntu/Debian)</h3>
+  <div class="code-block">sudo apt-get update -y && sudo apt-get upgrade -y
+sudo apt-get install -y curl wget unzip ffmpeg ufw nginx</div>
+
+  <h3>Step 4.1 (Alternative): Install Prerequisites (RHEL / Rocky / AlmaLinux)</h3>
+  <div class="code-block">sudo dnf check-update -y && sudo dnf install -y epel-release
+sudo dnf install -y curl wget unzip ffmpeg firewalld nginx</div>
+
+  <h3>Step 4.2: Install Node.js LTS (v20+)</h3>
+  <div class="code-block">curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs   # On RHEL: sudo dnf install -y nodejs
+node -v && npm -v</div>
+
+  <h3>Step 4.3: Create Dedicated System User (Security Hardening)</h3>
+  <div class="code-block">sudo useradd -r -s /usr/sbin/nologin -d /opt/inncctv inncctv</div>
+
+  <h3>Step 4.4: Deploy Files to <code>/opt/inncctv</code></h3>
+  <div class="code-block">sudo mkdir -p /opt/inncctv
+sudo unzip inncctv-enterprise-linux.zip -d /opt/inncctv/</div>
+
+  <h3>Step 4.5: Install Node.js Production Dependencies</h3>
+  <div class="code-block">cd /opt/inncctv
+sudo npm install --omit=dev</div>
+
+  <h3>Step 4.6: Set Executable Flags & Folder Permissions</h3>
+  <div class="code-block">sudo chmod +x /opt/inncctv/bin/mediamtx
+sudo chmod +x /opt/inncctv/start.sh /opt/inncctv/stop.sh
+sudo chown -R inncctv:inncctv /opt/inncctv</div>
+
+  <!-- CHAPTER 5 -->
+  <div class="page-break"></div>
+  <h2>5. Systemctl Configuration & Service Management (ANY Linux Machine)</h2>
+  <p>The systemd service unit ensures the CCTV dashboard runs 24/7 in the background, recovers automatically from any unexpected crash, and boots automatically upon server power-on.</p>
+
+  <div class="callout">
+    <div class="callout-title">One-Click Automatic Systemd Setup (Recommended)</div>
+    You can install and start the systemctl service immediately with one command from the project root:<br/>
+    <code>sudo ./install-systemd.sh</code><br/>
+    <em>To uninstall later, run: <code>sudo ./uninstall-systemd.sh</code></em>
+  </div>
+
+  <h3>5.1: The Production Service Unit File (<code>/etc/systemd/system/inncctv.service</code>)</h3>
+  <div class="code-block">[Unit]
+Description=Innspark Enterprise 24-Camera Surveillance Operations Center
+After=network.target remote-fs.target nss-lookup.target
+
+[Service]
+Type=simple
+User=inncctv
+Group=inncctv
+WorkingDirectory=/opt/inncctv
+ExecStart=/usr/bin/env node /opt/inncctv/server/index.js
+Restart=always
+RestartSec=5s
+
+# Production Environment Variables
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=ADMIN_PASSWORD=innspark@2026
+Environment=INNCCTV_SECRET=innspark_secure_production_token_secret_key_2026
+
+# CIS Benchmark Linux Sandboxing
+ProtectSystem=full
+ProtectHome=true
+NoNewPrivileges=true
+PrivateTmp=true
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target</div>
+
+  <h3>5.2: Complete Systemctl Command Reference</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Action</th>
+        <th>Linux Command</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Install Unit File</strong></td>
+        <td><code>sudo cp /opt/inncctv/deploy/inncctv.service /etc/systemd/system/</code></td>
+        <td>Copies unit file to systemd directory</td>
+      </tr>
+      <tr>
+        <td><strong>Reload Systemd</strong></td>
+        <td><code>sudo systemctl daemon-reload</code></td>
+        <td>Notifies systemd of new/changed service unit</td>
+      </tr>
+      <tr>
+        <td><strong>Enable Auto-Boot</strong></td>
+        <td><code>sudo systemctl enable inncctv.service</code></td>
+        <td>Configures service to launch on server boot</td>
+      </tr>
+      <tr>
+        <td><strong>Start Service</strong></td>
+        <td><code>sudo systemctl start inncctv.service</code></td>
+        <td>Launches dashboard & streaming gateway</td>
+      </tr>
+      <tr>
+        <td><strong>Check Live Status</strong></td>
+        <td><code>sudo systemctl status inncctv.service</code></td>
+        <td>Displays active state, uptime, PID & recent logs</td>
+      </tr>
+      <tr>
+        <td><strong>Restart Service</strong></td>
+        <td><code>sudo systemctl restart inncctv.service</code></td>
+        <td>Gracefully restarts dashboard & camera streams</td>
+      </tr>
+      <tr>
+        <td><strong>Stop Service</strong></td>
+        <td><code>sudo systemctl stop inncctv.service</code></td>
+        <td>Safely stops all monitoring & camera feeds</td>
+      </tr>
+      <tr>
+        <td><strong>Check Boot Status</strong></td>
+        <td><code>sudo systemctl is-enabled inncctv.service</code></td>
+        <td>Verifies service will start on server reboot</td>
+      </tr>
+      <tr>
+        <td><strong>Stream Live Logs</strong></td>
+        <td><code>sudo journalctl -u inncctv.service -f</code></td>
+        <td>Follows live console & camera connection logs</td>
+      </tr>
+      <tr>
+        <td><strong>Inspect Errors</strong></td>
+        <td><code>sudo journalctl -u inncctv.service -p err -e</code></td>
+        <td>Filters and displays recent error events</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <div class="callout-title">Universal Compatibility Note</div>
+    By utilizing <code>ExecStart=/usr/bin/env node</code>, the service automatically detects the correct Node.js binary location on any Linux distribution (whether installed under <code>/usr/bin/node</code>, <code>/usr/local/bin/node</code>, or custom paths).
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- CHAPTER 6 -->
+  <h2>6. Nginx Reverse Proxy & SSL/TLS Configuration</h2>
+  <p>To serve the dashboard over standard port 80/443 with WebSocket upgrading and TLS encryption:</p>
+  <div class="code-block"><span class="cmd-comment"># Copy pre-configured Nginx reverse proxy configuration</span>
+sudo cp /opt/inncctv/deploy/nginx-inncctv.conf /etc/nginx/sites-available/inncctv
+sudo ln -sf /etc/nginx/sites-available/inncctv /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl restart nginx
+
+<span class="cmd-comment"># Obtain Free SSL Certificate via Let's Encrypt / Certbot</span>
+sudo apt-get install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d cctv.yourcompany.com</div>
+
+  <!-- CHAPTER 7 -->
+  <h2>7. VAPT & Security Hardening Verification</h2>
+  <div class="callout">
+    <div class="callout-title">VAPT Compliance Summary</div>
+    The dashboard includes active defenses for OWASP Top 10 web vulnerabilities including anti-brute-force rate limiting, scrypt salted password hashing, HMAC-SHA256 tokens, strict CSP headers, and input sanitization against shell command injection.
+  </div>
+
+  <h3>Verification Commands (Run in Terminal to Validate):</h3>
+  <div class="code-block"><span class="cmd-comment"># 1. Verify Security Headers (Information Disclosure Protection)</span>
+curl -s -I http://localhost:3000/ | grep -E "(X-Frame|X-Content|X-XSS|Content-Security|X-Powered-By)"
+
+<span class="cmd-comment"># 2. Test Input Injection Sanitization (Should return HTTP 400 Bad Request)</span>
+curl -s -X POST http://localhost:3000/api/cameras \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","floor":1,"ip":"invalid-ip","rtspUrl":"rtsp://evil;rm -rf /"}'
+
+<span class="cmd-comment"># 3. Test Anti-Brute-Force Rate Limiting (Triggers lockout after 5 failed attempts)</span>
+for i in {1..6}; do
+  curl -s -X POST http://localhost:3000/api/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"username":"admin","password":"wrongpassword"}'
+  echo ""
+done</div>
+
+  <!-- CHAPTER 8 -->
+  <h2>8. Operations, Backup & Credentials</h2>
+  <p><strong>Default Access:</strong> URL: <code>http://&lt;SERVER_IP&gt;:3000</code> &nbsp;|&nbsp; User: <code>admin</code> &nbsp;|&nbsp; Password: <code>innspark@2026</code></p>
+  <div class="code-block"><span class="cmd-comment"># Backup 24-camera configuration to file</span>
+sudo cp /opt/inncctv/config/cameras.json /opt/cameras_backup_$(date +%F).json
+
+<span class="cmd-comment"># Restore configuration from backup</span>
+sudo cp /opt/cameras_backup_2026-10-15.json /opt/inncctv/config/cameras.json
+sudo systemctl restart inncctv.service</div>
+
+  <!-- FOOTER -->
+  <div class="footer-stamp">
+    <span>Innspark Solutions // Security Operations Center</span>
+    <span>Document Ref: INN-CCTV-SYSTEMCTL-V1.0 // Delhi Office</span>
+  </div>
+
+</body>
+</html>

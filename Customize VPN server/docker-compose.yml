@@ -1,0 +1,125 @@
+# =========================================================================
+# SSL VPN server — Docker Compose deployment
+#
+# Two deployment modes (choose ONE; they share ./config and ./certs):
+#
+#   1. Mock TUN (default)  — in-memory tunnel, no privileges required.
+#        docker compose up -d
+#   2. Real TUN + NAT      — kernel TUN device + NAT for production traffic.
+#        docker compose --profile real-tun up -d
+#
+# Real-mode host prerequisites:
+#   * /dev/net/tun present    (check: ls -l /dev/net/tun)
+#   * host IP forwarding      (sudo sysctl -w net.ipv4.ip_forward=1)
+#   * WAN interface for NAT   (auto-detected, or set SSLVPN_WAN_INTERFACE)
+#
+# NOTE: both services use host networking because this host's Docker daemon
+# cannot program bridge DNAT rules. On hosts with a healthy Docker bridge,
+# you can use bridge networking + port publishing instead (see the sslvpn
+# service comment).
+#
+# =========================================================================
+name: sslvpn
+
+services:
+  # ---- Mode 1: mock TUN (default profile) ---------------------------------
+  # In-memory TUN device; no root, /dev/net/tun or NET_ADMIN required.
+  sslvpn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: innspark/sslvpn:1.0.0
+    container_name: sslvpn-server
+    restart: unless-stopped
+    environment:
+      # listener
+      SSLVPN_HOST: "0.0.0.0"
+      SSLVPN_PORT: "443"
+      SSLVPN_TLS_MIN_VERSION: "TLSv1_2"
+      SSLVPN_SERVER_NAME: "${SSLVPN_SERVER_NAME:-vpn.local}"
+      # auth
+      SSLVPN_AUTH_MODE: "password"
+      # network
+      SSLVPN_VPN_SUBNET: "10.8.0.0/24"
+      SSLVPN_SERVER_IP: "10.8.0.1"
+      SSLVPN_IP_POOL_START: "10.8.0.10"
+      SSLVPN_IP_POOL_END: "10.8.0.250"
+      SSLVPN_MTU: "1400"
+      SSLVPN_TUN_NAME: "ssl0"
+      SSLVPN_DNS_SERVERS: "8.8.8.8,1.1.1.1"
+      SSLVPN_MAX_CLIENTS: "50"
+      # logging
+      SSLVPN_LOG_LEVEL: "INFO"
+      # TUN mode: force MOCK (this is the privilege-free deployment)
+      SSLVPN_MOCK: "1"
+      # first-run admin password (only used when users.json has no users)
+      SSLVPN_ADMIN_PASSWORD: "${SSLVPN_ADMIN_PASSWORD:-}"
+    # host networking: the TLS listener binds on the host interface directly
+    network_mode: host
+    # bridge alternative (requires a healthy Docker bridge / DNAT):
+    #   ports:
+    #     - "${SSLVPN_HOST_PORT:-443}:443"
+    volumes:
+      # persistent config + users (edit users.json / run add-user)
+      - ./config:/app/config
+      # persistent certificates
+      - ./certs:/app/certs
+
+  # ---- Web GUI Management Portal -----------------------------------------
+  sslvpn-gui:
+    image: innspark/sslvpn:1.0.0
+    container_name: sslvpn-gui
+    restart: unless-stopped
+    command: ["python3", "/app/vpn_web_gui.py", "--host", "0.0.0.0", "--port", "8080"]
+    network_mode: host
+    volumes:
+      - ./config:/app/config
+      - ./certs:/app/certs
+      - ./web:/app/web:ro
+      - ./vpn_web_gui.py:/app/vpn_web_gui.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # ---- Mode 2: real TUN + NAT (profile: real-tun) --------------------------
+  # Kernel TUN device + iptables NAT. Uses host networking so the TUN
+  # interface and NAT rules live in the host namespace and VPN clients can
+  # reach the LAN/internet through the host's real WAN interface.
+  #   docker compose --profile real-tun up -d
+  sslvpn-real:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: innspark/sslvpn:1.0.0
+    container_name: sslvpn-server-real
+    restart: unless-stopped
+    profiles: ["real-tun"]
+    environment:
+      SSLVPN_HOST: "0.0.0.0"
+      SSLVPN_PORT: "443"
+      SSLVPN_TLS_MIN_VERSION: "TLSv1_2"
+      SSLVPN_SERVER_NAME: "${SSLVPN_SERVER_NAME:-vpn.local}"
+      SSLVPN_AUTH_MODE: "password"
+      SSLVPN_VPN_SUBNET: "10.8.0.0/24"
+      SSLVPN_SERVER_IP: "10.8.0.1"
+      SSLVPN_IP_POOL_START: "10.8.0.10"
+      SSLVPN_IP_POOL_END: "10.8.0.250"
+      SSLVPN_MTU: "1400"
+      SSLVPN_TUN_NAME: "ssl0"
+      # NAT: leave WAN empty to auto-detect the default-route interface
+      SSLVPN_WAN_INTERFACE: "${SSLVPN_WAN_INTERFACE:-}"
+      SSLVPN_ENABLE_NAT: "true"
+      SSLVPN_ENABLE_IP_FORWARD: "true"
+      SSLVPN_DNS_SERVERS: "8.8.8.8,1.1.1.1"
+      SSLVPN_MAX_CLIENTS: "50"
+      SSLVPN_LOG_LEVEL: "INFO"
+      # real kernel TUN mode
+      SSLVPN_MOCK: "0"
+      SSLVPN_ADMIN_PASSWORD: "${SSLVPN_ADMIN_PASSWORD:-}"
+    # host networking: ssl0 + NAT rules are created in the host namespace
+    network_mode: host
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./config:/app/config
+      - ./certs:/app/certs

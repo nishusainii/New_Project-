@@ -1,0 +1,76 @@
+# ==============================================================================
+# PROMETHEUS SCRAPE CONFIGURATION (Add this to prometheus.yml on Grafana/Prometheus Server)
+# Replace <SQUID_SERVER_IP> with the IP/Hostname of your Squid production server.
+# ==============================================================================
+
+scrape_configs:
+
+  # ----------------------------------------------------------------------------
+  # 1. Host OS & Hardware Metrics (CPU, RAM, Disk, Network)
+  # ----------------------------------------------------------------------------
+  - job_name: 'squid-node-exporter'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['<SQUID_SERVER_IP>:9100']
+        labels:
+          instance: 'squid-prod-server'
+          role: 'proxy'
+
+  # ----------------------------------------------------------------------------
+  # 2. Squid Cache Manager Metrics (Requests, Cache Hits, FDs, Clients)
+  # ----------------------------------------------------------------------------
+  - job_name: 'squid-exporter'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['<SQUID_SERVER_IP>:9301']
+        labels:
+          instance: 'squid-prod-server'
+          service: 'squid-proxy'
+
+  # ----------------------------------------------------------------------------
+  # 3. Blackbox: TCP Port Health (Checks if Squid port 3128 is accepting connections)
+  # ----------------------------------------------------------------------------
+  - job_name: 'squid-blackbox-tcp'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+          - '<SQUID_SERVER_IP>:3128'
+        labels:
+          check: 'squid-port-health'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: '<SQUID_SERVER_IP>:9115' # Squid server's blackbox exporter address
+
+  # ----------------------------------------------------------------------------
+  # 4. Blackbox: End-to-End Synthetic HTTP Probing Through Squid Proxy
+  # Verifies that external websites can actually be fetched through Squid
+  # ----------------------------------------------------------------------------
+  - job_name: 'squid-blackbox-proxy-traffic'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: /probe
+    params:
+      module: [squid_http_proxy]
+    static_configs:
+      - targets:
+          - 'http://connectivitycheck.gstatic.com/generate_204'
+          - 'http://www.google.com'
+        labels:
+          check: 'squid-browsing-check'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: '<SQUID_SERVER_IP>:9115' # Squid server's blackbox exporter address

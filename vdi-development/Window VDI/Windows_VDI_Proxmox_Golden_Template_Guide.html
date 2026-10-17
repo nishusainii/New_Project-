@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Windows 10 / 11 VDI Golden Template Implementation Guide - Proxmox VE</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+  
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    color: #2d3748;
+    line-height: 1.6;
+    font-size: 10.5pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cover {
+    page-break-after: always;
+    padding-top: 50px;
+    text-align: center;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 22px;
+    border: 1px solid #bee3f8;
+  }
+
+  .cover h1 {
+    font-size: 26pt;
+    color: #1a365d;
+    margin: 0 0 14px 0;
+    line-height: 1.25;
+    font-weight: 800;
+  }
+
+  .cover h2 {
+    font-size: 14pt;
+    color: #4a5568;
+    font-weight: 400;
+    margin: 0 0 35px 0;
+    line-height: 1.5;
+  }
+
+  .meta-box {
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 18px 22px;
+    text-align: left;
+    max-width: 540px;
+    margin: 30px auto;
+  }
+
+  .meta-box table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .meta-box td {
+    padding: 5px 8px;
+    font-size: 9.5pt;
+  }
+
+  .meta-box td.label {
+    font-weight: 600;
+    color: #4a5568;
+    width: 38%;
+  }
+
+  .meta-box td.value {
+    color: #1a202c;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  h1, h2, h3, h4 {
+    color: #1a365d;
+    font-weight: 700;
+  }
+
+  h1 {
+    font-size: 17pt;
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 5px;
+    margin-top: 28px;
+    margin-bottom: 14px;
+    page-break-after: avoid;
+  }
+
+  h2 {
+    font-size: 13.5pt;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    color: #2b6cb0;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 11.5pt;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    color: #2d3748;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 10px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 22px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background-color: #edf2f7;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #c53030;
+  }
+
+  pre {
+    background-color: #1a202c;
+    color: #f7fafc;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 8.5pt;
+    line-height: 1.45;
+    overflow-x: auto;
+    margin: 10px 0 14px 0;
+    border-left: 4px solid #3182ce;
+    page-break-inside: avoid;
+  }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+
+  table.data-table th, table.data-table td {
+    border: 1px solid #cbd5e0;
+    padding: 7px 10px;
+    text-align: left;
+  }
+
+  table.data-table th {
+    background-color: #ebf8ff;
+    color: #2c5282;
+    font-weight: 600;
+  }
+
+  table.data-table tr:nth-child(even) {
+    background-color: #f7fafc;
+  }
+
+  .callout {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+
+  .callout-info {
+    background-color: #ebf8ff;
+    border-left: 4px solid #3182ce;
+    color: #2b6cb0;
+  }
+
+  .callout-success {
+    background-color: #f0fff4;
+    border-left: 4px solid #38a169;
+    color: #276749;
+  }
+
+  .callout-warning {
+    background-color: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    color: #9c4221;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover Page -->
+<div class="cover">
+  <div class="cover-badge">Enterprise Engineering Guide</div>
+  <h1>Windows 10 / 11 VDI Golden Template Implementation</h1>
+  <h2>Deploying a High-Density, Low-Latency Windows VDI Golden Image on Proxmox VE<br>with VirtIO Drivers, Sysprep Generalization, and RDP / Guacamole Access</h2>
+
+  <div class="meta-box">
+    <table>
+      <tr>
+        <td class="label">Proxmox Cluster/Host:</td>
+        <td class="value">prox000innspark (10.31.1.163)</td>
+      </tr>
+      <tr>
+        <td class="label">Guacamole Gateway:</td>
+        <td class="value">https://10.31.4.55/ (RDP Port 3389)</td>
+      </tr>
+      <tr>
+        <td class="label">Target OS:</td>
+        <td class="value">Windows 11 Enterprise (23H2/24H2) / Win 10 (22H2)</td>
+      </tr>
+      <tr>
+        <td class="label">Hypervisor Hardware:</td>
+        <td class="value">q35 | OVMF UEFI | vTPM 2.0 | VirtIO-SCSI</td>
+      </tr>
+      <tr>
+        <td class="label">Remote Transport:</td>
+        <td class="value">Remote Desktop (RDP / NLA) + SPICE QXL</td>
+      </tr>
+      <tr>
+        <td class="label">Driver Suite:</td>
+        <td class="value">Fedora VirtIO Drivers (vioscsi, NetKVM, Balloon)</td>
+      </tr>
+      <tr>
+        <td class="label">Automation Toolkit:</td>
+        <td class="value">optimize-and-seal-windows-vdi.ps1 + unattend.xml</td>
+      </tr>
+      <tr>
+        <td class="label">Storage Pool:</td>
+        <td class="value">local-lvm (LVM-Thin, Discard/TRIM=on, SSD=1)</td>
+      </tr>
+      <tr>
+        <td class="label">Execution Status:</td>
+        <td class="value" style="color: #276749; font-weight: bold;">Verified Production Standard</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 1: Overview & Architecture -->
+<h1>1. Overview and Architecture</h1>
+<p>
+Virtual Desktop Infrastructure (VDI) running Windows on Proxmox VE provides high compute consolidation, centralized data security, and instantaneous workstation cloning. However, consumer Windows operating systems running on shared hypervisors suffer from severe disk write amplification and CPU starvation unless properly paravirtualized and optimized.
+</p>
+<p>
+This implementation establishes a hardened, optimized <strong>Windows VDI Golden Image</strong> utilizing the modern <code>q35</code> PCIe bus architecture, <code>OVMF (UEFI)</code> firmware, <code>vTPM 2.0</code> (swtpm), and paravirtualized <code>VirtIO</code> drivers. Users access their virtual desktops over high-performance <strong>Remote Desktop Protocol (RDP)</strong> directly or via an HTML5 browser session through <strong>Apache Guacamole (10.31.4.55)</strong>.
+</p>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Component</th>
+      <th>Configuration Specification</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Hypervisor</strong></td>
+      <td>Proxmox VE 8.x</td>
+      <td>Host CPU emulation (<code>cpu=host</code>), IOThreads enabled, TRIM/Discard enabled.</td>
+    </tr>
+    <tr>
+      <td><strong>Virtual Hardware</strong></td>
+      <td>q35 & OVMF & vTPM</td>
+      <td>PCIe bus, 4MB EFI Disk with pre-enrolled keys, dedicated TPM 2.0 state.</td>
+    </tr>
+    <tr>
+      <td><strong>Storage Controller</strong></td>
+      <td>VirtIO SCSI Single</td>
+      <td><code>virtio-scsi-single</code> with <code>iothread=1</code> and <code>discard=on,ssd=1</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>Network Adapter</strong></td>
+      <td>VirtIO Network</td>
+      <td><code>virtio</code> paravirtualized NIC bridged to <code>vmbr0</code> with optional VLAN.</td>
+    </tr>
+    <tr>
+      <td><strong>Display & Audio</strong></td>
+      <td>SPICE QXL & HDA</td>
+      <td><code>qxl</code> display (64MB) + <code>ich9-intel-hda</code> audio for remote multimedia.</td>
+    </tr>
+    <tr>
+      <td><strong>Remote Access</strong></td>
+      <td>RDP & Guacamole</td>
+      <td>Port 3389 with NLA, managed by Apache Guacamole Gateway.</td>
+    </tr>
+    <tr>
+      <td><strong>Image Sealing</strong></td>
+      <td>Sysprep Generalization</td>
+      <td>Automated via <code>unattend.xml</code> with <code>PersistAllDeviceInstalls=true</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Section 2: Virtual Machine Hardware Profile -->
+<h1>2. Virtual Machine Hardware Profile</h1>
+<p>
+The build virtual machine is configured with production-grade virtualization parameters:
+</p>
+<ul>
+  <li><strong>VM ID</strong>: <code>9100</code> (Build VM ID, converted to immutable template upon sealing)</li>
+  <li><strong>Processors</strong>: 4 vCPUs (1 socket, 4 cores), Type: <code>host</code> (exposes AVX2/SSE4.2 instructions for browser video decode)</li>
+  <li><strong>Memory</strong>: 8192 MB (8 GB), Fixed RAM (Ballooning disabled <code>balloon=0</code> for consistent VDI latency)</li>
+  <li><strong>System Disk</strong>: 64 GB on <code>local-lvm</code> (VirtIO SCSI, SSD emulation, Discard/TRIM enabled)</li>
+  <li><strong>Firmware & TPM</strong>: OVMF (UEFI 4M) + vTPM 2.0 (Required for Windows 11 attestation & BitLocker)</li>
+  <li><strong>Guest Agent</strong>: QEMU Guest Agent enabled (<code>agent: enabled=1,fstrim_cloned_disks=1</code>)</li>
+</ul>
+
+<div class="callout callout-info">
+  <strong>Why Fixed RAM?</strong> Dynamic memory ballooning in Windows desktop sessions can cause unpredictable micro-stuttering during active user sessions. Setting <code>balloon=0</code> ensures guaranteed response times across all VDI endpoints.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 3: Step-by-Step Build VM Creation -->
+<h1>3. Step-by-Step Build VM Creation</h1>
+<p>
+The build VM can be instantiated instantly via the included Proxmox host bash automation script or executed manually in the PVE shell.
+</p>
+
+<pre># Run automated build script on Proxmox VE Host Shell (as root)
+/home/nishusaini/Desktop/Innspark/vdi-development/scripts/create-windows-vdi-build-vm.sh</pre>
+
+<p>Equivalent raw CLI commands executed by the script:</p>
+<pre>qm create 9100 \
+    --name win11-vdi-gold-build \
+    --machine q35 \
+    --bios ovmf \
+    --cpu host \
+    --cores 4 \
+    --sockets 1 \
+    --memory 8192 \
+    --balloon 0 \
+    --scsihw virtio-scsi-single \
+    --net0 virtio,bridge=vmbr0 \
+    --agent enabled=1,fstrim_cloned_disks=1 \
+    --vga qxl,memory=64 \
+    --audio0 device=ich9-intel-hda,driver=spice \
+    --ostype win11
+
+# Add 4MB EFI Disk with Pre-Enrolled Keys
+qm set 9100 --efidisk0 local-lvm:0,pre-enrolled-keys=1,efitype=4m
+
+# Add Virtual TPM 2.0 State
+qm set 9100 --tpmstate0 local-lvm:0,version=v2.0
+
+# Create 64GB VirtIO SCSI Disk with TRIM and SSD Emulation
+qm set 9100 --scsi0 local-lvm:64,discard=on,ssd=1,iothread=1
+
+# Attach Windows Installation ISO (ide0) and VirtIO Drivers ISO (ide2)
+qm set 9100 --ide0 local:iso/Win11_23H2_English_x64.iso,media=cdrom
+qm set 9100 --ide2 local:iso/virtio-win.iso,media=cdrom
+
+# Set Boot Sequence: Windows Installer ISO first, SCSI disk second
+qm set 9100 --boot order=ide0;scsi0</pre>
+
+<!-- Section 4: Windows Installation & VirtIO Driver Injection -->
+<h1>4. Windows Installation & VirtIO Driver Loading</h1>
+<ol>
+  <li>Start the VM in Proxmox: <code>qm start 9100</code>.</li>
+  <li>Open the Proxmox Console (SPICE or noVNC).</li>
+  <li>Press any key when prompted to boot from the CD-ROM.</li>
+  <li>In Windows Setup, select language/keyboard preferences and click <strong>Install now</strong>.</li>
+  <li>When reaching <em>"Where do you want to install Windows?"</em>, the drive list will be blank:
+    <ul>
+      <li>Click <strong>Load driver</strong> &rarr; click <strong>Browse</strong>.</li>
+      <li>Expand the <strong>virtio-win</strong> CD drive.</li>
+      <li>Browse to: <code>vioscsi</code> &rarr; <code>w11</code> (or <code>w10</code>) &rarr; <code>amd64</code>.</li>
+      <li>Select <strong>Red Hat VirtIO SCSI controller</strong> &rarr; click <strong>Next</strong>.</li>
+      <li>The 64GB drive appears immediately.</li>
+    </ul>
+  </li>
+  <li>Select <strong>Drive 0 Unallocated Space</strong> and click <strong>Next</strong> to install.</li>
+</ol>
+
+<!-- Section 5: VirtIO Guest Tools & QEMU Agent -->
+<h1>5. VirtIO Guest Tools & QEMU Agent Installation</h1>
+<p>
+Once booted into the Windows desktop:
+</p>
+<ol>
+  <li>Open <strong>File Explorer</strong> &rarr; navigate to <strong>This PC</strong> &rarr; double-click the <strong>virtio-win</strong> CD drive.</li>
+  <li>Run <strong><code>virtio-win-guest-tools.exe</code></strong>.</li>
+  <li>Proceed through the wizard with default selections. This installs:
+    <ul>
+      <li><strong>NetKVM</strong> (VirtIO Ethernet adapter & driver)</li>
+      <li><strong>vioscsi</strong> (VirtIO SCSI storage driver)</li>
+      <li><strong>vioser</strong> (VirtIO Serial driver)</li>
+      <li><strong>BalloonService</strong> (VirtIO memory management service)</li>
+      <li><strong>qemu-ga</strong> (QEMU Guest Agent service)</li>
+      <li><strong>SPICE vdagent</strong> (Clipboard sharing & dynamic resolution scaling)</li>
+    </ul>
+  </li>
+</ol>
+
+<div class="callout callout-success">
+  <strong>Verification from Proxmox Host:</strong> Verify guest agent health with <code>qm guest ping 9100</code>. When successful, the guest IP address is automatically visible in the Proxmox summary dashboard.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 6: Remote Desktop & Guacamole Integration -->
+<h1>6. Remote Desktop (RDP) & Guacamole Integration</h1>
+<p>
+Enable Remote Desktop and configure high-performance audio redirection in PowerShell:
+</p>
+<pre># Enable RDP and Network Level Authentication
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name "fDenyTSConnections" -Value 0
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value 1
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+# Enable High Quality Audio & Microphone Redirection over RDP
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "fDisableAudioCapture" -Value 0
+Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "fDisableCam" -Value 0</pre>
+
+<h3>Apache Guacamole Connection Parameters (10.31.4.55)</h3>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Value</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Protocol</strong></td>
+      <td><code>rdp</code></td>
+      <td>Standard Remote Desktop Protocol.</td>
+    </tr>
+    <tr>
+      <td><strong>Hostname</strong></td>
+      <td><code>&lt;CLONE_IP_ADDRESS&gt;</code></td>
+      <td>Assigned IP address of the cloned Windows VM.</td>
+    </tr>
+    <tr>
+      <td><strong>Port</strong></td>
+      <td><code>3389</code></td>
+      <td>Default RDP listening port.</td>
+    </tr>
+    <tr>
+      <td><strong>Security mode</strong></td>
+      <td><code>NLA</code> (Network Level Authentication)</td>
+      <td>High-security TLS-authenticated session.</td>
+    </tr>
+    <tr>
+      <td><strong>Ignore cert</strong></td>
+      <td><code>true</code></td>
+      <td>Bypasses self-signed Windows RDP certificate warnings.</td>
+    </tr>
+    <tr>
+      <td><strong>Enable audio</strong></td>
+      <td><code>true</code></td>
+      <td>Streams high-fidelity audio directly to the web browser.</td>
+    </tr>
+    <tr>
+      <td><strong>Color depth</strong></td>
+      <td><code>32-bit</code> or <code>24-bit</code></td>
+      <td>Full 24-bit/32-bit TrueColor desktop experience.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Section 7: Enterprise VDI Optimization -->
+<h1>7. Enterprise VDI Optimization & Debloating</h1>
+<p>
+Standard Windows includes consumer processes that create massive storage IOPS write amplification across virtual desktop pools. The optimization script applies the following core tunings:
+</p>
+<ul>
+  <li><strong>Disable Hibernation</strong> (<code>powercfg /h off</code>): Reclaims 8GB+ disk space (<code>hiberfil.sys</code>) and prevents Fast Startup corruption in linked clones.</li>
+  <li><strong>Disable SysMain / Superfetch</strong>: Eliminates write bursts to hypervisor SSD/SAN arrays.</li>
+  <li><strong>Disable Windows Search Indexer (WSearch)</strong>: Stops perpetual background indexing across clones.</li>
+  <li><strong>Disable Scheduled Defragmentation</strong>: Hypervisor TRIM/Discard manages SSD blocks automatically.</li>
+  <li><strong>Disable Telemetry & Consumer Experiences</strong>: Blocks automatic background installation of consumer games and advertising apps.</li>
+  <li><strong>Visual Effects Tuning</strong>: Disables window animations and drop shadows while retaining <strong>Smooth Font Edges (ClearType)</strong> for crisp readability.</li>
+</ul>
+
+<!-- Section 8: Sysprep Generalization & Unattend.xml -->
+<h1>8. Sysprep Generalization & Unattend.xml</h1>
+<p>
+To prevent SID collisions and ensure zero-touch clone initialization, the Golden Image is generalized with Microsoft Sysprep using a custom answer file.
+</p>
+
+<div class="callout callout-warning">
+  <strong>CRITICAL SAFEGUARD: PersistAllDeviceInstalls</strong><br>
+  By default, <code>sysprep /generalize</code> uninstalls third-party drivers. Without <code>&lt;PersistAllDeviceInstalls&gt;true&lt;/PersistAllDeviceInstalls&gt;</code>, Windows uninstalls the VirtIO SCSI controller, causing a fatal <code>INACCESSIBLE_BOOT_DEVICE</code> blue screen on clone boot. Our answer file ensures all VirtIO drivers remain permanently locked in the system.
+</div>
+
+<p>Execute the all-in-one optimization and sealing suite inside Windows PowerShell as Administrator:</p>
+<pre># Run automated guest optimization and Sysprep sealing
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\optimize-and-seal-windows-vdi.ps1</pre>
+
+<p>The script cleans AppX packages, purges event logs, resets the component store, stages <code>unattend.xml</code>, and initiates Sysprep with system shutdown:</p>
+<pre>sysprep.exe /generalize /oobe /shutdown /unattend:C:\Windows\System32\Sysprep\unattend.xml</pre>
+
+<div class="page-break"></div>
+
+<!-- Section 9: Template Conversion & Instant Cloning -->
+<h1>9. Template Conversion & Instant Cloning</h1>
+<p>
+Once the build VM powers down following Sysprep:
+</p>
+
+<pre># 1. Detach setup ISOs so clones do not carry installation media
+qm set 9100 --delete ide0
+qm set 9100 --delete ide2
+
+# 2. Set boot order directly to primary SCSI disk
+qm set 9100 --boot order=scsi0
+
+# 3. Create a compressed safety backup
+vzdump 9100 --mode stop --compress zstd --storage local
+
+# 4. Convert VM 9100 into an immutable template
+qm template 9100</pre>
+
+<h3>Provisioning Linked Clones (Sub-10 Second Deployments)</h3>
+<pre># Create Linked Clones in seconds
+qm clone 9100 9101 --name win11-vdi-01 --full 0
+qm clone 9100 9102 --name win11-vdi-02 --full 0
+
+# Start Clones
+qm start 9101
+qm start 9102</pre>
+
+<!-- Section 10: Multi-Clone Uniqueness Validation -->
+<h1>10. Multi-Clone Uniqueness Validation</h1>
+<p>
+To verify that Sysprep has properly generalized identities across clones, execute the verification script directly on the Proxmox host:
+</p>
+
+<pre>/home/nishusaini/Desktop/Innspark/vdi-development/scripts/verify-windows-clone-uniqueness.sh 9101 9102</pre>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Validation Metric</th>
+      <th>Expected State</th>
+      <th>Verification Command</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>QEMU Guest Agent</strong></td>
+      <td>Online & Responding</td>
+      <td><code>qm guest ping &lt;VMID&gt;</code></td>
+    </tr>
+    <tr>
+      <td><strong>ComputerName</strong></td>
+      <td>Unique per clone</td>
+      <td><code>$env:COMPUTERNAME</code> via guest exec</td>
+    </tr>
+    <tr>
+      <td><strong>Machine SID</strong></td>
+      <td>Strictly Unique</td>
+      <td><code>[WindowsIdentity]::GetCurrent().User.AccountDomainSid</code></td>
+    </tr>
+    <tr>
+      <td><strong>Network MAC</strong></td>
+      <td>Unique per clone</td>
+      <td>Proxmox <code>net0</code> interface config</td>
+    </tr>
+    <tr>
+      <td><strong>IPv4 Address</strong></td>
+      <td>Distinct DHCP Lease</td>
+      <td><code>Get-NetIPAddress</code></td>
+    </tr>
+    <tr>
+      <td><strong>RDP Listener</strong></td>
+      <td>Port 3389 Active</td>
+      <td><code>Get-NetTCPConnection -LocalPort 3389</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- Section 11: Production Troubleshooting Matrix -->
+<h1>11. Production Troubleshooting Matrix</h1>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Symptom / Error Code</th>
+      <th>Root Cause</th>
+      <th>Remediation Procedure</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Drive not found in Windows Setup</strong></td>
+      <td>Windows installer lacks VirtIO SCSI drivers.</td>
+      <td>Click <em>Load driver</em> &rarr; browse to <code>virtio-win\vioscsi\w11\amd64</code> &rarr; load driver.</td>
+    </tr>
+    <tr>
+      <td><strong>Sysprep fails with 0x80073cf2</strong></td>
+      <td>Windows Store updated an AppX package for current user.</td>
+      <td>Run <code>optimize-and-seal-windows-vdi.ps1</code> to remove per-user packages before sealing.</td>
+    </tr>
+    <tr>
+      <td><strong>BSOD 0x7B: INACCESSIBLE_BOOT_DEVICE</strong></td>
+      <td>Sysprep stripped VirtIO SCSI controller driver.</td>
+      <td>Ensure <code>unattend.xml</code> has <code>&lt;PersistAllDeviceInstalls&gt;true&lt;/PersistAllDeviceInstalls&gt;</code>.</td>
+    </tr>
+    <tr>
+      <td><strong>QEMU Agent shows offline in PVE UI</strong></td>
+      <td>VirtIO Serial driver or service stopped.</td>
+      <td>Run <code>virtio-win-guest-tools.exe</code> inside guest and set <code>qemu-ga</code> to Automatic.</td>
+    </tr>
+    <tr>
+      <td><strong>Black screen on RDP connection</strong></td>
+      <td>Display virtualization conflict.</td>
+      <td>Install <code>qxldod</code> driver from VirtIO ISO or enable WDDM graphics via Group Policy.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-success" style="margin-top: 25px; text-align: center;">
+  <strong>Engineering Delivery Summary</strong><br>
+  Complete Windows VDI automation suite operational: Proxmox Provisioner, Sysprep Answer File, PowerShell Optimization Suite, and Uniqueness Verifier.
+</div>
+
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxmox Cluster Testing Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo-area">
+        <h1>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          Proxmox Cluster Test Center
+        </h1>
+        <p id="cluster-subtitle">Loading cluster configuration...</p>
+      </div>
+      <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <a href="report.html" target="_blank" class="tab-btn" style="text-decoration: none; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          Executive Report
+        </a>
+        <a href="../Proxmox_Cluster_Validation_Report.pdf" download class="tab-btn" style="text-decoration: none; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-color: rgba(16,185,129,0.4); color: #34d399;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download PDF
+        </a>
+        <span id="overall-status-badge" class="status-badge pass">VALIDATING...</span>
+      </div>
+    </header>
+
+    <!-- Key Metrics Grid -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-title">Cluster Quorum</div>
+        <div class="metric-value" id="val-quorum">3 / 3</div>
+        <div class="metric-sub">prox24 (leader), prox22, prox23</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">Ceph Storage</div>
+        <div class="metric-value" id="val-ceph">12 OSDs</div>
+        <div class="metric-sub">4 Disks/Node • HEALTH_OK</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">ZFS RAIDZ2</div>
+        <div class="metric-value" id="val-zfs">7 Disks</div>
+        <div class="metric-sub">Pool zfs-ha • 0 Errors</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">High Availability</div>
+        <div class="metric-value" id="val-ha">Fencing Armed</div>
+        <div class="metric-sub">CRM Master prox24 • 2 VMs</div>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="filterSuite('all')">All Tests</button>
+      <button class="tab-btn" onclick="filterSuite('Cluster Health')">Cluster & Quorum</button>
+      <button class="tab-btn" onclick="filterSuite('Network')">Network Latency</button>
+      <button class="tab-btn" onclick="filterSuite('Ceph')">Ceph Storage</button>
+      <button class="tab-btn" onclick="filterSuite('ZFS')">ZFS RAIDZ2</button>
+      <button class="tab-btn" onclick="filterSuite('High Availability')">High Availability</button>
+      <button class="tab-btn" onclick="filterSuite('Live Migration')">Live Migration</button>
+    </div>
+
+    <!-- Findings Section -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">Validation Checks & Findings</div>
+        <button class="tab-btn" onclick="loadData()">Refresh Results</button>
+      </div>
+      <table class="checks-table">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Check Name</th>
+            <th style="width: 15%;">Status</th>
+            <th style="width: 60%;">Diagnostic Details</th>
+          </tr>
+        </thead>
+        <tbody id="checks-tbody">
+          <tr>
+            <td colspan="3" style="text-align: center; color: var(--text-muted);">Loading test results...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      Innspark / CISAI Infrastructure Testing Environment • Proxmox VE 9.2 • Ceph 20.2 • OpenZFS
+    </footer>
+  </div>
+
+  <script>
+    let reportData = null;
+    let currentFilter = 'all';
+
+    async function loadData() {
+      try {
+        const resp = await fetch('data.json');
+        if (!resp.ok) throw new Error('data.json not found');
+        reportData = await resp.json();
+        renderDashboard();
+      } catch (err) {
+        console.warn('Using embedded default or data not yet loaded:', err);
+        document.getElementById('cluster-subtitle').innerText = 'Execute run_tests.py to populate latest results';
+      }
+    }
+
+    function renderDashboard() {
+      if (!reportData) return;
+
+      document.getElementById('cluster-subtitle').innerText = 
+        `Cluster: ${reportData.cluster_name} | Leader: ${reportData.leader_ip} | Tested: ${reportData.timestamp}`;
+
+      const badge = document.getElementById('overall-status-badge');
+      if (reportData.all_passed) {
+        badge.className = 'status-badge pass';
+        badge.innerText = 'HEALTHY / PASSED';
+      } else {
+        badge.className = 'status-badge fail';
+        badge.innerText = 'ISSUES DETECTED';
+      }
+
+      renderChecks();
+    }
+
+    function filterSuite(suiteKeyword) {
+      currentFilter = suiteKeyword;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.innerText.toLowerCase().includes(suiteKeyword.toLowerCase()) || 
+            (suiteKeyword === 'all' && btn.innerText === 'All Tests')) {
+          btn.classList.add('active');
+        }
+      });
+      renderChecks();
+    }
+
+    function renderChecks() {
+      if (!reportData || !reportData.suites) return;
+      const tbody = document.getElementById('checks-tbody');
+      tbody.innerHTML = '';
+
+      let matchedChecks = [];
+      reportData.suites.forEach(suite => {
+        if (currentFilter === 'all' || suite.test_name.toLowerCase().includes(currentFilter.toLowerCase())) {
+          (suite.checks || []).forEach(c => {
+            matchedChecks.push(c);
+          });
+        }
+      });
+
+      if (matchedChecks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No checks found for this category.</td></tr>';
+        return;
+      }
+
+      matchedChecks.forEach(c => {
+        const tr = document.createElement('tr');
+        const stClass = (c.status || '').toLowerCase();
+        tr.innerHTML = `
+          <td style="font-weight: 500;">${c.name}</td>
+          <td><span class="pill ${stClass}">${c.status}</span></td>
+          <td class="code-font" style="font-size: 0.8125rem;">${c.details}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+Sure, Nishu. Here is the step-by-step summary of everything completed so far, in the exact sequence you followed.
+
+1. Verified the physical NICs
+
+You checked nic0, nic1, nic2, and nic3 on all three Proxmox servers using ethtool.
+
+Final relevant result:
+
+nic2:
+Speed: 10000Mb/s
+Duplex: Full
+Port: Direct Attach Copper
+Link detected: yes
+
+
+nic2 was selected for Ceph traffic.
+
+2. Confirmed the management NIC mapping
+
+The management bridge is vmbr0, but the underlying physical NIC differs on prox23:
+
+prox22:
+vmbr0 → nic0 → 10.31.89.26/22
+
+prox23:
+vmbr0 → nic1 → 10.31.89.28/22
+
+prox24:
+vmbr0 → nic0 → 10.31.89.30/22
+
+
+All three nodes use:
+
+Default gateway: 10.31.88.1
+
+
+No gateway was added to the Ceph interfaces.
+
+3. Created the three-node Proxmox cluster
+
+You created the cluster on prox24:
+
+Cluster name: cisai-pve
+
+
+Then prox22 and prox23 joined it.
+
+Final cluster membership:
+
+Node ID 1: prox24 → 10.31.89.30
+Node ID 2: prox22 → 10.31.89.26
+Node ID 3: prox23 → 10.31.89.28
+
+
+Final cluster status:
+
+Nodes: 3
+Expected votes: 3
+Total votes: 3
+Quorum: 2
+Quorate: Yes
+
+
+Corosync currently uses the management network:
+
+10.31.89.26
+10.31.89.28
+10.31.89.30
+
+4. Configured the 10 Gb Ceph network
+
+You assigned:
+
+prox22 nic2 → 10.31.122.22/24
+prox23 nic2 → 10.31.122.23/24
+prox24 nic2 → 10.31.122.24/24
+
+
+Initially, prox22 could not communicate with prox23 or prox24 because of a Layer 2 switch/VLAN issue.
+
+After correcting the physical/switch setup, tests succeeded:
+
+prox22 ↔ prox23: working
+prox22 ↔ prox24: working
+prox23 ↔ prox24: working
+
+
+The prox23-to-prox24 iperf3 test reached approximately:
+
+9.4 Gbit/s
+
+5. Installed Ceph on all three nodes
+
+You installed Ceph packages on:
+
+prox22
+prox23
+prox24
+
+
+Ceph was initialized with:
+
+Public network:  10.31.122.0/24
+Cluster network: 10.31.122.0/24
+Replica size:    3
+Minimum size:    2
+
+6. Created three Ceph Monitors
+
+Ceph MON services were created on:
+
+prox22
+prox23
+prox24
+
+
+Monitor quorum is healthy:
+
+MONs: 3
+Quorum: prox24, prox22, prox23
+Leader: prox24
+
+7. Created three Ceph Managers
+
+Ceph MGR services were created on all three nodes.
+
+Current MGR topology:
+
+prox24: active MGR
+prox22: standby MGR
+prox23: standby MGR
+
+8. Verified and prepared Ceph disks
+
+Each node has:
+
+12 × 18.2 TiB data HDDs
+1 × approximately 894 GiB Proxmox OS disk
+
+
+The OS disk on every node is:
+
+/dev/sdm
+
+
+/dev/sdm was correctly excluded from Ceph because it contains:
+
+/boot/efi
+pve-root
+pve-swap
+pve-data / local-lvm
+
+
+You consistently used persistent WWN names for OSD creation rather than relying only on /dev/sdX.
+
+9. Removed old Ceph test metadata from prox24
+
+prox24 /dev/sdb and /dev/sdc contained OSD metadata from an older Ceph test cluster.
+
+The older cluster FSID was different from the current cluster FSID.
+
+You removed the old Ceph LVM structures using the physical disks and then verified:
+
+ceph device lvm: False
+available: True
+rejected reasons: none
+
+
+Both disks are now reusable.
+
+prox24 /dev/sde remains excluded because it contains historical GPT/partition metadata.
+
+10. Created nine Ceph OSDs
+
+You added the OSDs in three balanced rounds.
+
+Final distribution:
+
+prox22:
+osd.0
+osd.3
+osd.6
+
+prox23:
+osd.1
+osd.4
+osd.7
+
+prox24:
+osd.2
+osd.5
+osd.8
+
+
+Current Ceph storage status:
+
+9 OSDs
+9 up
+9 in
+HEALTH_OK
+
+
+Raw capacity:
+
+Approximately 164 TiB
+
+
+With replica size 3, Proxmox reports approximately:
+
+51.8 TiB usable
+
+11. Verified the internal .mgr pool
+
+Ceph automatically created:
+
+.mgr
+
+
+You confirmed that .mgr is an internal Ceph Manager pool:
+
+Application: mgr
+Size: 3
+Min size: 2
+Autoscale: on
+PG count: 1
+
+
+You correctly left this pool unchanged.
+
+12. Created the VM storage pool
+
+You created:
+
+vm-rbd
+
+
+Settings:
+
+Replica size:    3
+Minimum size:    2
+CRUSH rule:      replicated_rule
+PG autoscaler:   on
+Application:     rbd
+PG count:        32
+
+
+Ceph completed PG adjustment successfully.
+
+Current PG status:
+
+33 PGs total
+33 active+clean
+
+
+That includes:
+
+1 PG for .mgr
+32 PGs for vm-rbd
+
+13. Added vm-rbd to Proxmox
+
+You verified:
+
+Name:      vm-rbd
+Type:      rbd
+Status:    active
+Content:   images,rootdir
+Pool:      vm-rbd
+
+
+The cluster storage configuration contains:
+
+rbd: vm-rbd
+        content images,rootdir
+        krbd 0
+        pool vm-rbd
+
+
+This storage is now ready for VM and container disks.
+
+14. Recovered Proxmox status services
+
+prox22 and prox23 initially showed grey question marks because pvestatd had failed after an older IPC connection error.
+
+You restarted the status services and confirmed:
+
+prox22 online: 1
+prox23 online: 1
+prox24 online: 1
+
+
+The Proxmox cluster remained quorate throughout.
+
+15. Recovered the HA control services
+
+pve-ha-lrm and pve-ha-crm had old failed states from before the cluster was healthy.
+
+After recovery, HA Manager reported:
+
+quorum OK
+fencing standby (CRM watchdog standby)
+
+
+This means the HA control plane is ready, but no VM has yet been added as an HA resource.
+
+16. Created and installed the safe test script
+
+You installed:
+
+/usr/local/sbin/ceph-safe-test
+
+
+The script supports:
+
+Ceph and Proxmox preflight checks
+10 Gb network testing
+RADOS write/read benchmarks
+RBD fio testing
+HA readiness checks
+Controlled HA migration
+
+
+The script intentionally excludes destructive tests such as:
+
+Stopping multiple MONs or OSDs
+Deleting monitor databases
+Filling OSD disks
+Changing CRUSH maps
+Partitioning the network
+Powering off nodes
+Zapping disks
+
+
+The script was based on the performance and failure-test categories in CEPH test case scenario.docx.
+
+17. Fixed the script output issue
+
+The original script used a tee process-substitution pipe, which caused:
+
+BlockingIOError: [Errno 11]
+
+
+You changed logging so output writes directly to:
+
+/root/ceph-test-results-YYYYMMDD-HHMMSS/test.log
+
+
+This fixed the script-output issue without changing Ceph.
+
+18. Completed the RADOS performance test
+
+You tested raw object storage on vm-rbd.
+
+Write performance
+Bandwidth:       511.98 MB/s
+Average IOPS:    127
+Average latency: 124.76 ms
+Maximum latency: 495.75 ms
+
+Sequential-read performance
+Bandwidth:       959.10 MB/s
+Average IOPS:    239
+Average latency: 66.16 ms
+Maximum latency: 456.83 ms
+
+Random-read performance
+Bandwidth:       892.48 MB/s
+Average IOPS:    223
+Average latency: 71.41 ms
+Maximum latency: 644.91 ms
+
+
+The test removed:
+
+3,857 temporary objects
+
+
+Ceph remained:
+
+HEALTH_OK
+
+19. Completed the RBD fio test
+
+The script created a temporary 10 GiB RBD image, mapped it as a block device, ran four tests, then removed the image.
+
+4K random read
+IOPS:              426,000
+Bandwidth:         1,665 MiB/s
+Average latency:   9.01 µs
+
+
+This result is cache-influenced, so it should not be described as raw HDD performance.
+
+4K random write
+IOPS:              2,339
+Bandwidth:         9,357 KiB/s
+Average latency:   1.71 ms
+Maximum latency:   38.69 ms
+
+16 MiB sequential read
+Bandwidth:         380 MiB/s
+Average latency:   42.06 ms
+Maximum latency:   260 ms
+
+16 MiB sequential write
+Bandwidth:         253 MiB/s
+Average latency:   62.97 ms
+Maximum latency:   257 ms
+
+
+The sequential fio test used the synchronous psync engine, so its effective queue depth was one despite specifying a larger iodepth.
+
+Final result:
+
+fio errors:          0
+Temporary RBD image: removed
+Ceph health:         HEALTH_OK
+OSDs:                9 up, 9 in
+PGs:                 33 active+clean
+
+Current final status
+Three-node Proxmox cluster:   Complete
+Cluster quorum:               Healthy
+All nodes online:             Yes
+10 Gb Ceph network:           Complete
+Ceph MON quorum:              Healthy
+Ceph MGR redundancy:          Healthy
+Ceph OSDs:                    9 up, 9 in
+Ceph raw capacity:            164 TiB
+vm-rbd pool:                  Complete
+Proxmox RBD storage:          Active
+RADOS benchmark:              Complete
+RBD fio benchmark:            Complete
+HA control plane:             Ready
+Test VM:                      Not created yet
+VM migration test:            Not completed
+HA VM failover test:          Not completed
+Independent backup:           Not configured
+
+Your next step
+
+Create one noncritical test VM:
+
+VM ID:       900
+Name:        ceph-ha-test
+Node:        prox22
+Storage:     vm-rbd
+Disk:        16 or 32 GiB
+Network:     vmbr0
+
+
+Then verify:
+
+qm config 900
+
+
+The VM disk must reference:
+
+vm-rbd:
+
+
+After that, test ordinary offline and online migration before adding VM 900 to HA.
+
+

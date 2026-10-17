@@ -1,0 +1,258 @@
+For a Proxmox cluster, the biggest mistake is creating alerts at the wrong level and getting flooded with duplicate notifications. 
+Since the official Proxmox VE by HTTP template discovers nodes, storage, VMs, and containers automatically, it's best to organize alerts by service impact, not just by individual metrics.
+
+Recommended Host Groups
+Proxmox Infrastructure
+├── Proxmox Cluster
+├── Proxmox Nodes
+├── Proxmox Storage
+├── Virtual Machines
+├── LXC Containers
+├── Backup Systems
+└── Network Infrastructure
+
+
+For your environment, I would also create:
+
+Services
+├── Squid Proxies
+├── VPN Servers
+├── DNS Servers
+└── Monitoring Systems
+
+
+This allows alert routing and dashboards to be organized logically.
+
+Use Event Tags
+
+Add tags to all custom triggers.
+
+Cluster Alerts
+component=cluster
+service=proxmox
+severity=critical
+
+
+Example:
+
+Cluster quorum lost
+
+
+Tag:
+
+component=cluster
+
+Node Alerts
+component=node
+node=pve01
+
+
+Examples:
+
+CPU High
+Memory High
+Node Down
+
+Storage Alerts
+component=storage
+storage=ceph
+
+
+Examples:
+
+Ceph OSD Down
+ZFS Pool Degraded
+Storage Full
+
+VM Alerts
+component=vm
+vmid=101
+
+
+Examples:
+
+VM Stopped
+VM CPU High
+VM Disk Full
+
+
+Using tags makes it easy to filter dashboards, event views, and notifications. Some community Proxmox integrations even use dedicated alert-group tags for categorizing triggers.
+
+Group by Impact
+
+Instead of:
+
+CPU > 90%
+Memory > 90%
+Disk > 90%
+
+
+Group according to what users experience.
+
+Disaster
+Cluster Quorum Lost
+Proxmox Node Offline
+Storage Offline
+Corosync Down
+
+
+These require immediate action.
+
+High
+VM Stopped
+LXC Stopped
+Storage Full >95%
+Backup Failed
+
+
+Service impact likely exists.
+
+Warning
+CPU >80%
+RAM >80%
+Disk >80%
+
+
+Capacity planning alerts.
+
+Avoid Duplicate Cluster Alerts
+
+In a cluster, multiple nodes can discover the same resources. Community discussions highlight duplicate VM alerts being generated from more than one node when monitoring isn't structured carefully.
+
+Best practice:
+
+Use One Cluster Host
+Proxmox-Cluster
+
+
+Attach:
+
+Proxmox VE by HTTP
+
+
+Only once.
+
+Let discovery find:
+
+Nodes
+VMs
+Containers
+Storage
+
+
+Do not attach the API template separately to every cluster node unless you specifically need that model.
+
+Create Service Dependencies
+
+This is especially useful for your proxy and VPN infrastructure.
+
+Example:
+
+Proxmox Node pve01
+        │
+        ├── Squid VM
+        ├── VPN VM
+        └── DNS VM
+
+
+Dependency chain:
+
+Squid VM Down
+Depends On
+Node pve01 Down
+
+
+Without dependencies you may receive:
+
+Node Down
+Squid Down
+VPN Down
+DNS Down
+
+
+With dependencies:
+
+Node Down
+
+
+Only the root cause generates alerts.
+
+Create Alert Groups by Responsibility
+
+For administration teams:
+
+Cluster Operations
+    ├── Cluster
+    ├── Corosync
+    └── HA
+
+Virtualization
+    ├── Nodes
+    ├── VMs
+    └── LXC
+
+Storage
+    ├── Ceph
+    ├── ZFS
+    └── Backup
+
+Network
+    ├── WAN
+    ├── Squid
+    └── VPN
+
+
+This greatly simplifies notification routing.
+
+Dashboard Layout
+
+I recommend four dashboards:
+
+Executive Dashboard
+Cluster Health
+Total Nodes
+Running VMs
+Active Problems
+
+Operations Dashboard
+Node Status
+Cluster Status
+Storage Status
+
+Services Dashboard
+Squid
+VPN
+DNS
+Authentication
+
+Capacity Dashboard
+CPU Trending
+RAM Trending
+Storage Growth
+Bandwidth Usage
+
+Notification Best Practice
+
+Use different channels:
+
+Disaster  -> Telegram + Email
+High      -> Telegram
+Warning   -> Email Digest
+Info      -> Dashboard Only
+
+
+For your Proxmox + Squid + Multi-WAN environment, the most effective structure is:
+
+Proxmox Cluster
+├── Cluster Alerts
+├── Node Alerts
+├── Storage Alerts
+├── VM Alerts
+├── LXC Alerts
+├── Squid Service Alerts
+├── VPN Service Alerts
+└── WAN Connectivity Alerts
+
+
+and configure trigger dependencies so a failed Proxmox node doesn't generate dozens of VM, VPN, and proxy alerts simultaneously.
+ This keeps the alert stream actionable and prevents alert fatigue.

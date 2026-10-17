@@ -1,0 +1,206 @@
+Perfect. Since you've already completed the Squid setup and ACL preparation, the next step is to integrate a GUI safely with your running Squid server.
+
+My Recommendation
+
+Instead of using the Flask-based SquidUI (which has limited ACL support), use the Go-based Squid-Manager project because it explicitly includes:
+
+Web ACL management
+Whitelist/Blacklist management
+Local user management
+Active Directory integration
+Audit logs
+Live log viewer
+HTTPS support
+Step 1: Clone the Project
+cd /opt
+
+sudo git clone https://github.com/Arash-monsef65/Squid-Manager.git
+
+cd Squid-Manager
+
+Step 2: Build the Application
+
+Install Go if not already installed:
+
+sudo apt update
+sudo apt install golang-go -y
+
+
+Verify:
+
+go version
+
+
+Build:
+
+go build -o squid-manager
+
+
+You should get:
+
+/opt/Squid-Manager/squid-manager
+
+Step 3: Create Configuration Backup
+
+Before allowing the GUI to modify Squid:
+
+sudo cp /etc/squid/squid.conf \
+/etc/squid/squid.conf.bak
+
+Step 4: Verify ACL Structure
+
+The GUI works best when ACLs are stored in separate files.
+
+Example:
+
+sudo mkdir -p /etc/squid/acl
+
+sudo touch /etc/squid/acl/whitelist.txt
+
+sudo touch /etc/squid/acl/blacklist.txt
+
+
+Example:
+
+whitelist.txt
+
+google.com
+github.com
+microsoft.com
+
+
+blacklist.txt
+
+facebook.com
+youtube.com
+
+Step 5: Connect ACLs to Squid
+
+In:
+
+sudo nano /etc/squid/squid.conf
+
+
+Add:
+
+acl whitelist dstdomain "/etc/squid/acl/whitelist.txt"
+acl blacklist dstdomain "/etc/squid/acl/blacklist.txt"
+
+http_access deny blacklist
+http_access allow whitelist
+
+
+Validate:
+
+sudo squid -k parse
+
+
+Reload:
+
+sudo systemctl reload squid
+
+Step 6: Create Systemd Service
+sudo nano /etc/systemd/system/squid-manager.service
+
+
+Example:
+
+[Unit]
+Description=Squid Manager
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/Squid-Manager
+ExecStart=/opt/Squid-Manager/squid-manager
+
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
+Step 7: Start GUI
+sudo systemctl daemon-reload
+
+sudo systemctl enable squid-manager
+
+sudo systemctl start squid-manager
+
+
+Verify:
+
+sudo systemctl status squid-manager
+
+Step 8: Open Firewall
+
+If UFW is enabled:
+
+sudo ufw allow 8080/tcp
+
+
+or whatever port Squid-Manager uses.
+
+Check listening ports:
+
+sudo ss -tulpn
+
+Step 9: Test Access
+
+Open:
+
+http://SERVER_IP:8080
+
+
+or
+
+https://SERVER_IP:8080
+
+
+depending on the configured port.
+
+Step 10: Connect Log Monitoring
+
+Ensure Squid logs are enabled:
+
+access_log /var/log/squid/access.log
+
+
+Verify:
+
+sudo tail -f /var/log/squid/access.log
+
+
+The GUI can then display:
+
+User activity
+Top domains
+Blocked requests
+Access history
+What I Would Do Next
+
+For a production proxy server, I would additionally integrate:
+
+Squid
+ ├── Squid Manager
+ ├── Nginx Reverse Proxy
+ ├── Let's Encrypt SSL
+ ├── Prometheus
+ └── Grafana
+
+
+This gives you:
+
+✅ User creation
+ ✅ ACL management
+ ✅ Domain blacklist/whitelist
+ ✅ IP blacklist/whitelist
+ ✅ Authentication
+ ✅ Proxy status dashboard
+ ✅ Traffic monitoring
+ ✅ Historical reporting
+
+Before proceeding, check whether the GitHub repository actually contains a release or installation guide matching the current version because third-party projects may change over time. The repository description confirms the listed features, but you should validate the current build steps in the project's README before deploying to production.
+
+
+a9d990e5ea524cb64f333

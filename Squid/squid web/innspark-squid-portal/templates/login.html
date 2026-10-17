@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Innspark Secure Proxy & LDAP Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-body">
+    <!-- Ambient glowing backgrounds -->
+    <div class="login-bg-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+        <div class="cyber-grid-overlay"></div>
+    </div>
+
+    <div class="login-container">
+        <!-- Main Login Card -->
+        <div class="login-card">
+            <!-- Brand & Shield Header -->
+            <div class="login-header">
+                <div class="login-logo-wrap">
+                    <div class="login-logo-glow"></div>
+                    <div class="login-logo-icon">
+                        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            <path d="M9 12l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                </div>
+                <h1 class="login-title">INNSPIARK</h1>
+                <p class="login-subtitle">Enterprise Squid Proxy & LDAP Access</p>
+                <div class="login-domain-badge">
+                    <span class="badge-pulse"></span>
+                    <span>Domain: {{ domain or 'innspark.in' }}</span>
+                </div>
+            </div>
+
+            <!-- Error / Alert Banner -->
+            <div class="login-alert {% if error %}show{% endif %}" id="login-alert" role="alert">
+                <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span class="alert-msg" id="alert-msg">{{ error or '' }}</span>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" method="POST" action="/login" class="login-form">
+                <div class="form-group">
+                    <label for="input-username" class="form-label">
+                        <span>LDAP Username / UID</span>
+                        <span class="label-hint">UID or cn=admin</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="input-username" 
+                            name="username" 
+                            class="form-control login-input" 
+                            placeholder="admin or username" 
+                            required 
+                            autocomplete="username"
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="input-password" class="form-label">
+                        <span>Password</span>
+                        <span class="label-hint">LDAP Directory Secret</span>
+                    </label>
+                    <div class="input-with-icon">
+                        <svg class="field-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input 
+                            type="password" 
+                            id="input-password" 
+                            name="password" 
+                            class="form-control login-input" 
+                            placeholder="••••••••••••" 
+                            required 
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="btn-toggle-password" id="btn-toggle-pwd" title="Toggle password visibility" tabindex="-1">
+                            <svg class="eye-icon" id="eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <svg class="eye-icon hidden" id="eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                                <line x1="1" y1="1" x2="23" y2="23"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="remember-me-label">
+                        <input type="checkbox" name="remember" id="input-remember" value="true" checked>
+                        <span class="custom-checkbox"></span>
+                        <span class="remember-text">Remember session (7 days)</span>
+                    </label>
+                    <span class="auth-proto-badge">LDAP Auth</span>
+                </div>
+
+                <button type="submit" class="btn-login" id="btn-submit">
+                    <span class="btn-text">Authorize & Sign In</span>
+                    <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                    <div class="btn-loader hidden" id="btn-loader"></div>
+                </button>
+            </form>
+
+            <!-- Quick Demo Credentials Helper -->
+            <div class="demo-creds-card">
+                <div class="demo-creds-title">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                    <span>Quick Fill Demo Accounts</span>
+                </div>
+                <div class="demo-creds-buttons">
+                    <button type="button" class="demo-chip" onclick="fillCreds('admin', 'Innspark@LDAPAdmin2026!')">
+                        <span class="chip-role chip-admin">Admin</span>
+                        <span class="chip-user">admin</span>
+                    </button>
+                    <button type="button" class="demo-chip" onclick="fillCreds('john.doe', 'UserSecret@2026')">
+                        <span class="chip-role chip-user-tag">User</span>
+                        <span class="chip-user">john.doe</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Security Note -->
+            <div class="login-footer">
+                <div class="footer-security-text">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Secured with OpenLDAP Directory Service & Squid Proxy</span>
+                </div>
+                <p class="footer-legal">Innspark Solutions &bull; Authorized Personnel Only</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Interactions Script -->
+    <script>
+        // Password toggle
+        const pwdInput = document.getElementById("input-password");
+        const btnTogglePwd = document.getElementById("btn-toggle-pwd");
+        const eyeShow = document.getElementById("eye-show");
+        const eyeHide = document.getElementById("eye-hide");
+
+        btnTogglePwd.addEventListener("click", () => {
+            if (pwdInput.type === "password") {
+                pwdInput.type = "text";
+                eyeShow.classList.add("hidden");
+                eyeHide.classList.remove("hidden");
+            } else {
+                pwdInput.type = "password";
+                eyeShow.classList.remove("hidden");
+                eyeHide.classList.add("hidden");
+            }
+        });
+
+        // Demo credentials quick fill
+        function fillCreds(username, password) {
+            const userInput = document.getElementById("input-username");
+            const pwdInput = document.getElementById("input-password");
+            userInput.value = username;
+            pwdInput.value = password;
+            
+            // Subtle flash animation on inputs
+            userInput.classList.add("input-highlight");
+            pwdInput.classList.add("input-highlight");
+            setTimeout(() => {
+                userInput.classList.remove("input-highlight");
+                pwdInput.classList.remove("input-highlight");
+            }, 600);
+
+            // Hide previous alerts
+            document.getElementById("login-alert").classList.remove("show");
+        }
+
+        // Asynchronous form submission with smooth feedback
+        const loginForm = document.getElementById("login-form");
+        const loginAlert = document.getElementById("login-alert");
+        const alertMsg = document.getElementById("alert-msg");
+        const btnSubmit = document.getElementById("btn-submit");
+        const btnLoader = document.getElementById("btn-loader");
+        const btnText = btnSubmit.querySelector(".btn-text");
+        const btnArrow = btnSubmit.querySelector(".btn-arrow");
+
+        loginForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const username = document.getElementById("input-username").value.trim();
+            const password = document.getElementById("input-password").value;
+            const remember = document.getElementById("input-remember").checked;
+
+            if (!username || !password) {
+                showAlert("Please enter both username and password.");
+                return;
+            }
+
+            // Set loading state
+            btnSubmit.disabled = true;
+            btnText.textContent = "Authenticating...";
+            btnArrow.classList.add("hidden");
+            btnLoader.classList.remove("hidden");
+            loginAlert.classList.remove("show");
+
+            try {
+                const response = await fetch("/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({ username, password, remember })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    btnText.textContent = "Access Granted! Redirecting...";
+                    btnSubmit.classList.add("btn-success");
+                    setTimeout(() => {
+                        window.location.href = data.redirect || "/";
+                    }, 400);
+                } else {
+                    showAlert(data.error || "Authentication failed. Please check credentials.");
+                    resetBtn();
+                }
+            } catch (err) {
+                // Fallback to standard form POST if JSON error
+                loginForm.submit();
+            }
+        });
+
+        function showAlert(msg) {
+            alertMsg.textContent = msg;
+            loginAlert.classList.add("show");
+        }
+
+        function resetBtn() {
+            btnSubmit.disabled = false;
+            btnText.textContent = "Authorize & Sign In";
+            btnArrow.classList.remove("hidden");
+            btnLoader.classList.add("hidden");
+            btnSubmit.classList.remove("btn-success");
+        }
+    </script>
+</body>
+</html>

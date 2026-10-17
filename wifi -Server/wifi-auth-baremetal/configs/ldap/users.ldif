@@ -1,0 +1,77 @@
+# Organizational Units
+dn: ou=Users,dc=innspark,dc=in
+objectClass: top
+objectClass: organizationalUnit
+ou: Users
+
+dn: ou=Groups,dc=innspark,dc=in
+objectClass: top
+objectClass: organizationalUnit
+ou: Groups
+
+dn: ou=Services,dc=innspark,dc=in
+objectClass: top
+objectClass: organizationalUnit
+ou: Services
+
+# Dedicated Service Account for FreeRADIUS (Least Privilege - Not Admin)
+dn: cn=radius-bind,ou=Services,dc=innspark,dc=in
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: radius-bind
+userPassword: InnsparkRadiusBind2026!
+description: Dedicated read-only service account for FreeRADIUS AAA
+
+# Security Group for Wi-Fi Authorized Users
+dn: cn=wifi-users,ou=Groups,dc=innspark,dc=in
+objectClass: top
+objectClass: groupOfNames
+objectClass: posixGroup
+cn: wifi-users
+gidNumber: 10000
+member: uid=john.doe,ou=Users,dc=innspark,dc=in
+member: uid=alice.smith,ou=Users,dc=innspark,dc=in
+memberUid: john.doe
+memberUid: alice.smith
+
+# Sample Wi-Fi User 1 (John Doe)
+# Login Username: john.doe
+# Password: WifiPassword2026!
+dn: uid=john.doe,ou=Users,dc=innspark,dc=in
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: John Doe
+sn: Doe
+givenName: John
+mail: john.doe@innspark.in
+uid: john.doe
+uidNumber: 10001
+gidNumber: 10000
+homeDirectory: /home/john.doe
+loginShell: /bin/bash
+userPassword: WifiPassword2026!
+
+# Sample Wi-Fi User 2 (Alice Smith)
+# Login Username: alice.smith
+# Password: WifiPassword2026!
+dn: uid=alice.smith,ou=Users,dc=innspark,dc=in
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+objectClass: shadowAccount
+cn: Alice Smith
+sn: Smith
+givenName: Alice
+mail: alice.smith@innspark.in
+uid: alice.smith
+uidNumber: 10002
+gidNumber: 10000
+homeDirectory: /home/alice.smith
+loginShell: /bin/bash
+userPassword: WifiPassword2026!

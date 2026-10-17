@@ -1,0 +1,183 @@
+Below are the client-side commands only. Send these to each Linux VPN client after its IP has been added to the restricted ACL on the Squid server.
+
+Replace:
+
+VAPTUser with that client’s own VPN username
+YOUR_VPN_PASSWORD with that user’s VPN password
+Keep the verified certificate digest unchanged unless the FortiGate certificate changes
+1. Install OpenFortiVPN
+sudo apt update
+sudo apt install -y openfortivpn
+
+
+Verify:
+
+openfortivpn --version
+
+2. Create the client configuration
+sudo mkdir -p /etc/openfortivpn
+
+sudo tee /etc/openfortivpn/config >/dev/null <<'EOF'
+host = 182.19.54.189
+port = 4433
+username = VAPTUser
+password = YOUR_VPN_PASSWORD
+trusted-cert = 5c902a5bd7032d68d51ca06d24b1b268b2841319244ed3a9b7f7cd3db44b967d
+EOF
+
+
+Protect the file:
+
+sudo chown root:root /etc/openfortivpn/config
+sudo chmod 600 /etc/openfortivpn/config
+
+
+Verify permissions without displaying the password:
+
+sudo stat -c '%U %G %a %n' /etc/openfortivpn/config
+
+
+Expected:
+
+root root 600 /etc/openfortivpn/config
+
+3. Remove old test route if present
+sudo ip route del 182.19.54.189 via 10.31.212.14 dev enp5s0 2>/dev/null || true
+
+
+Check routing:
+
+ip route get 182.19.54.189
+
+4. Remove any old DNAT test rule
+
+Check:
+
+sudo iptables -t nat -L OUTPUT --line-numbers -n
+
+
+If you see a rule similar to:
+
+DNAT tcp ... 182.19.54.189 tcp dpt:4433 to:10.31.212.14:8085
+
+
+delete it using its actual rule number:
+
+sudo iptables -t nat -D OUTPUT RULE_NUMBER
+
+5. Test the VPN interactively
+sudo env -i \
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+https_proxy=http://10.31.212.14:8085 \
+HTTPS_PROXY=http://10.31.212.14:8085 \
+/usr/bin/openfortivpn \
+-c /etc/openfortivpn/config \
+-v
+
+
+After successful connection, stop the foreground test with:
+
+Ctrl+C
+
+6. Create the systemd service
+sudo tee /etc/systemd/system/openfortivpn-squid.service >/dev/null <<'EOF'
+[Unit]
+Description=OpenFortiVPN through Squid Proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="https_proxy=http://10.31.212.14:8085"
+Environment="HTTPS_PROXY=http://10.31.212.14:8085"
+
+ExecStart=/usr/bin/openfortivpn -c /etc/openfortivpn/config
+
+Restart=on-failure
+RestartSec=10
+
+User=root
+Group=root
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+7. Load and start the service
+sudo systemctl daemon-reload
+
+sudo systemctl enable --now openfortivpn-squid.service
+
+
+Check status:
+
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+
+Expected:
+
+Active: active (running)
+
+8. Check VPN logs
+sudo journalctl -u openfortivpn-squid.service -n 100 --no-pager
+
+
+Live logs:
+
+sudo journalctl -u openfortivpn-squid.service -f
+
+9. Verify the tunnel
+pgrep -a openfortivpn
+
+ip -brief addr | grep -E 'ppp|tun'
+
+
+Usually the interface is:
+
+ip addr show ppp0
+
+
+Check routes:
+
+ip route
+
+10. Service management commands
+
+Start:
+
+sudo systemctl start openfortivpn-squid.service
+
+
+Stop and disconnect:
+
+sudo systemctl stop openfortivpn-squid.service
+
+
+Restart:
+
+sudo systemctl restart openfortivpn-squid.service
+
+
+Status:
+
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+
+Disable automatic startup:
+
+sudo systemctl disable --now openfortivpn-squid.service
+
+Important
+
+Each client must use:
+
+Its own static IP or DHCP reservation
+Its own FortiGate VPN username and password
+The same Squid proxy address: 10.31.212.14:8085
+The certificate digest only after it has been verified by your VPN administrator
+
+Also rotate any credentials previously exposed in verbose logs.

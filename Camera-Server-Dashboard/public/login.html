@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Innspark Delhi Office | CCTV Surveillance Command Portal</title>
+  <meta name="description" content="Secure Login Portal for Innspark Delhi Office 24-Camera Surveillance Operations Center.">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="icon" href="assets/innspark-logo.png">
+</head>
+<body>
+
+  <!-- Background Cyber Elements -->
+  <div class="bg-grid"></div>
+  <div class="ambient-glow glow-blue"></div>
+  <div class="ambient-glow glow-lime"></div>
+
+  <!-- Login Card Container -->
+  <div class="login-container">
+    <div class="login-card">
+
+      <!-- Header with Official Innspark Logo -->
+      <div class="logo-header">
+        <img src="assets/innspark-logo.png" alt="Innspark Logo" class="innspark-logo-img">
+        <h1 class="soc-title" style="font-size: 1.55rem; font-weight: 700; color: #fff; margin-top: 12px; letter-spacing: 0.02em;">Delhi Office</h1>
+      </div>
+
+      <!-- Error Banner -->
+      <div id="errorBanner" class="error-banner"></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" class="login-form">
+        <div class="input-group">
+          <label class="input-label" for="username">Operator ID / Username</label>
+          <div class="input-box">
+            <span class="input-icon">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <input type="text" id="username" class="input-field" placeholder="Enter username" value="admin" required autofocus>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="password">Security Password</label>
+          <div class="input-box">
+            <span class="input-icon">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+            <input type="password" id="password" class="input-field" placeholder="Enter password" value="innspark@2026" required>
+            <button type="button" id="togglePasswordBtn" class="input-toggle-pwd" title="Show/Hide Password">
+              <svg id="eyeIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-options">
+          <label class="checkbox-label">
+            <input type="checkbox" id="rememberMe" checked>
+            <span>Remember terminal</span>
+          </label>
+          <span style="color: #64748b; font-family: var(--font-mono); font-size: 0.72rem;">TLS 1.3 / AES-256</span>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-login">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span id="btnText">Sign In</span>
+        </button>
+      </form>
+
+      <!-- Quick 1-Click Demo Logins -->
+      <div class="demo-accounts">
+        <div class="demo-title">Quick Role Fill</div>
+        <div class="demo-pills">
+          <button type="button" class="demo-btn" onclick="fillCredentials('admin', 'innspark@2026')">
+            Admin
+          </button>
+          <button type="button" class="demo-btn" onclick="fillCredentials('operator', 'innspark@2026')">
+            SOC Officer
+          </button>
+          <button type="button" class="demo-btn" onclick="fillCredentials('supervisor', 'innspark@2026')">
+            Supervisor
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Facility Telemetry Strip -->
+      <div class="login-footer-stats">
+        <div class="stat-item">
+          <span class="dot"></span>
+          <span>Delhi Office</span>
+        </div>
+        <div class="stat-item">
+          <span class="dot"></span>
+          <span>MediaMTX: Active</span>
+        </div>
+        <div class="stat-item">
+          <span class="dot"></span>
+          <span>24 IP Cams Synced</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Fill credentials helper
+    function fillCredentials(user, pass) {
+      document.getElementById('username').value = user;
+      document.getElementById('password').value = pass;
+    }
+
+    // Toggle password visibility
+    const toggleBtn = document.getElementById('togglePasswordBtn');
+    const pwdInput = document.getElementById('password');
+    toggleBtn.addEventListener('click', () => {
+      const isPwd = pwdInput.type === 'password';
+      pwdInput.type = isPwd ? 'text' : 'password';
+      toggleBtn.style.color = isPwd ? '#7cd338' : '#64748b';
+    });
+
+    // Form submission
+    const form = document.getElementById('loginForm');
+    const errorBanner = document.getElementById('errorBanner');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorBanner.style.display = 'none';
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      btnText.textContent = 'Authenticating with SOC Gateway...';
+      submitBtn.style.opacity = '0.75';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          localStorage.setItem('innspark_token', data.token);
+          localStorage.setItem('innspark_user', JSON.stringify(data.user));
+
+          btnText.textContent = 'Access Granted! Loading Cameras...';
+          submitBtn.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+
+          setTimeout(() => {
+            window.location.href = '/index.html';
+          }, 600);
+        } else {
+          showError(data.message || 'Authentication failed. Please verify credentials.');
+        }
+      } catch (err) {
+        showError('Unable to connect to Innspark Camera Server Gateway. Please check if the server is running.');
+      } finally {
+        if (!submitBtn.disabled) return;
+        setTimeout(() => {
+          btnText.textContent = 'Sign In';
+          submitBtn.style.opacity = '1';
+          submitBtn.style.background = '';
+          submitBtn.disabled = false;
+        }, 1000);
+      }
+    });
+
+    function showError(msg) {
+      errorBanner.textContent = msg;
+      errorBanner.style.display = 'block';
+    }
+
+    // If already logged in, redirect to index
+    if (localStorage.getItem('innspark_token') && localStorage.getItem('innspark_user')) {
+      // Optional auto-redirect if session active
+    }
+  </script>
+</body>
+</html>

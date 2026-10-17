@@ -1,0 +1,68 @@
+# ==============================================================================
+# Innspark Solutions - OpenLDAP Initial Directory Tree Setup
+# Domain: innspark.in
+# Base DN: dc=innspark,dc=in
+# ==============================================================================
+
+# 1. Base Organizational Unit for Users
+dn: ou=people,dc=innspark,dc=in
+objectClass: organizationalUnit
+ou: people
+description: Container for corporate user accounts
+
+# 2. Base Organizational Unit for Groups
+dn: ou=groups,dc=innspark,dc=in
+objectClass: organizationalUnit
+ou: groups
+description: Container for role-based security & proxy access groups
+
+# 3. Base Organizational Unit for System Service Accounts
+dn: ou=system,dc=innspark,dc=in
+objectClass: organizationalUnit
+ou: system
+description: Container for service and bind accounts
+
+# 4. Dedicated Squid Bind Account (Read-Only)
+dn: cn=squidbind,dc=innspark,dc=in
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+cn: squidbind
+sn: SquidService
+description: Dedicated service account used by Squid Proxy for LDAP binds
+userPassword: SquidBindPassword@2026
+
+# 5. Standard Proxy Users Group
+dn: cn=proxy_users,ou=groups,dc=innspark,dc=in
+objectClass: top
+objectClass: posixGroup
+cn: proxy_users
+gidNumber: 10001
+description: Standard internet proxy users with web access
+
+# 6. Elevated Proxy Admins Group (Bypasses regular restrictions)
+dn: cn=proxy_admins,ou=groups,dc=innspark,dc=in
+objectClass: top
+objectClass: posixGroup
+cn: proxy_admins
+gidNumber: 10002
+description: Proxy administrators with elevated web privileges
+
+# 7. Sample Initial User (john.doe)
+dn: uid=john.doe,ou=people,dc=innspark,dc=in
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: john.doe
+cn: John Doe
+sn: Doe
+givenName: John
+mail: john.doe@innspark.in
+userPassword: UserSecret@2026
+loginShell: /bin/bash
+uidNumber: 2001
+gidNumber: 10001
+homeDirectory: /home/john.doe
+description: Innspark standard user account

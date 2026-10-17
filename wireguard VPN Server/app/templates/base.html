@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}WireGuard Control Center{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=2.1">
+  <script src="/static/js/qrcode.min.js"></script>
+  <script src="/static/js/app.js"></script>
+  <script>
+    (function() {
+      var savedTheme = localStorage.getItem('wg_theme') || 'zinc';
+      if (savedTheme === 'dark') savedTheme = 'zinc';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <div class="app-container">
+    <!-- Dedicated Navigation Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">WG</div>
+        <div class="brand-text">
+          <h2>WireGuard</h2>
+          <span>Enterprise Control Center</span>
+        </div>
+      </div>
+
+      <ul class="nav-menu">
+        <li>
+          <a href="/" class="nav-link {% if active_page == 'overview' %}active{% endif %}">
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span>Overview</span>
+          </a>
+        </li>
+        <li>
+          <a href="/peers" class="nav-link {% if active_page == 'peers' %}active{% endif %}">
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>Peer Clients</span>
+          </a>
+        </li>
+        <li>
+          <a href="/firewall" class="nav-link {% if active_page == 'firewall' %}active{% endif %}">
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Firewall & ACLs</span>
+          </a>
+        </li>
+        <li>
+          <a href="/server" class="nav-link {% if active_page == 'server' %}active{% endif %}">
+            <svg class="svg-icon svg-icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <span>Server Setup</span>
+          </a>
+        </li>
+      </ul>
+
+      <div style="padding: 0.85rem; background: var(--bg-input); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+        <span style="font-size: 0.72rem; color: var(--text-sub); text-transform: uppercase; display: block; margin-bottom: 0.35rem;">Execution Engine</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="badge badge-{% if mode == 'direct' %}success{% elif mode == 'agent' %}warning{% else %}muted{% endif %}" style="padding: 0.2rem 0.6rem; font-size: 0.7rem;">
+            <span class="badge-dot"></span> {{ mode|upper }}
+          </span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content for Selected Page -->
+    <main class="main-content">
+      <header class="page-header">
+        <div class="page-title">
+          <h1>{% block page_heading %}WireGuard Overview{% endblock %}</h1>
+          <p>{% block page_subheading %}Production VPN Infrastructure Management{% endblock %}</p>
+        </div>
+        <div class="header-controls">
+          <div class="live-refresh-control" title="Live background telemetry polling">
+            <span class="live-pulse" id="livePulseDot"></span>
+            <span>Live:</span>
+            <select id="liveRefreshRate" onchange="setLiveRefresh(this.value)">
+              <option value="5" selected>5s</option>
+              <option value="10">10s</option>
+              <option value="30">30s</option>
+              <option value="0">OFF</option>
+            </select>
+          </div>
+          {% block header_actions %}
+          <button class="btn btn-secondary" onclick="location.reload()" title="Refresh">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Refresh</span>
+          </button>
+          {% endblock %}
+
+          <div class="top-nav-divider"></div>
+
+          <!-- Enterprise Theme Switcher -->
+          <button id="themeToggleBtn" class="btn-theme-switch" onclick="cycleTheme()" title="Switch Theme (Obsidian Zinc / Nordic Frost / Midnight OLED / Light Slate)">
+            <span id="themeIcon" class="theme-icon">⚡</span>
+            <span id="themeLabel" class="theme-label">Obsidian Zinc</span>
+          </button>
+
+          <!-- Current User Display -->
+          <div class="user-display-badge">
+            <div class="user-role-avatar">{{ user.username[:2]|upper }}</div>
+            <span class="user-name">{{ user.username }}</span>
+            <span class="badge {% if user.role == 'admin' %}badge-success{% else %}badge-warning{% endif %}" style="font-size: 0.68rem; margin-left: 0.35rem; {% if user.role != 'admin' %}background: rgba(234, 179, 8, 0.2); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.35);{% endif %}">
+              {% if user.role == 'admin' %}Admin{% else %}Viewer{% endif %}
+            </span>
+          </div>
+
+          <!-- Logout Button on Right Side Dashboard Top -->
+          <a href="/logout" class="btn-top-logout" title="Sign Out">
+            <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Logout</span>
+          </a>
+        </div>
+      </header>
+
+      {% if user.role == 'viewer' %}
+      <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.3); border-radius: var(--radius-sm); padding: 0.6rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #facc15; display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24" style="stroke: #facc15; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <span><strong>Viewer Policy Active:</strong> You have Read-Only access. Modifying peers, changing server configuration, and altering firewall rules are restricted to full-access administrators.</span>
+        </div>
+        <span class="soc-sub-badge" style="background: rgba(234, 179, 8, 0.25); color: #facc15; font-size: 0.7rem;">READ-ONLY</span>
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% block modals %}{% endblock %}
+</body>
+</html>

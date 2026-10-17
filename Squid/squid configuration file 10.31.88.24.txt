@@ -1,0 +1,169 @@
+# ==========================================================
+# SQUID PROXY SERVER
+# Ubuntu Linux
+# ==========================================================
+
+# ----------------------------------------------------------
+# PROXY PORT
+# ----------------------------------------------------------
+
+http_port 8870
+
+
+# ----------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------
+
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+auth_param basic realm Enterprise-Proxy
+auth_param basic credentialsttl 2 hours
+auth_param basic casesensitive off
+
+acl authenticated proxy_auth REQUIRED
+
+# ----------------------------------------------------------
+# localhost
+# ----------------------------------------------------------
+http_access allow localhost
+
+# ----------------------------------------------------------
+# CLIENT IP ACL
+# ----------------------------------------------------------
+
+acl allowed_ips src "/etc/squid/acl/allowed_ips"
+acl blocked_ips src "/etc/squid/acl/blocked_ips"
+
+
+# ----------------------------------------------------------
+# Domain  ACL
+# ----------------------------------------------------------
+
+acl social_sites dstdomain "/etc/squid/acl/social_sites"
+http_access deny social_sites
+
+# ----------------------------------------------------------
+# USER ACL
+# ----------------------------------------------------------
+
+acl admins proxy_auth "/etc/squid/acl/admins"
+
+
+# ----------------------------------------------------------
+# SAFE PORTS
+# ----------------------------------------------------------
+
+acl SSL_ports port 443
+
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 8080
+acl Safe_ports port 8443
+acl Safe_ports port 1025-65535
+
+acl CONNECT method CONNECT
+
+
+# ----------------------------------------------------------
+# SQUIDGUARD
+# ----------------------------------------------------------
+
+url_rewrite_program /usr/bin/squidGuard -c /etc/squid/squidGuard.conf
+
+url_rewrite_children 10
+
+
+# ----------------------------------------------------------
+# LOGGING
+# ----------------------------------------------------------
+
+access_log /var/log/squid/access.log squid
+
+cache_log /var/log/squid/cache.log
+
+cache_store_log /var/log/squid/store.log
+
+
+# ----------------------------------------------------------
+# CACHE STORAGE
+# ----------------------------------------------------------
+
+cache_dir ufs /var/spool/squid/cache 10000 16 256
+
+cache_mem 512 MB
+
+maximum_object_size 50 MB
+
+minimum_object_size 0 KB
+
+
+
+# ----------------------------------------------------------
+# SQUID MANAGER (EXPORTER)
+# ----------------------------------------------------------
+
+
+acl docker_net src 172.17.0.0/16
+
+http_access allow manager localhost
+http_access allow manager docker_net
+http_access deny manager
+# ----------------------------------------------------------
+# SECURITY
+# ----------------------------------------------------------
+
+http_access deny blocked_ips
+
+http_access deny !Safe_ports
+
+http_access deny CONNECT !SSL_ports
+
+
+# ----------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------
+
+http_access allow allowed_ips authenticated
+
+
+# ----------------------------------------------------------
+# DEFAULT DENY
+# ----------------------------------------------------------
+
+http_access deny all
+
+
+
+# Leave coredumps in the first cache dir
+coredump_dir /var/spool/squid
+
+refresh_pattern ^ftp:           1440    20%     10080
+refresh_pattern ^gopher:        1440    0%      1440
+refresh_pattern -i (/cgi-bin/|\?) 0     0%      0
+refresh_pattern \/(Packages|Sources)(|\.bz2|\.gz|\.xz)$ 0 0% 0 refresh-ims
+refresh_pattern \/Release(|\.gpg)$ 0 0% 0 refresh-ims
+refresh_pattern \/InRelease$ 0 0% 0 refresh-ims
+refresh_pattern \/(Translation-.*)(|\.bz2|\.gz|\.xz)$ 0 0% 0 refresh-ims
+# example pattern for deb packages
+#refresh_pattern (\.deb|\.udeb)$   129600 100% 129600
+refresh_pattern .               0       20%     4320
+
+#tcp_outgoing_address 192.168.21.2
+
+cache_effective_user squid
+cache_effective_group squid
+
+/etc/squid/passwd 
+
+nishu:$apr1$MvdJHz6b$aTuP6n7PCG9KB4Wv2G3N4/
+user1:$apr1$j8X.Gi8T$VlYu2ibY3RxvFcXZAcZFz/
+user2:$apr1$Ouk04A8b$Pz50uv.Xv7mWBi/AsTTko/
+developer1:$apr1$MKwJC0ac$3W8/2DvCFd2nq3ysthjeN.
+shyam:$apr1$VexpJmpD$hlRPyj5eMZL/T/UHDOjyh1
+mamta:67Fe0UJQGzEdw
+hari:16wmi9Sjo68Mo
+yt:025QwM9.cl3TU
+
+
+
+
+

@@ -1,0 +1,80 @@
+Nishu Saini
+Date: 26/08/2026
+Login: 8:59 AM
+Logout:6:00 PM
+
+
+Today's Work Summary
+
+
+9:00 AM  To 11:00 AM
+
+-Installed and configured Pulse Monitoring for the Proxmox VE environment.
+-Connected the HAC001 three-node Proxmox cluster to Pulse using a dedicated read-only API user and token.
+Verified successful discovery of:
+            1. prox015
+            2.prox016
+            3. prox017
+-Reviewed the Pulse Host Telemetry Agent deployment requirements for all three Proxmox nodes. Final installation and validation are pending because production and 
+ HPC workloads are running in the cluster.
+-Verified API-based node monitoring for
+            1. CPU usage
+            2. Memory usage
+            3. Disk/filesystem usage
+            4. Network activity
+            5. Uptime
+            6. Hardware temperature sensors
+			
+11:00 AM To 1:00 PM 
+
+-Confirmed that Pulse is discovering the cluster’s VMs and LXC containers.
+-Verified that Pulse displays guest state, CPU, RAM, network activity, disk I/O, and uptime.
+-Reviewed and troubleshot the Agent Doctor credential warning.
+-Investigated the duplicate Docker-host identity and the related prox016 Docker host offline alert.
+-Investigated the repeated Datastore.Audit storage retrieval error.
+-Verified that both the Pulse API user and the privilege-separated API token have effective Datastore.Audit, Sys.Audit, and VM.Audit permissions.
+-Applied the read-only PVEAuditor role to the Pulse API token at the cluster root path, with permission propagation enabled.
+-Restarted the Pulse service and reviewed fresh systemd journal logs.
+-Confirmed that the Datastore.Audit storage retrieval error continued after the Pulse service restart.
+
+1:00 PM To 2:00 PM 
+
+- Lunch break.
+
+2:00 PM To 4:00 PM
+
+-Reviewed the Pulse systemd configuration and confirmed:
+             Service file: /etc/systemd/system/pulse.service
+             Application binary: /opt/pulse/bin/pulse
+             Working directory: /opt/pulse
+             Configuration and data directory: /etc/pulse
+             Environment file: /etc/pulse/.env
+             Logs: systemd journal
+-Used journalctl to inspect current Pulse logs.
+-Confirmed repeated cluster-wide storage retrieval errors affecting all three Proxmox nodes.
+-Verified that the Pulse service restarted successfully with a new process ID.
+-Confirmed that adding the PVEAuditor token ACL and restarting Pulse did not resolve the storage retrieval error.
+-Investigated VM disk percentages displaying 0% (0 B / allocated capacity).
+-Confirmed that Proxmox provides the allocated virtual-disk capacity but not the actual filesystem-used space inside QEMU VMs without guest-side integration.
+-Reviewed the QEMU Guest Agent requirement for collecting guest filesystem information.
+-Confirmed that internal filesystem usage cannot currently be collected from HPC VMs because guest operating-system access is unavailable.
+-Confirmed that HPC VM CPU, RAM, power state, uptime, network throughput, and disk I/O can still be monitored through the Proxmox API.
+
+4:00 PM To 6:00 PM 
+
+-Test the Pulse API token against the storage endpoints of prox015, prox016, and prox017.
+-Verify that Pulse is using the correct full Token ID and corresponding token secret.
+-Review the Pulse Storage tab after completing direct API endpoint testing.
+-Investigate and clean up the stale Docker monitoring identity associated with prox016, if Docker monitoring is not required.
+-Continue validating high disk usage, temperature, CPU, and memory readings shown in the Pulse dashboard.
+-Finalize the Pulse monitoring implementation and troubleshooting documentation.
+
+
+Current Outcome
+
+-Pulse API inventory for the HAC001 Proxmox cluster is operational.
+-All three Proxmox nodes and their VMs/LXC containers are visible in Pulse.
+-CPU, RAM, state, uptime, network, and disk I/O monitoring are available through the Proxmox API.
+-Host Telemetry Agent installation and final validation remain pending.
+-The cluster-wide storage retrieval error remains under investigation.
+-Internal filesystem usage for HPC QEMU VMs is unavailable without approved guest-side integration.

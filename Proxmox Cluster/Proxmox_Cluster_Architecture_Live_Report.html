@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Proxmox VE Enterprise Cluster Live Architecture & Verification Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    @page {
+      size: A4;
+      margin: 8mm 10mm 8mm 10mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #0f172a;
+      background: #ffffff;
+      line-height: 1.3;
+      font-size: 8.3pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 279mm;
+      max-height: 279mm;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .header-banner {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 5px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .header-banner h1 {
+      font-size: 13pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+
+    .header-banner .subtitle {
+      font-size: 8pt;
+      color: #475569;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .badge-pass {
+      background: #dcfce7;
+      color: #15803d;
+      border: 1px solid #86efac;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .kpi-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 6px 8px;
+      border-left: 3px solid #2563eb;
+    }
+
+    .kpi-card.green { border-left-color: #16a34a; }
+    .kpi-card.purple { border-left-color: #9333ea; }
+    .kpi-card.amber { border-left-color: #d97706; }
+
+    .kpi-title {
+      font-size: 6.8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 10pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 1px;
+    }
+
+    .kpi-sub {
+      font-size: 6.8pt;
+      color: #64748b;
+    }
+
+    h2 {
+      font-size: 9.8pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 3px;
+    }
+
+    h2::before {
+      content: "";
+      display: inline-block;
+      width: 3.5px;
+      height: 11px;
+      background: #2563eb;
+      border-radius: 2px;
+    }
+
+    /* Architecture Diagram Box Layout */
+    .arch-container {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+
+    .network-bar {
+      border-radius: 5px;
+      padding: 4px 8px;
+      font-size: 7.3pt;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .net-mgmt {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .net-storage {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      margin-top: 6px;
+      margin-bottom: 0px;
+    }
+
+    .nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .node-box {
+      background: #ffffff;
+      border: 1px solid #94a3b8;
+      border-radius: 5px;
+      padding: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .node-box.leader {
+      border: 1.5px solid #2563eb;
+    }
+
+    .node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 3px;
+      margin-bottom: 4px;
+    }
+
+    .node-name {
+      font-weight: 800;
+      font-size: 8.8pt;
+      color: #0f172a;
+    }
+
+    .node-badge {
+      font-size: 6.5pt;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .node-box.leader .node-badge {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .node-detail {
+      font-size: 7pt;
+      color: #334155;
+      margin-bottom: 2px;
+      line-height: 1.25;
+    }
+
+    .node-detail strong {
+      color: #0f172a;
+    }
+
+    .service-tag {
+      display: inline-block;
+      font-size: 6.5pt;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      margin-top: 2px;
+      margin-right: 2px;
+    }
+
+    .service-tag.vm { background: #dcfce7; color: #166534; border-color: #bbf7d0; font-weight: 600; }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 8px;
+      font-size: 7.6pt;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      text-align: left;
+      padding: 3.5px 6px;
+      border: 1px solid #cbd5e1;
+    }
+
+    td {
+      padding: 3.5px 6px;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+
+    tr:nth-child(even) td {
+      background: #f8fafc;
+    }
+
+    .status-ok {
+      color: #15803d;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.2pt;
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      color: #0f172a;
+    }
+
+    .callout {
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 7.3pt;
+      color: #1e40af;
+      margin-bottom: 6px;
+    }
+
+    .footer {
+      border-top: 1px solid #cbd5e1;
+      padding-top: 4px;
+      font-size: 6.8pt;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1 -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <h1>Proxmox VE 3-Node Architecture &amp; Health Verification</h1>
+          <div class="subtitle">Cluster ID: <strong>cisai-pve</strong> &bull; Lead Engineer: <strong>Nishu Saini</strong> &bull; Organization: <strong>Innspark / CISAI</strong></div>
+        </div>
+        <div>
+          <span class="badge-pass">100% Live Verified Healthy</span>
+        </div>
+      </div>
+
+      <!-- KPI Grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-title">Cluster Quorum</div>
+          <div class="kpi-value">3 / 3 Quorate</div>
+          <div class="kpi-sub">Votes: 3 | Quorum Req: 2</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-title">Ceph Shared Storage</div>
+          <div class="kpi-value">12 / 12 OSDs Up</div>
+          <div class="kpi-sub">218 TiB Raw | 33 Clean PGs</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-title">ZFS RAIDZ2 Storage</div>
+          <div class="kpi-value">ONLINE (0 Errors)</div>
+          <div class="kpi-sub">3x Pools (~90 TiB per host)</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-title">High Availability</div>
+          <div class="kpi-value">CRM Watchdog Armed</div>
+          <div class="kpi-sub">3 Managed VMs Running</div>
+        </div>
+      </div>
+
+      <h2>1. Live Architecture Topology Diagram</h2>
+      <div class="arch-container">
+        <!-- Management Network Bar -->
+        <div class="network-bar net-mgmt">
+          <span>LAN 1: Corporate Management &amp; Corosync Heartbeat Subnet (10.31.6.0/22 on vmbr0) &bull; Gateway: 10.31.4.1</span>
+          <span>Latency: &lt; 0.3 ms</span>
+        </div>
+
+        <!-- 3 Nodes Grid -->
+        <div class="nodes-grid">
+          <!-- prox22 -->
+          <div class="node-box leader">
+            <div class="node-header">
+              <span class="node-name">prox22</span>
+              <span class="node-badge">HA Master</span>
+            </div>
+            <div class="node-detail"><strong>Mgmt IP:</strong> <code>10.31.6.172</code> (vmbr0)</div>
+            <div class="node-detail"><strong>10G Backplane:</strong> <code>192.168.10.22</code> (nic3)</div>
+            <div class="node-detail"><strong>Role:</strong> Active HA Master &bull; Active Ceph MGR</div>
+            <div class="node-detail"><strong>Ceph:</strong> OSD 0, 3, 6, 9 (All UP) &bull; MON 2</div>
+            <div class="node-detail"><strong>ZFS:</strong> <code>zfs-ha/pve</code> (Replication Source)</div>
+            <div style="margin-top: 3px;">
+              <span class="service-tag vm">VM 9002 (Running)</span>
+            </div>
+          </div>
+
+          <!-- prox23 -->
+          <div class="node-box">
+            <div class="node-header">
+              <span class="node-name">prox23</span>
+              <span class="node-badge">Member</span>
+            </div>
+            <div class="node-detail"><strong>Mgmt IP:</strong> <code>10.31.6.173</code> (vmbr0)</div>
+            <div class="node-detail"><strong>10G Backplane:</strong> <code>192.168.10.23</code> (nic3)</div>
+            <div class="node-detail"><strong>Role:</strong> Quorum Member &bull; Standby MGR</div>
+            <div class="node-detail"><strong>Ceph:</strong> OSD 1, 4, 7, 10 (All UP) &bull; MON 3</div>
+            <div class="node-detail"><strong>ZFS:</strong> <code>zfs-ha/pve</code> (3.5s Sync Target)</div>
+            <div style="margin-top: 3px;">
+              <span class="service-tag vm">VM 9003 (Running)</span>
+              <span class="service-tag vm">VM 101 (Running)</span>
+            </div>
+          </div>
+
+          <!-- prox24 -->
+          <div class="node-box">
+            <div class="node-header">
+              <span class="node-name">prox24</span>
+              <span class="node-badge">MON Leader</span>
+            </div>
+            <div class="node-detail"><strong>Mgmt IP:</strong> <code>10.31.6.174</code> (vmbr0)</div>
+            <div class="node-detail"><strong>10G Backplane:</strong> <code>192.168.10.24</code> (nic3)</div>
+            <div class="node-detail"><strong>Role:</strong> Active Ceph MON Leader</div>
+            <div class="node-detail"><strong>Ceph:</strong> OSD 2, 5, 8, 11 (All UP) &bull; MON 1</div>
+            <div class="node-detail"><strong>ZFS:</strong> <code>zfs-ha/pve</code> (3.3s Sync Target)</div>
+            <div style="margin-top: 3px;">
+              <span class="service-tag vm">VM 9001 (Running)</span>
+              <span class="service-tag vm">VM 100 (Running)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10G Storage Network Bar -->
+        <div class="network-bar net-storage">
+          <span>LAN 2: Dedicated 10G SFP+ Storage &amp; RAM Migration Backplane (192.168.10.0/24 on nic3) &bull; DAC</span>
+          <span>Throughput: ~9.4 Gbps &bull; Latency: ~0.07 ms</span>
+        </div>
+      </div>
+
+      <h2>2. Live Cluster Physical Nodes &amp; Network Mapping</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Node Name</th>
+            <th>Node ID</th>
+            <th>Management IP</th>
+            <th>10G Interconnect IP</th>
+            <th>Corosync Link</th>
+            <th>Ceph OSDs Hosted</th>
+            <th>Cluster Role</th>
+            <th>Live Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>prox22</strong></td>
+            <td><code>0x0002</code></td>
+            <td><code>10.31.6.172</code></td>
+            <td><code>192.168.10.22</code></td>
+            <td>Link 0 (1 Vote)</td>
+            <td>osd.0, osd.3, osd.6, osd.9</td>
+            <td>HA Master &bull; Active Ceph MGR</td>
+            <td class="status-ok">ONLINE / QUORATE</td>
+          </tr>
+          <tr>
+            <td><strong>prox23</strong></td>
+            <td><code>0x0003</code></td>
+            <td><code>10.31.6.173</code></td>
+            <td><code>192.168.10.23</code></td>
+            <td>Link 0 (1 Vote)</td>
+            <td>osd.1, osd.4, osd.7, osd.10</td>
+            <td>Member &bull; Standby MGR</td>
+            <td class="status-ok">ONLINE / QUORATE</td>
+          </tr>
+          <tr>
+            <td><strong>prox24</strong></td>
+            <td><code>0x0001</code></td>
+            <td><code>10.31.6.174</code></td>
+            <td><code>192.168.10.24</code></td>
+            <td>Link 0 (1 Vote)</td>
+            <td>osd.2, osd.5, osd.8, osd.11</td>
+            <td>Ceph MON Leader</td>
+            <td class="status-ok">ONLINE / QUORATE</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Dual-Tier Storage Subsystems</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Storage Tier</th>
+            <th>Storage ID</th>
+            <th>Technology</th>
+            <th>Total Capacity</th>
+            <th>Redundancy Profile</th>
+            <th>Operational Purpose</th>
+            <th>Health</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tier 1 (Shared)</strong></td>
+            <td><code>ceph</code></td>
+            <td>Ceph RBD Distributed Engine</td>
+            <td>218 TiB Raw (69 TiB Avail)</td>
+            <td>3x Replicated (size=3, min=2)</td>
+            <td>Zero-copy live migration, HA zero-RPO storage</td>
+            <td class="status-ok">HEALTH_OK (33 Clean PGs)</td>
+          </tr>
+          <tr>
+            <td><strong>Tier 2 (Local)</strong></td>
+            <td><code>zfs-ha</code></td>
+            <td>OpenZFS 7-Disk RAIDZ2 Pool</td>
+            <td>~90 TiB Usable / Host</td>
+            <td>Dual Parity (2-drive failure survival)</td>
+            <td>Extreme OLTP IOPS (47K IOPS), ARC memory caching</td>
+            <td class="status-ok">ONLINE (0 Errors)</td>
+          </tr>
+          <tr>
+            <td><strong>Backup / ISO</strong></td>
+            <td><code>NFS-Storage</code></td>
+            <td>NFS on 10.31.1.161</td>
+            <td>2.8 TiB</td>
+            <td>External NAS Appliance</td>
+            <td>Template ISOs, rootfs archives, VM backups</td>
+            <td class="status-ok">ACTIVE</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster <code>cisai-pve</code> &bull; Infrastructure Architecture &bull; Verified Live</span>
+      <span>Page 1 of 2</span>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <h1>Active Workload &amp; High Availability Verification</h1>
+          <div class="subtitle">Live Proxmox HA Manager &bull; Virtual Machine Distribution &bull; Network Isolation Rules</div>
+        </div>
+        <div>
+          <span class="badge-pass">CRM Watchdog Armed</span>
+        </div>
+      </div>
+
+      <h2>4. Live Virtual Machine Workload Distribution</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>VM ID</th>
+            <th>VM Name</th>
+            <th>Host Node</th>
+            <th>Storage Backend</th>
+            <th>Compute Sizing</th>
+            <th>HA Policy</th>
+            <th>Replication / Live Mobility</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>9001</strong></td>
+            <td><code>ha-test-ceph-ubuntu2204</code></td>
+            <td><strong>prox24</strong></td>
+            <td><code>ceph:vm-9001-disk-1</code></td>
+            <td>2 vCPU / 4096 MB</td>
+            <td>CRM (started)</td>
+            <td><strong>Instant Zero-Copy 10G Live Migration</strong></td>
+          </tr>
+          <tr>
+            <td><strong>9002</strong></td>
+            <td><code>zfs-test-prox24-ubuntu2204</code></td>
+            <td><strong>prox22</strong></td>
+            <td><code>zfs-ha:vm-9002-disk-0</code></td>
+            <td>2 vCPU / 4096 MB</td>
+            <td>CRM (started)</td>
+            <td><strong>Auto-Replicated to prox23 &amp; prox24 (3.4s sync)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>9003</strong></td>
+            <td><code>zfs-benchmark-prod-vm</code></td>
+            <td><strong>prox23</strong></td>
+            <td><code>zfs-ha:vm-9003-disk-1</code></td>
+            <td>2 vCPU / 4096 MB</td>
+            <td>CRM (started)</td>
+            <td>Production IOPS Benchmark &amp; Snapshot Target</td>
+          </tr>
+          <tr>
+            <td><strong>100</strong></td>
+            <td><code>101-sajanlals-ubuntu24</code></td>
+            <td><strong>prox24</strong></td>
+            <td><code>local-lvm:vm-100-disk-0</code></td>
+            <td>4 vCPU / 5120 MB</td>
+            <td>Manual</td>
+            <td>Local LVM (Static IP: 10.31.4.235)</td>
+          </tr>
+          <tr>
+            <td><strong>101</strong></td>
+            <td><code>102-sajanlals-ubuntu24</code></td>
+            <td><strong>prox23</strong></td>
+            <td><code>local-lvm:vm-101-disk-0</code></td>
+            <td>3 vCPU / 5120 MB</td>
+            <td>Manual</td>
+            <td>Local LVM (Static IP: 10.73.34.43)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>5. High Availability &amp; Fencing Configuration</h2>
+      <div class="callout">
+        <strong>Fencing &amp; CRM Architecture:</strong> The cluster operates with <code>corosync_votequorum</code> (3 votes, 2 required for quorum). The Master CRM runs on <code>prox22</code> with hardware/softdog watchdog fencing armed on all nodes. In case of unexpected host disconnection, the active CRM watchdog guarantees split-brain protection and restarts protected VMs on surviving nodes.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>HA Subsystem</th>
+            <th>Daemon Process</th>
+            <th>Active Node</th>
+            <th>Watchdog State</th>
+            <th>Failover / Synchrony Performance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cluster Resource Manager</strong></td>
+            <td><code>pve-ha-crm</code></td>
+            <td><strong>prox22</strong> (Master)</td>
+            <td>Armed (Active Watchdog)</td>
+            <td>~15 seconds lock takeover on leader death</td>
+          </tr>
+          <tr>
+            <td><strong>Local Resource Manager</strong></td>
+            <td><code>pve-ha-lrm</code></td>
+            <td>prox22, prox23, prox24</td>
+            <td>Armed (Active Watchdog)</td>
+            <td>Immediate local process supervision</td>
+          </tr>
+          <tr>
+            <td><strong>Automated ZFS Replication</strong></td>
+            <td><code>pvesr</code></td>
+            <td>Managed Proxmox Schedule</td>
+            <td>Active (Every 30 mins)</td>
+            <td>3.38s &ndash; 3.52s delta transfer time (Job 9002-0/1)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>6. 10G Network Isolation &amp; Live Migration Policy</h2>
+      <div style="background: #0f172a; color: #f8fafc; padding: 6px 10px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 7.2pt; margin-bottom: 6px;">
+        keyboard: en-us &bull; ha: shutdown_policy=migrate &bull; migration: type=secure,network=192.168.10.0/24
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Operational Metric</th>
+            <th>Observed Performance</th>
+            <th>Architectural Impact</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Peak Live Migration Throughput</strong></td>
+            <td><strong>828.6 MiB/s (~6.95 Gbps)</strong></td>
+            <td>RAM live migration fully saturates the 10G link without dropping packets.</td>
+          </tr>
+          <tr>
+            <td><strong>Guest Cutover Downtime</strong></td>
+            <td><strong>23 milliseconds</strong></td>
+            <td>Imperceptible guest freeze during memory state handoff; zero dropped pings.</td>
+          </tr>
+          <tr>
+            <td><strong>Corosync Heartbeat Protection</strong></td>
+            <td><strong>0% Load on 1G Management LAN</strong></td>
+            <td>Heavy RAM replication traffic is strictly barred from <code>vmbr0</code> (10.31.6.0/22).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>7. Verification Sign-Off &amp; Engineering Approval</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Review Item</th>
+            <th>Audited By</th>
+            <th>Date</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Corosync Quorum &amp; Node Health</td>
+            <td>Nishu Saini (Innspark)</td>
+            <td>2026-09-19</td>
+            <td class="status-ok">PASS &bull; 100% OPERATIONAL</td>
+          </tr>
+          <tr>
+            <td>Ceph 12-OSD Storage Health</td>
+            <td>Nishu Saini (Innspark)</td>
+            <td>2026-09-19</td>
+            <td class="status-ok">PASS &bull; HEALTH_OK</td>
+          </tr>
+          <tr>
+            <td>ZFS RAIDZ2 &amp; Cross-Node Sync</td>
+            <td>Nishu Saini (Innspark)</td>
+            <td>2026-09-19</td>
+            <td class="status-ok">PASS &bull; SYNCHRONIZED</td>
+          </tr>
+          <tr>
+            <td>High Availability CRM Fencing</td>
+            <td>Nishu Saini (Innspark)</td>
+            <td>2026-09-19</td>
+            <td class="status-ok">PASS &bull; ARMED</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <span>Proxmox VE Cluster <code>cisai-pve</code> &bull; Infrastructure Architecture &bull; Verified Live</span>
+      <span>Page 2 of 2</span>
+    </div>
+  </div>
+
+</body>
+</html>

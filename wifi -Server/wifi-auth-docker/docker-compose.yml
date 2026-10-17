@@ -1,0 +1,73 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. OpenLDAP Directory Server (Stores users, passwords, and groups)
+  # ---------------------------------------------------------------------------
+  openldap:
+    image: osixia/openldap:latest
+    container_name: wifi-openldap
+    network_mode: host
+    environment:
+      LDAP_ORGANISATION: "${LDAP_ORGANISATION:-Innspark Technologies}"
+      LDAP_DOMAIN: "${LDAP_DOMAIN:-innspark.in}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-AdminPassword123!}"
+      LDAP_CONFIG_PASSWORD: "${LDAP_CONFIG_PASSWORD:-ConfigPassword123!}"
+      LDAP_RFC2307BIS_SCHEMA: "true"
+      LDAP_TLS: "false"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 2. Modern Enterprise Web Dashboard (Innspark Wi-Fi & LDAP Manager)
+  # Access at http://<server-ip>:8088
+  # ---------------------------------------------------------------------------
+  web-admin:
+    build:
+      context: ./web-admin
+      dockerfile: Dockerfile
+    container_name: wifi-ldap-admin
+    network_mode: host
+    environment:
+      LDAP_HOST: "127.0.0.1"
+      LDAP_PORT: "389"
+      LDAP_BASE_DN: "${LDAP_BASE_DN:-dc=innspark,dc=in}"
+      LDAP_ADMIN_DN: "${LDAP_ADMIN_DN:-cn=admin,dc=innspark,dc=in}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-AdminPassword123!}"
+      SECRET_KEY: "${SECRET_KEY:-innspark-super-secure-session-key-8021x}"
+      PORT: "${PHPLDAPADMIN_PORT:-8088}"
+    depends_on:
+      - openldap
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 3. FreeRADIUS 802.1X Server (Authenticates Access Points against LDAP)
+  # Listens on host UDP 1812 (auth) & 1813 (accounting)
+  # ---------------------------------------------------------------------------
+  freeradius:
+    build:
+      context: ./radius
+      dockerfile: Dockerfile
+    container_name: wifi-freeradius
+    network_mode: host
+    depends_on:
+      - openldap
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # 4. ISC-DHCP Server (Allocates dynamic IP addresses to Wi-Fi clients)
+  # Listens directly for UDP 67 broadcast traffic on the designated interface
+  # ---------------------------------------------------------------------------
+  dhcp:
+    image: networkboot/dhcpd:latest
+    container_name: wifi-dhcp
+    network_mode: host
+    command: ${DHCP_INTERFACE:-enp44s0}
+    volumes:
+      - ./dhcp/data:/data
+    profiles: ["dhcp", "all"]
+    restart: unless-stopped
+
+volumes:
+  ldap_data:
+  ldap_config:

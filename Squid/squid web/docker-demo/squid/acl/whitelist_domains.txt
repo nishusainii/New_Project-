@@ -1,0 +1,4 @@
+# Whitelisted Domains (Always Permitted)
+.google.com
+.github.com
+.innspark.in

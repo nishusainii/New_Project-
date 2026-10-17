@@ -1,0 +1,65 @@
+Name: Nishu Saini
+ Date: 09/09/2026
+ Login: 09:08 AM
+ Logout: 07:30 PM
+
+ Today's Work Summary
+
+9:08 AM to 12:00 PM
+
+-Reviewed the complete WGAdmin project architecture and Docker Compose configuration.
+-Built and verified the Docker image wgadmin:latest.
+-Tested both WGAdmin deployment modes: Docker bridge mode and host-network live mode.
+-Corrected YAML indentation issues in the wgadmin-live service and successfully validated the Compose configuration.
+-Confirmed that wgadmin-live runs with host networking, NET_ADMIN, SYS_MODULE, WG_FORCE_SIMULATION=0, and a writable /etc/wireguard mount.
+-Verified that the live WGAdmin dashboard is accessible over HTTPS on TCP port 8080.
+-Confirmed that the 501 Unsupported method ('HEAD') response from curl -I was caused by the application not supporting HTTP HEAD requests, not by a service failure.
+-Verified the Docker bridge network my-project_default with subnet 172.18.0.0/16, gateway 172.18.0.1, and container IP 172.18.0.2.
+-Diagnosed missing Docker firewall chains that caused DOCKER-FORWARD and DNAT-related errors.
+-Restored Docker networking by restarting or recreating the required Docker networks and containers.
+-Confirmed bridge-mode dashboard port publishing as 0.0.0.0:18080 -> 8080/tcp.
+-Installed and configured the host-side nft-agent as a systemd service running with root privileges and CAP_NET_ADMIN
+
+12:00 PM TO 1:00 PM 
+
+-Changed the nft-agent listener from 127.0.0.1:9911 to 0.0.0.0:9911 to allow access from the WGAdmin container.
+- WGAdmin to connect to the host agent using WG_FW_AGENT_URL, WG_FW_AGENT_TOKEN, and WG_FORCE_SIMULATION=0.
+-Diagnosed Docker-to-host connectivity failure caused by an incorrect nftables restriction 
+-Corrected the firewall rule to allow the Docker subnet without the incorrect incoming-interface restriction.
+-Successfully verified nft-agent connectivity from inside the WGAdmin container using its health endpoint.
+
+1:00 PM To 1:40 PM 
+
+- Lunch break
+
+1:40 PM T0 4:00 PM 
+
+-Confirmed the complete firewall-management path from the WGAdmin UI through nft-agent to the host nftables ruleset.
+-Created and validated a harmless test rule for source IP 10.31.1.59 and TCP port 9999.
+-Identified that firewall rules created through the WGAdmin UI modify only the running kernel ruleset and are not persisted in /etc/nftables.conf.
+-Confirmed that using Reload Firewall removes runtime-only WGAdmin rules because it reloads the configuration from /etc/nftables.conf.
+-Identified that repeated execution of sudo nft -f /etc/nftables.conf creates duplicate rules in the input, forward, vpn_acl, and NAT postrouting chains.
+-Found and corrected nftables configuration issues, including the invalid nft-backup.txt line and a missing NAT table closing brace.
+
+4:00 PM TO 7:30 PM 
+
+-Prepared a detailed remediation prompt covering persistent firewall storage, idempotent reloads, candidate validation, locking, backup, rollback, and separation from Docker-owned chains.
+-Verified that the production nftables configuration includes default drop policies, SSH allowlisting, WireGuard UDP port 443, wg0 forwarding, per-peer VPN ACLs, and SNAT for 172.29.250.0/24.
+-Identified unrestricted dashboard access on TCP ports 8080 and 18080 and recommended restricting access to trusted management sources.
+-Discovered that /etc/wireguard/wg0.conf had been overwritten with invalid wg show output, located valid backups, and restored the correct WireGuard configuration.
+-Successfully restored the wg0 interface, UDP port 443, and peer definitions for addresses 172.29.250.10 through 172.29.250.18.
+-Reviewed apply.sh and confirmed that the expected WireGuard interface JSON source is missing, so the script is not ready for safe production use.
+-Established pending security and operational actions: rotate exposed credentials, replace the weak WGAdmin password, restrict ports 8080, 18080, and 9911, avoid running bridge and live containers simultaneously, avoid Reload Firewall, and safely deduplicate only organization-owned nftables rules.
+
+Current Production Summary
+-WireGuard wg0: Running
+-WireGuard UDP 443: Listening
+-WireGuard peers: Loaded
+-WGAdmin live dashboard: Running
+-nft-agent: Running
+-Docker networking: Working
+-Firewall UI access: Working
+-Firewall persistence: Not safe yet
+-Normal apply.sh use: Not ready
+-Repeated firewall reload: Must be avoided until corrected
+

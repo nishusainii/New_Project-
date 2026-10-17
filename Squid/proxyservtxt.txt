@@ -1,0 +1,392 @@
+For multiple OpenFortiVPN clients, secure Squid by using least privilege: permit only approved client IPs, only the FortiGate IP, only TCP port 4433, and only the HTTP CONNECT method. Keep normal web-proxy access behind authentication.
+
+Recommended architecture
+Approved VPN clients
+10.31.0.87
+10.31.0.88
+10.31.0.89
+       │
+       │ CONNECT only
+       ▼
+Squid 10.31.212.14:8085
+       │
+       │ TLS tunnel only
+       ▼
+FortiGate 182.19.54.189:4433
+
+
+Squid supports matching on source IP (src), destination IP (dst), destination port (port), request method (method), and authenticated identity (proxy_auth).
+
+1. Use individual IP addresses, not a broad subnet
+
+Create a dedicated client list:
+
+sudo vi /etc/squid/openfortivpn_clients.txt
+
+
+Add one approved host per line:
+
+10.31.0.87/32
+10.31.0.88/32
+10.31.0.89/32
+10.31.1.124/32
+
+
+Avoid permitting an entire subnet such as:
+
+10.31.0.0/16
+
+
+unless every device in that subnet is authorized.
+
+Squid ACLs can load values from a file, with one item per line.
+
+Protect the list:
+
+sudo chown root:proxy /etc/squid/openfortivpn_clients.txt
+sudo chmod 640 /etc/squid/openfortivpn_clients.txt
+
+
+Verify the actual Squid group first if needed:
+
+ps -o user,group,cmd -C squid
+
+
+If Squid runs under group squid, use:
+
+sudo chown root:squid /etc/squid/openfortivpn_clients.txt
+
+2. Define narrowly scoped ACLs
+
+Add to /etc/squid/squid.conf:
+
+acl openfortivpn_clients src "/etc/squid/openfortivpn_clients.txt"
+
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+
+acl SSL_ports port 443
+acl SSL_ports port 4433
+
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 1025-65535
+
+acl CONNECT method CONNECT
+
+
+Keep only one definition of:
+
+acl CONNECT method CONNECT
+
+3. Use secure rule ordering
+
+Use this order:
+
+# Reject unsafe destination ports first
+http_access deny !Safe_ports
+
+# Prevent CONNECT to ports not explicitly listed in SSL_ports
+http_access deny CONNECT !SSL_ports
+
+# Restricted VPN exception
+http_access allow openfortivpn_clients \
+                  fortigate_sslvpn \
+                  fortigate_sslvpn_port \
+                  CONNECT
+
+# Normal web proxy requires authentication
+http_access allow allowed_ips authenticated
+
+# Explicit final denial
+http_access deny all
+
+
+Squid recommends denying unsafe ports, denying CONNECT outside approved SSL ports, and ending access rules with an explicit deny all. Rule ordering is important because Squid evaluates http_access rules in sequence.
+
+Why the exception is narrow
+
+For the VPN exception to match, all these conditions must be true:
+
+Source IP      = approved OpenFortiVPN client
+Destination IP = 182.19.54.189
+Destination    = TCP/4433
+Method         = CONNECT
+
+
+An approved client therefore cannot use this rule to:
+
+Browse arbitrary websites without authentication
+Connect to other Internet hosts
+Connect to other ports
+Send normal GET or POST requests through the exception
+4. Do not create dangerous broad rules
+
+Do not use:
+
+http_access allow openfortivpn_clients
+
+
+That would omit destination, port, and method restrictions.
+
+Do not use:
+
+http_access allow all
+
+
+Do not use:
+
+acl openfortivpn_clients src 10.31.0.0/16
+
+
+unless the whole subnet is trusted and approved.
+
+Keep this as the last access rule:
+
+http_access deny all
+
+
+Squid’s documentation recommends an explicit final denial to avoid ambiguity and unintended access.
+
+5. Restrict port 8085 at the host firewall
+
+Your nftables input chain should allow TCP port 8085 only from approved VPN clients.
+
+Example persistent configuration:
+
+table inet filter {
+    set openfortivpn_clients {
+        type ipv4_addr
+        elements = {
+            10.31.0.87,
+            10.31.0.88,
+            10.31.0.89,
+            10.31.1.124
+        }
+    }
+
+    chain input {
+        type filter hook input priority filter;
+        policy drop;
+
+        iifname "lo" accept
+        ct state established,related accept
+
+        ip saddr @openfortivpn_clients tcp dport 8085 accept
+
+        ip protocol icmp accept
+    }
+}
+
+
+Using an nftables set avoids duplicating a long list inside multiple rules.
+
+Before applying:
+
+sudo cp -a /etc/nftables.conf \
+  /etc/nftables.conf.backup-$(date +%Y%m%d-%H%M%S)
+
+
+Validate:
+
+sudo nft -c -f /etc/nftables.conf
+
+
+Apply only after successful validation:
+
+sudo nft -f /etc/nftables.conf
+
+
+Verify:
+
+sudo nft list ruleset
+
+Important distinction
+
+For the HTTP CONNECT architecture:
+
+Client -> Squid TCP/8085
+
+
+the Squid server receives traffic locally. Therefore, the primary local firewall control is the input chain.
+
+You do not need client-to-FortiGate forwarding rules for the Squid CONNECT flow because the Squid process creates its own outbound connection.
+
+6. Use static IPs or DHCP reservations
+
+Because authorization at the Squid layer is based on source IP:
+
+Give every client a static IP, or
+Create DHCP reservations
+Prevent unauthorized clients from using assigned IPs
+Place clients in a controlled VLAN where possible
+
+Without DHCP reservations or equivalent network controls, an IP may be reassigned to another device.
+
+7. Keep FortiGate accounts individual
+
+Squid source-IP authorization does not replace FortiGate user authentication.
+
+Use:
+
+10.31.0.87 -> VPN account user-A
+10.31.0.88 -> VPN account user-B
+10.31.0.89 -> VPN account user-C
+
+
+Do not copy the same FortiGate VPN username/password to every client.
+
+Individual accounts improve:
+
+Revocation
+User accountability
+Authentication audit records
+Password rotation
+Portal and policy assignment
+8. Secure client credential files
+
+For systemd operation, each client may have:
+
+/etc/openfortivpn/config
+
+
+Protect it:
+
+sudo chown root:root /etc/openfortivpn/config
+sudo chmod 600 /etc/openfortivpn/config
+
+
+Verify:
+
+sudo stat -c '%U %G %a %n' /etc/openfortivpn/config
+
+
+Expected:
+
+root root 600 /etc/openfortivpn/config
+
+
+Avoid using -vvv during routine operation because verbose output may reveal credentials.
+
+9. Validate every Squid change before applying
+
+Check syntax:
+
+sudo squid -k parse
+
+
+Reload only if parsing succeeds:
+
+sudo systemctl reload squid
+
+
+Check status:
+
+sudo systemctl status squid --no-pager
+
+
+Review recent messages:
+
+sudo journalctl -u squid -n 50 --no-pager
+
+10. Verify allowed and denied behavior
+Test from an approved client
+env -u http_proxy -u HTTP_PROXY -u https_proxy -u HTTPS_PROXY \
+curl -vk \
+-x http://10.31.212.14:8085 \
+-H "User-Agent: FortiSSLVPN" \
+https://182.19.54.189:4433/remote/info
+
+
+Expected:
+
+HTTP/1.1 200 Connection established
+
+
+and then the FortiGate response.
+
+Test blocked destination from the same client
+env -u http_proxy -u HTTP_PROXY -u https_proxy -u HTTPS_PROXY \
+curl -vk \
+-x http://10.31.212.14:8085 \
+https://example.com/
+
+
+Without valid normal-proxy authentication, this should not be allowed by the VPN exception.
+
+Test from an unauthorized client
+
+Attempt the FortiGate CONNECT test from a client not present in:
+
+/etc/squid/openfortivpn_clients.txt
+
+
+It should be denied.
+
+11. Monitor usage
+
+Live monitoring:
+
+sudo tail -f /var/log/squid/access.log |
+grep --line-buffered 'CONNECT 182.19.54.189:4433'
+
+
+Review historical connections:
+
+sudo grep 'CONNECT 182.19.54.189:4433' \
+/var/log/squid/access.log
+
+
+Summarize connections by source IP:
+
+sudo grep 'CONNECT 182.19.54.189:4433' \
+/var/log/squid/access.log |
+awk '{print $3}' |
+sort |
+uniq -c |
+sort -nr
+
+
+Look for:
+
+Unknown client IPs
+Repeated failures
+Unexpected connection times
+Excessive reconnect attempts
+Clients no longer authorized
+12. Maintain a controlled onboarding process
+
+When adding a client:
+
+Assign a static IP or DHCP reservation.
+Add its /32 address to:
+/etc/squid/openfortivpn_clients.txt
+
+Ensure nftables allows that IP to TCP/8085.
+Run:
+sudo squid -k parse
+
+Reload:
+sudo systemctl reload squid
+
+Test the client.
+Verify the expected TCP_TUNNEL/200 log entry.
+
+When removing a client:
+
+Stop and disable its OpenFortiVPN service.
+Remove its IP from the Squid client file.
+Remove its IP from the nftables set.
+Validate and reload.
+Revoke or disable its FortiGate VPN account.
+Review logs for later attempts.
+Recommended final security model
+Layer 1: Network/VLAN and static IP control
+Layer 2: nftables permits TCP/8085 only from approved clients
+Layer 3: Squid permits CONNECT only to 182.19.54.189:4433
+Layer 4: FortiGate authenticates each user individually
+Layer 5: TLS certificate validation/pinning protects gateway identity
+Layer 6: Squid and systemd logs provide monitoring
+
+
+This is secure enough for a controlled enterprise environment provided the exception remains limited to individual client addresses, one FortiGate destination, port 4433, and CONNECT only.

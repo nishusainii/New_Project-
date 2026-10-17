@@ -1,0 +1,2200 @@
+{% extends "base.html" %}
+
+{% block title %}NFTables & Firewall · WireGuard Control Center{% endblock %}
+
+{% block page_heading %}
+<div class="soc-breadcrumb">/FIREWALL & ACLs</div>
+<div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+  <span style="font-size: 1.35rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.01em;">NFTables Configuration Manager</span>
+  <span class="soc-sub-badge" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; letter-spacing: 0.05em;">
+    {% if nft_available %}● KERNEL ACTIVE{% else %}⚠️ SIMULATED{% endif %}
+  </span>
+  <span id="headerFileBadge" class="badge badge-success" style="font-family: monospace; font-size: 0.72rem; padding: 0.2rem 0.6rem;">
+    {{ conf_file.path }}
+  </span>
+</div>
+{% endblock %}
+
+{% block page_subheading %}
+Direct management of host Linux firewall (<code id="subheadingFilePath" style="color:var(--primary);">/etc/nftables.conf</code>) and WireGuard client ACL rules (<code style="color:var(--primary);">/etc/nftables/acl.nft</code>) with syntax validation, zero-downtime atomic kernel reload, and rules import.
+{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-secondary btn-sm" onclick="reloadFromDisk()" title="Reload current active file from disk, discarding unsaved edits">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+  <span>Reload from Disk</span>
+</button>
+<button class="btn btn-secondary btn-sm" onclick="validateConfFile()" title="Validate ruleset syntax with nft -c -f">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span>Validate Syntax</span>
+</button>
+{% if user.role == 'admin' %}
+<button class="btn btn-secondary btn-sm" onclick="openImportModal()" title="Import rules from live kernel or custom text statements">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+  <span>Import Rules</span>
+</button>
+<button class="btn btn-secondary btn-sm" onclick="saveConfFile()" title="Save changes to active file">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+  <span>Save File</span>
+</button>
+<button class="btn btn-primary btn-sm" onclick="saveAndApplyConf()" title="Validate syntax, save to file, and atomically reload into Linux kernel">
+  <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+  <span>Save & Apply</span>
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="soc-dashboard-wrap">
+
+  <!-- 1. STATUS SUMMARY CARDS -->
+  <div class="soc-kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 1.25rem;">
+    <!-- Card 1: Engine -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>NFTables Kernel Engine</span>
+        <svg class="svg-icon svg-icon-xs soc-cyan" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <div class="soc-kpi-value soc-cyan" style="font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span class="live-pulse" style="background: #10b981;"></span>
+        <span>{% if nft_available %}Active & Live{% else %}Simulation Mode{% endif %}</span>
+      </div>
+      <div class="soc-kpi-sub">Direct Netlink Subsystem · Zero Packet Loss Reload</div>
+    </div>
+
+    <!-- Card 2: Active Config File -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Active Configuration File</span>
+        <span id="kpiFileBadge" class="soc-sub-badge" style="font-size: 0.65rem;">HOST MAIN</span>
+      </div>
+      <div id="kpiFilePath" class="soc-kpi-value soc-purple" style="font-size: 1.05rem; font-family: monospace; word-break: break-all;">
+        {{ conf_file.path }}
+      </div>
+      <div class="soc-kpi-sub" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+        <span id="kpiFileDesc" style="color: var(--text-muted);">Main Host Firewall Ruleset</span>
+        <span id="topConfStats" style="font-family: monospace; font-size: 0.72rem; color: var(--text-sub);">{{ conf_file.lines }} lines · {{ conf_file.characters }} chars</span>
+      </div>
+    </div>
+
+    <!-- Card 3: Execution Safety -->
+    <div class="soc-kpi-card">
+      <div class="soc-kpi-label">
+        <span>Safety & Validation Gate</span>
+        <svg class="svg-icon svg-icon-xs soc-green" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <div class="soc-kpi-value soc-green" style="font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>Pre-Commit Validated</span>
+      </div>
+      <div class="soc-kpi-sub">Dry-run compiler check (nft -c -f) before disk write</div>
+    </div>
+  </div>
+
+  <!-- 2. LIVE VALIDATION & NOTIFICATION BANNER -->
+  <div id="fwAlertBanner" class="alert-banner" style="display: none; margin-bottom: 1.25rem;">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;">
+      <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+        <span id="fwAlertIcon" style="font-size: 1.1rem; line-height: 1;">✓</span>
+        <div>
+          <div id="fwAlertTitle" style="font-weight: 700; margin-bottom: 0.25rem;">Ruleset Validated</div>
+          <pre id="fwAlertDetails" style="margin: 0; font-family: ui-monospace, monospace; font-size: 0.78rem; white-space: pre-wrap; word-break: break-word;"></pre>
+        </div>
+      </div>
+      <button onclick="document.getElementById('fwAlertBanner').style.display='none'" style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1rem; opacity: 0.7;">&times;</button>
+    </div>
+  </div>
+
+  <!-- 3. CONFIGURATION FILE TABS -->
+  <div class="soc-nav-tabs" style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <button id="tabAclBtn" type="button" class="soc-tab-btn active" onclick="switchMainTab('acl')" style="outline: none;">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <span style="font-family: monospace; font-size: 0.88rem; font-weight: 600;">/etc/nftables/acl.nft</span>
+        <span class="soc-sub-badge" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">WireGuard Client ACLs</span>
+        <span id="tabAclUnsavedDot" style="display: none; color: #f59e0b; font-size: 0.8rem; font-weight: bold;" title="Unsaved changes">●</span>
+      </button>
+      <button id="tabConfBtn" type="button" class="soc-tab-btn" onclick="switchMainTab('conf')" style="outline: none;">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <span style="font-family: monospace; font-size: 0.88rem; font-weight: 600;">/etc/nftables.conf</span>
+        <span class="soc-sub-badge" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">Host System Main</span>
+        <span id="tabConfUnsavedDot" style="display: none; color: #f59e0b; font-size: 0.8rem; font-weight: bold;" title="Unsaved changes">●</span>
+      </button>
+    </div>
+
+    <!-- Quick Action Buttons -->
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+      <button class="btn btn-secondary btn-sm" onclick="validateConfFile()" title="Validate ruleset syntax with nft -c -f">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>Validate Syntax</span>
+      </button>
+      {% if user.role == 'admin' %}
+      <button class="btn btn-secondary btn-sm" onclick="saveConfFile()" title="Save changes to active configuration file">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path></svg>
+        <span>Save File</span>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="saveAndApplyConf()" title="Validate syntax, save, and reload into Linux kernel">
+        <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        <span>Save & Apply</span>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 4. TAB 1 CONTENT: WIREGUARD CLIENT ACLs (/etc/nftables/acl.nft) -->
+  <div id="tabAclContent" class="soc-glass-panel" style="padding: 1.25rem;">
+    <!-- Simple "Add Client Rule" Form -->
+    <div style="background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.95rem; color: #38bdf8;">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add Client Access Rule</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Rules take effect in <code style="color: #38bdf8;">/etc/nftables/acl.nft</code>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.4fr 1.6fr 1fr 1fr auto; gap: 0.75rem; align-items: flex-end;">
+        <!-- 1. Client Peer -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            1. Client Peer:
+          </label>
+          <select id="simplePeerSelect" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="handlePeerChange(this.value)">
+            <option value="">-- Choose Client Peer --</option>
+            {% for p in peers %}
+            <option value="{{ (p.allowed_ips or '').split('/')[0] }}" data-name="{{ p.name }}">{{ p.name }} ({{ (p.allowed_ips or '').split('/')[0] }})</option>
+            {% endfor %}
+            <option value="custom">Custom IP / Subnet...</option>
+          </select>
+          <input type="text" id="simpleCustomIp" placeholder="e.g. 172.29.250.25" class="form-control" style="display: none; margin-top: 0.35rem; font-size: 0.8rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 2. Allowed Destination IP / Subnet -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            2. Destination IP / Subnet:
+          </label>
+          <input type="text" id="simpleDestIp" placeholder="e.g. 10.31.7.19 or 10.31.4.79, 10.31.7.187 (or leave blank for Any)" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 3. Port -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            3. Port(s):
+          </label>
+          <input type="text" id="simplePort" placeholder="e.g. 443 (blank = All)" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 4. Action -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            4. Action:
+          </label>
+          <select id="simpleAction" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+            <option value="accept">Allow (ACCEPT)</option>
+            <option value="drop">Block (DROP)</option>
+          </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div>
+          <button type="button" class="btn btn-primary" onclick="addClientRule()" style="height: 36px; padding: 0 1.15rem; display: flex; align-items: center; gap: 0.35rem;">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add Rule</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simple Active Client Rules Table -->
+    <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem;">
+      <div style="padding: 0.75rem 1rem; background: var(--bg-input); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+        <span style="font-size: 0.84rem; font-weight: 700; color: var(--text-main);">
+          Active Client Access Rules (<span id="simpleRuleCount">0</span> rules)
+        </span>
+        <span id="aclUnsavedBadge" style="display: none; font-size: 0.75rem; color: #f59e0b; font-weight: 600;">
+          ● Unsaved modifications (click Save & Apply)
+        </span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="soc-table" style="margin: 0; min-width: 750px;">
+          <thead>
+            <tr>
+              <th style="width: 45px; text-align: center;">#</th>
+              <th style="width: 220px;">Client Peer</th>
+              <th style="width: 140px;">Source IP</th>
+              <th>Allowed Destination</th>
+              <th style="width: 120px;">Port(s)</th>
+              <th style="width: 100px; text-align: center;">Action</th>
+              <th style="width: 95px; text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="simpleRulesTbody">
+            <!-- Populated dynamically by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="simpleEmptyNotice" style="display: none; text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+        No client rules configured yet. Use the form above to add your first rule.
+      </div>
+    </div>
+
+    <!-- Toggle Raw File Editor Link -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRawEditor()" style="font-size: 0.8rem;">
+        <span id="rawToggleBtnText">📝 View / Edit Raw acl.nft File</span>
+      </button>
+      <div style="font-size: 0.78rem; color: var(--text-sub);">
+        Click <strong>Save & Apply</strong> to validate and atomically reload rules into the kernel.
+      </div>
+    </div>
+
+    <!-- Collapsible Raw acl.nft Editor -->
+    <div id="rawAclEditorContainer" style="display: none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+        <span style="font-size: 0.82rem; font-weight: 600; color: #38bdf8;">/etc/nftables/acl.nft (Raw File Editor)</span>
+        <button class="btn btn-secondary btn-sm" onclick="copyAclTextarea()">Copy Text</button>
+      </div>
+      <div class="conf-editor-frame">
+        <textarea id="aclRawTextarea" class="conf-editor-textarea" style="min-height: 360px;" spellcheck="false" oninput="handleAclRawInput()">{{ acl_file.content }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. TAB 2 CONTENT: HOST SYSTEM FIREWALL (/etc/nftables.conf) -->
+  <div id="tabConfContent" class="soc-glass-panel" style="padding: 1.25rem; display: none;">
+
+    <!-- Simple "Add Host Firewall Rule" Form -->
+    <div style="background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.95rem; color: #a855f7;">
+          <svg class="svg-icon svg-icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Add Host Firewall Rule</span>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted);">
+          Rules take effect in <code style="color: #a855f7;">/etc/nftables.conf</code>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr 1.1fr 1.2fr 1fr 1.3fr auto; gap: 0.75rem; align-items: flex-end;">
+        <!-- 1. Chain -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            1. Target Chain:
+          </label>
+          <select id="confChainSelect" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="handleConfChainChange(this.value)">
+            <option value="input">input (Host Inbound)</option>
+            <option value="forward">forward (Forwarding / VPN)</option>
+            <option value="postrouting">postrouting (NAT)</option>
+          </select>
+        </div>
+
+        <!-- 2. Protocol -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            2. Protocol:
+          </label>
+          <select id="confProtoSelect" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+            <option value="tcp">TCP</option>
+            <option value="udp">UDP</option>
+            <option value="tcp_udp">TCP + UDP</option>
+            <option value="icmp">ICMP (Ping)</option>
+            <option value="any">Any Protocol</option>
+          </select>
+        </div>
+
+        <!-- 3. Port(s) -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            3. Port(s):
+          </label>
+          <input type="text" id="confPortInput" placeholder="e.g. 22 or 80, 443" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 4. Source IP / Subnet -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            4. Source IP (Opt):
+          </label>
+          <input type="text" id="confSrcInput" placeholder="blank = Any" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 5. Action -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            5. Action:
+          </label>
+          <select id="confActionSelect" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+            <option value="accept">Allow (ACCEPT)</option>
+            <option value="drop">Block (DROP)</option>
+            <option value="masquerade">Masquerade (NAT)</option>
+          </select>
+        </div>
+
+        <!-- 6. Label / Comment -->
+        <div>
+          <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">
+            6. Label / Comment:
+          </label>
+          <input type="text" id="confCommentInput" placeholder="e.g. SSH Management" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- Submit Button -->
+        <div>
+          <button type="button" class="btn btn-primary" onclick="addConfRule()" style="height: 36px; padding: 0 1.15rem; display: flex; align-items: center; gap: 0.35rem;">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add Rule</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real-time NFTables Kernel Tables & Chains View (Matching Image 1) -->
+    <div id="kernelTablesContainer" style="margin-bottom: 1.25rem;">
+      <div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">
+        Loading active NFTables tables & chains...
+      </div>
+    </div>
+
+    <!-- Toggle Raw File Editor Link -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRawConfEditor()" style="font-size: 0.8rem;">
+        <span id="rawConfToggleBtnText">📝 View / Edit Raw nftables.conf File</span>
+      </button>
+      <div style="font-size: 0.78rem; color: var(--text-sub);">
+        Click <strong>Save & Apply</strong> to validate and atomically reload rules into the kernel.
+      </div>
+    </div>
+
+    <!-- Collapsible Raw nftables.conf Editor -->
+    <div id="rawConfEditorContainer" style="display: none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.65rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 0.82rem; font-weight: 600; color: #a855f7;">/etc/nftables.conf (Raw File Editor)</span>
+          <span class="soc-sub-badge" style="font-size: 0.72rem;">
+            <span id="confLineCount">{{ conf_file.lines }}</span> lines · <span id="confCharCount">{{ conf_file.characters }}</span> chars
+          </span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <select id="confSnippetSelect" class="form-control" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; width: auto; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="insertConfSnippet(this.value); this.value='';">
+            <option value="">+ Insert Rule Snippet...</option>
+            <option value="wg_inbound">WireGuard Inbound Tunnel (UDP 443)</option>
+            <option value="wg_forwarding">WireGuard Outbound Internet Forwarding</option>
+            <option value="wg_isolation">WireGuard Client Isolation (wg0 drop)</option>
+            <option value="nat_masquerade">NAT Masquerade (172.29.250.0/24)</option>
+            <option value="allow_port">Allow TCP Port (22 / 80 / 443)</option>
+            <option value="reset_baseline">Reset Standard Production Baseline</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" onclick="copyConfTextarea()">Copy Text</button>
+        </div>
+      </div>
+      <div class="conf-editor-frame">
+        <textarea id="confRawTextarea" class="conf-editor-textarea" style="min-height: 480px;" spellcheck="false" oninput="handleConfRawInput()" onkeydown="handleEditorKeydown(event)">{{ conf_file.content }}</textarea>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 6. MODAL: IMPORT RULES (Preserved) -->
+<div id="importRulesModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 650px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-cyan" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        <h3 style="margin: 0;">Import Firewall & ACL Rules</h3>
+      </div>
+      <button class="btn-close" onclick="closeModal('importRulesModal')">&times;</button>
+    </div>
+
+    <div style="padding: 1.25rem;">
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+          Destination Target File:
+        </label>
+        <select id="importTargetSelect" class="form-control" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); font-size: 0.84rem;">
+          <option value="acl">/etc/nftables/acl.nft (WireGuard Client ACLs - Recommended)</option>
+          <option value="conf">/etc/nftables.conf (Host System Main Firewall)</option>
+        </select>
+      </div>
+
+      <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <strong style="display: block; font-size: 0.88rem; color: #38bdf8;">Extract from Running Kernel</strong>
+          <span style="font-size: 0.76rem; color: var(--text-sub);">Pulls live forward rules from running kernel memory and merges them into configuration.</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="triggerImportFromKernel()">
+          <span>Pull Kernel Rules</span>
+        </button>
+      </div>
+
+      <div>
+        <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+          Or Paste Rule Statements:
+        </label>
+        <textarea id="importRulesTextarea" rows="6" placeholder="# Example:&#10;ip saddr 172.29.250.10 ip daddr { 10.31.4.79, 10.31.7.187 } meta l4proto { tcp, udp } th dport 443 accept" style="width: 100%; font-family: monospace; font-size: 0.82rem; padding: 0.65rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: var(--radius-sm); resize: vertical; box-sizing: border-box;"></textarea>
+      </div>
+    </div>
+
+    <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border);">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('importRulesModal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="triggerImportTextRules()">Validate & Merge</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD RULE TO CHAIN (Matching Image 1) -->
+<div id="addRuleToChainModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 650px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-cyan" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <h3 style="margin: 0;">Add Rule to <span id="addChainModalTitle" style="color: #c084fc; font-family: monospace;">chain</span></h3>
+      </div>
+      <button class="btn-close" onclick="closeModal('addRuleToChainModal')">&times;</button>
+    </div>
+
+    <div style="padding: 1.25rem;">
+      <input type="hidden" id="modalChainFamily" value="inet">
+      <input type="hidden" id="modalChainTable" value="filter">
+      <input type="hidden" id="modalChainName" value="input">
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem;">
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            Protocol:
+          </label>
+          <select id="modalRuleProto" class="form-control" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); font-size: 0.82rem;" onchange="updateModalStatementPreview()">
+            <option value="tcp">TCP</option>
+            <option value="udp">UDP</option>
+            <option value="tcp_udp">TCP + UDP</option>
+            <option value="icmp">ICMP (Ping)</option>
+            <option value="any">Any Protocol</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            Port(s):
+          </label>
+          <input type="text" id="modalRulePort" placeholder="e.g. 22 or 80, 443" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateModalStatementPreview()">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; margin-bottom: 0.85rem;">
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            Source IP (Optional):
+          </label>
+          <input type="text" id="modalRuleSrc" placeholder="e.g. 10.31.0.140 (blank = Any)" class="form-control" style="font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateModalStatementPreview()">
+        </div>
+        <div>
+          <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            Action / Verdict:
+          </label>
+          <select id="modalRuleAction" class="form-control" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); font-size: 0.82rem;" onchange="updateModalStatementPreview()">
+            <option value="accept">Allow (ACCEPT)</option>
+            <option value="drop">Block (DROP)</option>
+            <option value="reject">Reject (REJECT)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 0.85rem;">
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+          Label / Comment (Optional):
+        </label>
+        <input type="text" id="modalRuleComment" placeholder="e.g. SSH Management" class="form-control" style="font-size: 0.82rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateModalStatementPreview()">
+      </div>
+
+      <div>
+        <label style="font-size: 0.78rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+          NFTables Rule Expression (Editable):
+        </label>
+        <input type="text" id="modalRuleStatement" class="form-control" style="font-size: 0.84rem; font-family: monospace; background: var(--bg-card); color: #38bdf8; border: 1px solid var(--border);" placeholder="tcp dport 22 accept">
+      </div>
+    </div>
+
+    <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border);">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('addRuleToChainModal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitAddRuleToChain()">+ Add Rule to Chain</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT KERNEL RULE -->
+<div id="editKernelRuleModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 650px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-cyan" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <h3 style="margin: 0; font-size: 1.1rem;">Edit Rule <span id="editKernelRuleHandleTitle" style="color: #38bdf8; font-family: monospace;">#0</span> in <span id="editKernelChainTitle" style="color: #c084fc; font-family: monospace;">chain</span></h3>
+      </div>
+      <button class="btn-close" onclick="closeModal('editKernelRuleModal')">&times;</button>
+    </div>
+
+    <div style="padding: 1.25rem;">
+      <input type="hidden" id="editKernelFamily" value="inet">
+      <input type="hidden" id="editKernelTable" value="filter">
+      <input type="hidden" id="editKernelChain" value="vpn_acl">
+      <input type="hidden" id="editKernelHandle" value="0">
+
+      <div style="margin-bottom: 0.85rem;">
+        <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+          Rule Match Criteria & Statement:
+        </label>
+        <input type="text" id="editKernelStatement" class="form-control" style="font-size: 0.84rem; font-family: monospace; background: var(--bg-card); color: #38bdf8; border: 1px solid var(--border);">
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+        <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Quick Verdict:</span>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="setEditKernelVerdict('accept')" style="font-size: 0.72rem; padding: 0.18rem 0.5rem; color: #34d399; border-color: rgba(16, 185, 129, 0.3);">ACCEPT</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="setEditKernelVerdict('drop')" style="font-size: 0.72rem; padding: 0.18rem 0.5rem; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">DROP</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="setEditKernelVerdict('reject')" style="font-size: 0.72rem; padding: 0.18rem 0.5rem; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">REJECT</button>
+      </div>
+    </div>
+
+    <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border);">
+      <button type="button" class="btn btn-secondary" onclick="closeModal('editKernelRuleModal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="submitEditKernelRule()">Save & Update Rule</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT CLIENT ACCESS RULE (/etc/nftables/acl.nft) -->
+<div id="editClientRuleModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 620px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-cyan" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem;">Edit Client Access Rule</h3>
+          <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: normal;">Target file: <code style="color: #38bdf8;">/etc/nftables/acl.nft</code></div>
+        </div>
+      </div>
+      <button class="btn-close" onclick="closeModal('editClientRuleModal')">&times;</button>
+    </div>
+
+    <form onsubmit="handleUpdateClientRule(event)">
+      <input type="hidden" id="editClientLineIndex">
+      <input type="hidden" id="editClientCommentLineIndex">
+
+      <div style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+        <!-- 1. Client Peer / Source IP -->
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            1. Client Peer / Source IP:
+          </label>
+          <select id="editClientPeerSelect" class="form-control" style="font-size: 0.84rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="handleEditClientPeerChange(this.value)">
+            <option value="">-- Choose Client Peer --</option>
+            {% for p in peers %}
+            <option value="{{ (p.allowed_ips or '').split('/')[0] }}" data-name="{{ p.name }}">{{ p.name }} ({{ (p.allowed_ips or '').split('/')[0] }})</option>
+            {% endfor %}
+            <option value="custom">Custom IP / Subnet...</option>
+          </select>
+          <input type="text" id="editClientCustomIp" placeholder="e.g. 172.29.250.25" class="form-control" style="display: none; margin-top: 0.4rem; font-size: 0.82rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateClientRulePreview()">
+        </div>
+
+        <!-- 2. Allowed Destination IP / Subnet -->
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            2. Destination IP / Subnet:
+          </label>
+          <input type="text" id="editClientDestIp" placeholder="e.g. 10.31.7.19 or 10.31.4.79, 10.31.7.187 (or leave blank for Any)" class="form-control" style="font-size: 0.84rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateClientRulePreview()">
+          <div class="form-help" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem;">Comma-separated list or single CIDR. Leave blank for Any destination.</div>
+        </div>
+
+        <!-- 3. Ports & Action Row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+              3. Port(s):
+            </label>
+            <input type="text" id="editClientPort" placeholder="e.g. 443 or 80, 443 (blank = All)" class="form-control" style="font-size: 0.84rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="updateClientRulePreview()">
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+              4. Action Verdict:
+            </label>
+            <select id="editClientAction" class="form-control" style="font-size: 0.84rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="updateClientRulePreview()">
+              <option value="accept">Allow (ACCEPT)</option>
+              <option value="drop">Block (DROP)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 5. Comment / Label -->
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            5. Peer / Rule Description (Comment):
+          </label>
+          <input type="text" id="editClientComment" placeholder="e.g. Kapil-K-CDAC" class="form-control" style="font-size: 0.84rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);">
+        </div>
+
+        <!-- 6. Generated Statement Preview / Manual Override -->
+        <div style="background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.75rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+            <label style="font-size: 0.76rem; font-weight: 600; color: var(--text-muted);">
+              NFTables Statement (Rule Definition):
+            </label>
+            <span style="font-size: 0.7rem; color: var(--text-sub);">Directly editable</span>
+          </div>
+          <input type="text" id="editClientStatement" class="form-control" style="font-size: 0.8rem; font-family: monospace; color: #38bdf8; background: var(--bg-card); border: 1px solid var(--border);">
+        </div>
+      </div>
+
+      <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border);">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editClientRuleModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Save Changes</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: EDIT HOST FIREWALL RULE (/etc/nftables.conf) -->
+<div id="editConfRuleModal" class="modal-backdrop">
+  <div class="modal-card" style="max-width: 650px;">
+    <div class="modal-header">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="svg-icon svg-icon-md soc-purple" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <div>
+          <h3 style="margin: 0; font-size: 1.1rem;">Edit Host Firewall Rule</h3>
+          <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: normal;">Target file: <code style="color: #a855f7;">/etc/nftables.conf</code></div>
+        </div>
+      </div>
+      <button class="btn-close" onclick="closeModal('editConfRuleModal')">&times;</button>
+    </div>
+
+    <form onsubmit="handleUpdateConfRule(event)">
+      <input type="hidden" id="editConfLineIndex">
+      <input type="hidden" id="editConfCommentLineIndex">
+
+      <div style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Target Chain & Action -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+              Target Chain:
+            </label>
+            <input type="text" id="editConfChain" class="form-control" style="font-size: 0.84rem; font-family: monospace; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" readonly>
+            <div class="form-help" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem;">Chain location in <code>table inet filter</code> or <code>table ip nat</code>.</div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+              Rule Action Verdict:
+            </label>
+            <select id="editConfActionSelect" class="form-control" style="font-size: 0.84rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" onchange="handleEditConfActionChange(this.value)">
+              <option value="">Keep / Custom Statement</option>
+              <option value="accept">Allow (ACCEPT)</option>
+              <option value="drop">Block (DROP)</option>
+              <option value="reject">Reject (REJECT)</option>
+              <option value="masquerade">Masquerade (NAT)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Description / Comment -->
+        <div>
+          <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main); display: block; margin-bottom: 0.35rem;">
+            Rule Description / Comment:
+          </label>
+          <input type="text" id="editConfLabel" placeholder="e.g. WireGuard Inbound Tunnel, SSH Management" class="form-control" style="font-size: 0.84rem; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border);" oninput="handleEditConfLabelInput(this.value)">
+        </div>
+
+        <!-- NFTables Rule Statement -->
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+            <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">
+              NFTables Rule Statement *
+            </label>
+            <span style="font-size: 0.72rem; color: var(--text-sub);">Full statement executed by kernel</span>
+          </div>
+          <textarea id="editConfStatement" rows="3" class="form-control" style="font-family: monospace; font-size: 0.82rem; color: #a855f7; background: var(--bg-card); border: 1px solid var(--border); line-height: 1.5; resize: vertical;" required></textarea>
+          <div class="form-help" style="font-size: 0.74rem; color: var(--text-muted); margin-top: 0.25rem;">
+            Example: <code>iifname "ens19" udp dport 443 accept comment "WireGuard Inbound Tunnel"</code> or <code>tcp dport 8000 accept</code>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions" style="justify-content: flex-end; gap: 0.75rem; padding: 0.85rem 1.25rem; border-top: 1px solid var(--border);">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editConfRuleModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          <span>Save Changes</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 7. CLEAN & SIMPLE JAVASCRIPT CONTROLLER -->
+<script>
+let currentMainTab = "acl";
+let rawAclEditorVisible = false;
+
+const IS_ADMIN = {{ (user.role == 'admin') | tojson }};
+let currentClientRules = [];
+let currentFilteredConfRules = [];
+
+const PEERS_DATA = {{ peers | tojson }} || [];
+
+const fileStore = {
+  acl: {
+    path: {{ acl_file.path | tojson }},
+    content: {{ acl_file.content | tojson }},
+    originalContent: {{ acl_file.content | tojson }}
+  },
+  conf: {
+    path: {{ conf_file.path | tojson }},
+    content: {{ conf_file.content | tojson }},
+    originalContent: {{ conf_file.content | tojson }}
+  }
+};
+
+// ==================== SIMPLE ACL RULE PARSER ====================
+function parseClientAclRules(content) {
+  const lines = (content || "").split("\n");
+  const rules = [];
+  let pendingComment = "";
+  let pendingCommentIdx = -1;
+
+  // Determine if file contains chain definitions or is raw statements
+  const hasChain = lines.some(l => {
+    const s = l.trim();
+    return s.startsWith("chain ") && s.includes("{");
+  });
+  let inChain = !hasChain;
+
+  for (let idx = 0; idx < lines.length; idx++) {
+    const rawLine = lines[idx];
+    const stripped = rawLine.trim();
+
+    if (!stripped) {
+      pendingComment = "";
+      pendingCommentIdx = -1;
+      continue;
+    }
+
+    if (stripped.startsWith("chain ") && stripped.includes("{")) {
+      inChain = true;
+      continue;
+    }
+
+    if (stripped === "}") {
+      inChain = false;
+      continue;
+    }
+
+    if (!inChain) continue;
+
+    // Comment line
+    if (stripped.startsWith("#")) {
+      const sub = stripped.replace(/^#+/, "").trim();
+      if (!/\b(accept|drop|reject)\b/.test(sub)) {
+        pendingComment = sub;
+        pendingCommentIdx = idx;
+        continue;
+      }
+    }
+
+    // Ignore structural lines
+    if (stripped.startsWith("type ") || stripped.startsWith("table ") || stripped.startsWith("ct state") || stripped.startsWith("include ")) {
+      continue;
+    }
+    if (stripped.startsWith('iifname "wg0" oifname !=')) {
+      continue;
+    }
+
+    // Must have verdict
+    const actMatch = stripped.match(/\b(accept|drop|reject)\b/);
+    if (!actMatch) continue;
+    const action = actMatch[1];
+
+    // Extract saddr
+    const saddrMatch = stripped.match(/\bip saddr\s+(\S+)/);
+    const saddr = saddrMatch ? saddrMatch[1] : "";
+
+    // Extract daddr
+    const daddrMatch = stripped.match(/\bip daddr\s+(\{[^}]+\}|\S+)/);
+    let daddr = "Any";
+    if (daddrMatch) {
+      daddr = daddrMatch[1].replace(/^\{\s*|\s*\}$/g, "").replace(/\s*,\s*/g, ", ");
+    }
+
+    // Extract port
+    const portMatch = stripped.match(/\b(?:th dport|dport)\s+(\{[^}]+\}|\S+)/);
+    let port = "All";
+    if (portMatch) {
+      port = portMatch[1].replace(/^\{\s*|\s*\}$/g, "").replace(/\s*,\s*/g, ", ");
+    }
+
+    // Match peer name
+    let peerName = pendingComment;
+    if (!peerName && saddr) {
+      const cleanIp = saddr.split("/")[0];
+      const p = PEERS_DATA.find(x => (x.allowed_ips || "").split("/")[0] === cleanIp);
+      if (p) peerName = p.name;
+    }
+
+    rules.push({
+      lineIndex: idx,
+      commentLineIndex: pendingCommentIdx,
+      peerName: peerName || (saddr ? `Client ${saddr}` : "Rule"),
+      saddr: saddr || "Any",
+      daddr: daddr,
+      port: port,
+      action: action,
+      raw: rawLine
+    });
+
+    pendingComment = "";
+    pendingCommentIdx = -1;
+  }
+
+  return rules;
+}
+
+// ==================== RENDER SIMPLE RULES TABLE ====================
+function renderSimpleRulesTable() {
+  const content = fileStore.acl.content;
+  const rules = parseClientAclRules(content);
+  currentClientRules = rules;
+
+  const tbody = document.getElementById("simpleRulesTbody");
+  const countEl = document.getElementById("simpleRuleCount");
+  const emptyNotice = document.getElementById("simpleEmptyNotice");
+  const unsavedBadge = document.getElementById("aclUnsavedBadge");
+  const aclDot = document.getElementById("tabAclUnsavedDot");
+
+  if (countEl) countEl.textContent = rules.length;
+  const isUnsaved = (fileStore.acl.content !== fileStore.acl.originalContent);
+  if (unsavedBadge) unsavedBadge.style.display = isUnsaved ? "inline" : "none";
+  if (aclDot) aclDot.style.display = isUnsaved ? "inline" : "none";
+
+  if (!tbody) return;
+  tbody.innerHTML = "";
+
+  if (rules.length === 0) {
+    if (emptyNotice) emptyNotice.style.display = "block";
+    return;
+  }
+  if (emptyNotice) emptyNotice.style.display = "none";
+
+  rules.forEach((r, idx) => {
+    const tr = document.createElement("tr");
+
+    // #
+    const tdIdx = document.createElement("td");
+    tdIdx.style.textAlign = "center";
+    tdIdx.style.fontFamily = "monospace";
+    tdIdx.style.color = "var(--text-sub)";
+    tdIdx.textContent = idx + 1;
+
+    // Client Peer
+    const tdPeer = document.createElement("td");
+    tdPeer.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.35rem;">
+        <svg class="svg-icon svg-icon-xs soc-cyan" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+        <strong style="color: var(--text-main); font-size: 0.84rem;">${escapeHtml(r.peerName)}</strong>
+      </div>
+    `;
+
+    // Source IP
+    const tdSrc = document.createElement("td");
+    tdSrc.innerHTML = `<code style="color: #38bdf8; font-size: 0.78rem;">${escapeHtml(r.saddr)}</code>`;
+
+    // Destination
+    const tdDest = document.createElement("td");
+    tdDest.innerHTML = `<code style="font-size: 0.78rem; word-break: break-all;">${escapeHtml(r.daddr)}</code>`;
+
+    // Port
+    const tdPort = document.createElement("td");
+    tdPort.innerHTML = `<span style="font-size: 0.78rem; font-family: monospace; color: #c084fc;">${escapeHtml(r.port)}</span>`;
+
+    // Action Badge
+    const tdAct = document.createElement("td");
+    tdAct.style.textAlign = "center";
+    if (r.action === "accept") {
+      tdAct.innerHTML = `<span class="badge badge-success" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">ALLOW</span>`;
+    } else {
+      tdAct.innerHTML = `<span class="badge badge-danger" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">BLOCK</span>`;
+    }
+
+    // Actions (Edit + Delete)
+    const tdActions = document.createElement("td");
+    tdActions.style.textAlign = "right";
+    if (IS_ADMIN) {
+      tdActions.innerHTML = `
+        <div style="display: inline-flex; gap: 0.35rem; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.45rem; color: #38bdf8;" title="Edit Rule" onclick="openEditClientRuleModal(${idx})">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" style="padding: 0.2rem 0.45rem; color: #f87171;" title="Delete Rule" onclick="deleteClientRule(${r.lineIndex}, ${r.commentLineIndex})">
+            <svg class="svg-icon svg-icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          </button>
+        </div>
+      `;
+    } else {
+      tdActions.innerHTML = `<span class="badge" style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-input); padding: 0.2rem 0.4rem;">Read-Only</span>`;
+    }
+
+    tr.appendChild(tdIdx);
+    tr.appendChild(tdPeer);
+    tr.appendChild(tdSrc);
+    tr.appendChild(tdDest);
+    tr.appendChild(tdPort);
+    tr.appendChild(tdAct);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
+}
+
+// ==================== ADD CLIENT RULE ====================
+function handlePeerChange(val) {
+  const customInput = document.getElementById("simpleCustomIp");
+  if (val === "custom") {
+    customInput.style.display = "block";
+    customInput.focus();
+  } else {
+    customInput.style.display = "none";
+  }
+}
+
+function addClientRule() {
+  const peerSelect = document.getElementById("simplePeerSelect");
+  const peerVal = peerSelect.value;
+  const customIp = document.getElementById("simpleCustomIp").value.trim();
+  const destVal = document.getElementById("simpleDestIp").value.trim();
+  const portVal = document.getElementById("simplePort").value.trim();
+  const actionVal = document.getElementById("simpleAction").value;
+
+  // Determine Source IP and Peer Name
+  let sourceIp = "";
+  let peerName = "";
+
+  if (peerVal === "custom") {
+    sourceIp = customIp;
+    peerName = customIp ? `Client ${customIp}` : "";
+  } else if (peerVal) {
+    sourceIp = peerVal;
+    const opt = peerSelect.options[peerSelect.selectedIndex];
+    peerName = opt.dataset.name || "";
+  }
+
+  if (!sourceIp) {
+    alert("Please select a Client Peer or enter a Source IP.");
+    return;
+  }
+
+  // Construct valid NFT statement
+  const parts = [`ip saddr ${sourceIp}`];
+
+  // Destination
+  if (destVal) {
+    if (destVal.includes(",")) {
+      const cleanIps = destVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`ip daddr { ${cleanIps} }`);
+    } else if (destVal.startsWith("{") && destVal.endsWith("}")) {
+      parts.push(`ip daddr ${destVal}`);
+    } else {
+      parts.push(`ip daddr ${destVal}`);
+    }
+  }
+
+  // Ports
+  if (portVal) {
+    parts.push("meta l4proto { tcp, udp }");
+    if (portVal.includes(",")) {
+      const cleanPorts = portVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`th dport { ${cleanPorts} }`);
+    } else {
+      parts.push(`th dport ${portVal}`);
+    }
+  }
+
+  // Action
+  parts.push(actionVal);
+
+  const statement = parts.join(" ");
+
+  // Safely insert or append
+  let content = fileStore.acl.content.trimEnd();
+  const lines = content ? content.split("\n") : [];
+
+  let forwardIdx = -1;
+  let closingIdx = -1;
+  let outboundIdx = -1;
+  let inForward = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.includes("chain forward {")) {
+      inForward = true;
+      forwardIdx = i;
+      continue;
+    }
+    if (inForward) {
+      if (l.includes('iifname "wg0" oifname != "wg0"')) {
+        outboundIdx = i;
+      }
+      if (l.trim() === "}") {
+        closingIdx = i;
+        break;
+      }
+    }
+  }
+
+  const newRuleLines = [];
+  if (peerName) newRuleLines.push(`# ${peerName}`);
+  newRuleLines.push(statement);
+
+  if (forwardIdx !== -1) {
+    const targetIdx = outboundIdx !== -1 ? outboundIdx : (closingIdx !== -1 ? closingIdx : lines.length);
+    lines.splice(targetIdx, 0, ...newRuleLines);
+  } else {
+    if (lines.length > 0 && lines[lines.length - 1].trim() !== "") {
+      lines.push("");
+    }
+    lines.push(...newRuleLines);
+    lines.push("");
+  }
+  fileStore.acl.content = lines.join("\n");
+
+  document.getElementById("aclRawTextarea").value = fileStore.acl.content;
+
+  // Clear inputs
+  document.getElementById("simpleDestIp").value = "";
+  document.getElementById("simplePort").value = "";
+
+  renderSimpleRulesTable();
+  showBanner("success", "Rule Added", `Added rule for ${peerName || sourceIp} to /etc/nftables/acl.nft. Click 'Save & Apply' to commit to Linux kernel.`);
+}
+
+function deleteClientRule(lineIdx, commentLineIdx) {
+  if (!confirm("Are you sure you want to delete this rule?")) return;
+
+  const lines = fileStore.acl.content.split("\n");
+  const indicesToRemove = [lineIdx];
+  if (commentLineIdx !== -1 && commentLineIdx !== undefined && commentLineIdx < lineIdx) {
+    indicesToRemove.push(commentLineIdx);
+  }
+
+  const newLines = lines.filter((_, idx) => !indicesToRemove.includes(idx));
+  fileStore.acl.content = newLines.join("\n");
+  document.getElementById("aclRawTextarea").value = fileStore.acl.content;
+
+  renderSimpleRulesTable();
+  showBanner("success", "Rule Removed", "Rule removed from /etc/nftables/acl.nft. Click 'Save & Apply' to commit to Linux kernel.");
+}
+
+// ==================== EDIT CLIENT RULE HANDLERS ====================
+function openEditClientRuleModal(ruleIdx) {
+  const r = currentClientRules[ruleIdx];
+  if (!r) return;
+
+  document.getElementById("editClientLineIndex").value = r.lineIndex;
+  document.getElementById("editClientCommentLineIndex").value = (r.commentLineIndex !== undefined) ? r.commentLineIndex : -1;
+
+  const peerSelect = document.getElementById("editClientPeerSelect");
+  const customIpInput = document.getElementById("editClientCustomIp");
+  const destInput = document.getElementById("editClientDestIp");
+  const portInput = document.getElementById("editClientPort");
+  const actionSelect = document.getElementById("editClientAction");
+  const commentInput = document.getElementById("editClientComment");
+  const stmtInput = document.getElementById("editClientStatement");
+
+  const cleanIp = (r.saddr || "").split("/")[0];
+  let matchedPeer = false;
+  if (cleanIp && cleanIp !== "Any") {
+    for (let opt of peerSelect.options) {
+      if (opt.value === cleanIp) {
+        peerSelect.value = cleanIp;
+        matchedPeer = true;
+        break;
+      }
+    }
+  }
+
+  if (!matchedPeer && r.saddr && r.saddr !== "Any") {
+    peerSelect.value = "custom";
+    customIpInput.style.display = "block";
+    customIpInput.value = r.saddr;
+  } else if (matchedPeer) {
+    customIpInput.style.display = "none";
+    customIpInput.value = "";
+  } else {
+    peerSelect.value = "";
+    customIpInput.style.display = "none";
+    customIpInput.value = "";
+  }
+
+  destInput.value = (r.daddr && r.daddr !== "Any") ? r.daddr : "";
+  portInput.value = (r.port && r.port !== "All") ? r.port : "";
+  actionSelect.value = (r.action && r.action.toLowerCase() === "drop") ? "drop" : "accept";
+  commentInput.value = (r.peerName && !r.peerName.startsWith("Client 172.") && r.peerName !== "Rule") ? r.peerName : "";
+  stmtInput.value = r.raw ? r.raw.trim() : "";
+
+  openModal("editClientRuleModal");
+}
+
+function handleEditClientPeerChange(val) {
+  const customInput = document.getElementById("editClientCustomIp");
+  const commentInput = document.getElementById("editClientComment");
+  const peerSelect = document.getElementById("editClientPeerSelect");
+
+  if (val === "custom") {
+    customInput.style.display = "block";
+    customInput.focus();
+  } else {
+    customInput.style.display = "none";
+    if (val) {
+      const opt = peerSelect.options[peerSelect.selectedIndex];
+      if (opt && opt.dataset.name) {
+        commentInput.value = opt.dataset.name;
+      }
+    }
+  }
+  updateClientRulePreview();
+}
+
+function updateClientRulePreview() {
+  const peerSelect = document.getElementById("editClientPeerSelect");
+  const peerVal = peerSelect.value;
+  const customIp = document.getElementById("editClientCustomIp").value.trim();
+  const destVal = document.getElementById("editClientDestIp").value.trim();
+  const portVal = document.getElementById("editClientPort").value.trim();
+  const actionVal = document.getElementById("editClientAction").value;
+
+  let sourceIp = (peerVal === "custom") ? customIp : peerVal;
+  if (!sourceIp) sourceIp = "172.29.250.X";
+
+  const parts = [`ip saddr ${sourceIp}`];
+
+  if (destVal) {
+    if (destVal.includes(",")) {
+      const cleanIps = destVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`ip daddr { ${cleanIps} }`);
+    } else if (destVal.startsWith("{") && destVal.endsWith("}")) {
+      parts.push(`ip daddr ${destVal}`);
+    } else {
+      parts.push(`ip daddr ${destVal}`);
+    }
+  }
+
+  if (portVal) {
+    parts.push("meta l4proto { tcp, udp }");
+    if (portVal.includes(",")) {
+      const cleanPorts = portVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`th dport { ${cleanPorts} }`);
+    } else {
+      parts.push(`th dport ${portVal}`);
+    }
+  }
+
+  parts.push(actionVal);
+
+  document.getElementById("editClientStatement").value = parts.join(" ");
+}
+
+function handleUpdateClientRule(event) {
+  event.preventDefault();
+
+  const lineIdx = parseInt(document.getElementById("editClientLineIndex").value, 10);
+  const commentLineIdx = parseInt(document.getElementById("editClientCommentLineIndex").value, 10);
+  const commentVal = document.getElementById("editClientComment").value.trim();
+  const stmtVal = document.getElementById("editClientStatement").value.trim();
+
+  if (!stmtVal) {
+    alert("Rule statement cannot be empty.");
+    return;
+  }
+
+  const lines = fileStore.acl.content.split("\n");
+  if (lineIdx < 0 || lineIdx >= lines.length) {
+    alert("Invalid rule index.");
+    return;
+  }
+
+  // Ensure clean, flush-left alignment without extra spaces
+  lines[lineIdx] = stmtVal;
+
+  if (commentLineIdx >= 0 && commentLineIdx < lines.length && commentLineIdx < lineIdx) {
+    if (commentVal) {
+      lines[commentLineIdx] = "# " + commentVal;
+    }
+  } else if (commentVal && !lines[lineIdx].includes(commentVal)) {
+    lines.splice(lineIdx, 0, "# " + commentVal);
+  }
+
+  fileStore.acl.content = lines.join("\n");
+  document.getElementById("aclRawTextarea").value = fileStore.acl.content;
+
+  renderSimpleRulesTable();
+  closeModal("editClientRuleModal");
+  showBanner("success", "Rule Updated", `Updated rule for ${commentVal || 'client'} in /etc/nftables/acl.nft. Click 'Save & Apply' to commit to Linux kernel.`);
+}
+
+// ==================== VIEW SWITCHING & RAW EDITORS ====================
+let rawConfEditorVisible = false;
+let currentConfChainFilter = "all";
+
+// ==================== LIVE KERNEL TABLES & CHAINS (IMAGE 1) ====================
+let liveKernelTables = [];
+
+async function loadLiveKernelTables() {
+  const container = document.getElementById("kernelTablesContainer");
+  try {
+    const res = await fetch("/api/firewall/ruleset");
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.tables) {
+      liveKernelTables = data.tables;
+      renderKernelTables();
+    } else {
+      if (container) container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Failed to fetch live ruleset from kernel.</div>';
+    }
+  } catch (err) {
+    if (container) container.innerHTML = `<div style="text-align: center; padding: 2rem; color: #f87171; font-size: 0.85rem;">Connection error loading kernel rules: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+let liveKernelRulesMap = {};
+
+function renderKernelTables() {
+  const container = document.getElementById("kernelTablesContainer");
+  if (!container) return;
+
+  if (!liveKernelTables || liveKernelTables.length === 0) {
+    container.innerHTML = '<div style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.85rem; border: 1px dashed var(--border); border-radius: var(--radius-sm);">No active NFTables tables found in kernel.</div>';
+    return;
+  }
+
+  liveKernelRulesMap = {};
+  let html = "";
+  liveKernelTables.forEach(tab => {
+    const familyUpper = (tab.family || "inet").toUpperCase();
+    const chains = tab.chains || [];
+
+    html += `
+      <!-- Table Header (Matching Image 1) -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.15rem; background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; margin-top: 1.25rem; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span class="badge" style="background: #0284c7; color: #ffffff; font-weight: 700; font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 4px; letter-spacing: 0.04em;">${familyUpper}</span>
+          <span style="font-weight: 700; font-size: 1.05rem; color: #e0f2fe; font-family: monospace;">table ${escapeHtml(tab.family)} ${escapeHtml(tab.name)}</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 600;">
+          ${chains.length} Chains
+        </div>
+      </div>
+    `;
+
+    chains.forEach(chain => {
+      let rules = chain.rules || [];
+      const hookText = chain.hook ? `hook: ${chain.hook}` : "";
+      const prioText = chain.priority !== undefined ? `prio: ${chain.priority}` : "";
+      const policyText = chain.policy ? `policy: ${chain.policy}` : "";
+      const isVpnAcl = (chain.name === "vpn_acl");
+      let includeRowHtml = "";
+
+      if (isVpnAcl) {
+        includeRowHtml = `
+          <tr style="background: rgba(6, 182, 212, 0.03);">
+            <td style="font-family: monospace; color: var(--text-sub); font-size: 0.8rem; font-weight: 600;">—</td>
+            <td>
+              <span class="badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border: 1px solid rgba(6, 182, 212, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">INCLUDE</span>
+            </td>
+            <td>
+              <code style="font-size: 0.82rem; color: #38bdf8; word-break: break-all; font-family: ui-monospace, monospace; font-weight: 600;">include "/etc/nftables/acl.nft"</code>
+            </td>
+            <td style="font-size: 0.78rem; color: var(--text-muted);">Client ACL Rules (/etc/nftables/acl.nft)</td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button type="button" class="btn btn-sm" onclick="switchMainTab('acl')" style="padding: 0.18rem 0.55rem; font-size: 0.72rem; border-radius: 4px; background: transparent; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); cursor: pointer;" title="Edit Client ACLs in /etc/nftables/acl.nft">
+                Edit
+              </button>
+            </td>
+          </tr>
+        `;
+        // Filter out individual client IP rules from /etc/nftables/acl.nft
+        rules = rules.filter(r => {
+          const t = (r.text || "").toLowerCase();
+          return !t.includes("ip saddr 172.29.250.");
+        });
+      }
+
+      html += `
+        <!-- Chain Card (Matching Image 1) -->
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 1.25rem; background: var(--bg-card);">
+          <div style="padding: 0.65rem 1rem; background: var(--bg-input); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+              <span style="background: rgba(168, 85, 247, 0.18); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.35); border-radius: 4px; padding: 0.2rem 0.6rem; font-family: monospace; font-weight: 700; font-size: 0.8rem;">
+                chain ${escapeHtml(chain.name)}
+              </span>
+              ${hookText ? `<span style="background: rgba(255, 255, 255, 0.04); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 0.2rem 0.55rem; font-family: monospace; font-size: 0.74rem;">${escapeHtml(hookText)}</span>` : ""}
+              ${prioText ? `<span style="background: rgba(255, 255, 255, 0.04); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 0.2rem 0.55rem; font-family: monospace; font-size: 0.74rem;">${escapeHtml(prioText)}</span>` : ""}
+              ${policyText ? `<span style="background: rgba(255, 255, 255, 0.04); color: #94a3b8; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 4px; padding: 0.2rem 0.55rem; font-family: monospace; font-size: 0.74rem;">${escapeHtml(policyText)}</span>` : ""}
+            </div>
+
+            <div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="openAddRuleToChainModal('${escapeHtml(tab.family)}', '${escapeHtml(tab.name)}', '${escapeHtml(chain.name)}')" style="font-size: 0.76rem; padding: 0.25rem 0.75rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); font-weight: 600;">
+                + Add to Chain
+              </button>
+            </div>
+          </div>
+
+          <div style="overflow-x: auto;">
+            <table class="soc-table" style="margin: 0; min-width: 750px;">
+              <thead>
+                <tr>
+                  <th style="width: 75px; color: #64748b; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;">HANDLE</th>
+                  <th style="width: 100px; color: #64748b; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;">VERDICT</th>
+                  <th style="color: #64748b; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;">RULE EXPRESSION / MATCH CRITERIA</th>
+                  <th style="width: 140px; color: #64748b; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;">COMMENT</th>
+                  <th style="width: 110px; text-align: right; color: #64748b; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${includeRowHtml}
+      `;
+
+      if (rules.length === 0 && !isVpnAcl) {
+        html += `
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.82rem;">
+              No rules in chain ${escapeHtml(chain.name)}.
+            </td>
+          </tr>
+        `;
+      } else {
+        rules.forEach(rule => {
+          const ruleKey = `${tab.family}_${tab.name}_${chain.name}_${rule.handle}`;
+          liveKernelRulesMap[ruleKey] = rule;
+
+          let verdictBadge = "";
+          const v = (rule.verdict || "accept").toLowerCase();
+          if (v === "accept") {
+            verdictBadge = '<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">ACCEPT</span>';
+          } else if (v === "drop") {
+            verdictBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">DROP</span>';
+          } else if (v === "reject") {
+            verdictBadge = '<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">REJECT</span>';
+          } else if (v === "snat" || v === "masquerade") {
+            verdictBadge = '<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">' + v.toUpperCase() + '</span>';
+          } else if (v === "jump") {
+            verdictBadge = '<span class="badge" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); font-weight: 700; font-size: 0.68rem; padding: 0.18rem 0.45rem; border-radius: 4px;">JUMP</span>';
+          } else {
+            verdictBadge = `<span class="badge" style="font-size: 0.68rem; padding: 0.18rem 0.45rem;">${escapeHtml(v.toUpperCase())}</span>`;
+          }
+
+          const commentText = rule.comment ? escapeHtml(rule.comment) : "—";
+          const handleDisplay = rule.handle !== undefined ? `#${rule.handle}` : "—";
+
+          html += `
+            <tr>
+              <td style="font-family: monospace; color: var(--text-sub); font-size: 0.8rem; font-weight: 600;">
+                ${handleDisplay}
+              </td>
+              <td>${verdictBadge}</td>
+              <td>
+                <code style="font-size: 0.8rem; color: #f1f5f9; word-break: break-all; font-family: ui-monospace, monospace;">${escapeHtml(rule.text || "")}</code>
+              </td>
+              <td style="font-size: 0.78rem; color: var(--text-muted);">${commentText}</td>
+              <td style="text-align: right; white-space: nowrap;">
+                ${rule.handle !== undefined && IS_ADMIN ? `
+                  <button type="button" class="btn btn-sm" onclick="openEditKernelRuleModal('${escapeHtml(tab.family)}', '${escapeHtml(tab.name)}', '${escapeHtml(chain.name)}', ${rule.handle})" style="padding: 0.18rem 0.55rem; font-size: 0.72rem; border-radius: 4px; background: transparent; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); cursor: pointer; margin-right: 0.35rem;" title="Edit Rule #${rule.handle}">
+                    Edit
+                  </button>
+                  <button type="button" class="btn btn-sm" onclick="deleteRuleHandle('${escapeHtml(tab.family)}', '${escapeHtml(tab.name)}', '${escapeHtml(chain.name)}', ${rule.handle})" style="padding: 0.18rem 0.55rem; font-size: 0.72rem; border-radius: 4px; background: transparent; color: #f87171; border: 1px solid rgba(239, 68, 68, 0.35); cursor: pointer;" title="Delete Rule #${rule.handle}">
+                    Delete
+                  </button>
+                ` : `<span style="color: var(--text-muted); font-size: 0.7rem;">—</span>`}
+              </td>
+            </tr>
+          `;
+        });
+      }
+
+      html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    });
+  });
+
+  container.innerHTML = html;
+}
+
+function renderConfRulesTable() {
+  loadLiveKernelTables();
+}
+
+function openAddRuleToChainModal(family, table, chain) {
+  document.getElementById("modalChainFamily").value = family;
+  document.getElementById("modalChainTable").value = table;
+  document.getElementById("modalChainName").value = chain;
+  document.getElementById("addChainModalTitle").textContent = `${table} ${chain}`;
+
+  document.getElementById("modalRulePort").value = "";
+  document.getElementById("modalRuleSrc").value = "";
+  document.getElementById("modalRuleComment").value = "";
+  document.getElementById("modalRuleProto").value = "tcp";
+  document.getElementById("modalRuleAction").value = "accept";
+  updateModalStatementPreview();
+
+  openModal("addRuleToChainModal");
+}
+
+function updateModalStatementPreview() {
+  const proto = document.getElementById("modalRuleProto").value;
+  const port = document.getElementById("modalRulePort").value.trim();
+  const src = document.getElementById("modalRuleSrc").value.trim();
+  const action = document.getElementById("modalRuleAction").value;
+  const comment = document.getElementById("modalRuleComment").value.trim();
+
+  const parts = [];
+  if (src) {
+    if (src.includes(",")) {
+      const cleanIps = src.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`ip saddr { ${cleanIps} }`);
+    } else {
+      parts.push(`ip saddr ${src}`);
+    }
+  }
+
+  if (proto === "icmp") {
+    parts.push("ip protocol icmp");
+  } else if (proto === "tcp_udp") {
+    if (port) {
+      parts.push("meta l4proto { tcp, udp }");
+      if (port.includes(",")) {
+        const cleanPorts = port.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+        parts.push(`th dport { ${cleanPorts} }`);
+      } else {
+        parts.push(`th dport ${port}`);
+      }
+    }
+  } else if (proto === "tcp" || proto === "udp") {
+    if (port) {
+      if (port.includes(",")) {
+        const cleanPorts = port.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+        parts.push(`${proto} dport { ${cleanPorts} }`);
+      } else {
+        parts.push(`${proto} dport ${port}`);
+      }
+    } else {
+      parts.push(`meta l4proto ${proto}`);
+    }
+  }
+
+  parts.push(action);
+  if (comment) {
+    parts.push(`comment "${comment.replace(/"/g, "'")}"`);
+  }
+
+  document.getElementById("modalRuleStatement").value = parts.join(" ");
+}
+
+async function submitAddRuleToChain() {
+  const family = document.getElementById("modalChainFamily").value;
+  const table = document.getElementById("modalChainTable").value;
+  const chain = document.getElementById("modalChainName").value;
+  const statement = document.getElementById("modalRuleStatement").value.trim();
+
+  if (!statement) {
+    alert("Please enter a valid rule statement.");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/firewall/chain-rule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ family, table, chain, statement })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      closeModal("addRuleToChainModal");
+      showBanner("success", "Rule Added", `Rule added to ${chain} successfully.`);
+      await loadLiveKernelTables();
+    } else {
+      alert(`Failed to add rule: ${data.detail || data.message || ("HTTP " + res.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+async function deleteRuleHandle(family, table, chain, handle) {
+  if (!confirm(`Are you sure you want to delete rule handle #${handle} from ${table}/${chain}?`)) return;
+  try {
+    const res = await fetch(`/api/firewall/raw-rule/${encodeURIComponent(family)}/${encodeURIComponent(table)}/${encodeURIComponent(chain)}/${handle}`, {
+      method: "DELETE"
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      showBanner("success", "Rule Deleted", `Rule handle #${handle} was deleted from ${chain}.`);
+      await loadLiveKernelTables();
+    } else {
+      showBanner("error", "Delete Failed", data.detail || data.message || "Failed to delete rule.");
+    }
+  } catch (err) {
+    showBanner("error", "Connection Error", err.message || "Could not delete rule.");
+  }
+}
+
+function openEditKernelRuleModal(family, table, chain, handle) {
+  const key = `${family}_${table}_${chain}_${handle}`;
+  const rule = liveKernelRulesMap[key] || {};
+  let stmt = rule.text || "";
+
+  // Normalize counters so live packet counts don't make the editor cluttered
+  stmt = stmt.replace(/\bcounter packets \d+ bytes \d+\b/g, "counter");
+
+  document.getElementById("editKernelFamily").value = family;
+  document.getElementById("editKernelTable").value = table;
+  document.getElementById("editKernelChain").value = chain;
+  document.getElementById("editKernelHandle").value = handle;
+  document.getElementById("editKernelRuleHandleTitle").textContent = `#${handle}`;
+  document.getElementById("editKernelChainTitle").textContent = `${table}/${chain}`;
+  document.getElementById("editKernelStatement").value = stmt;
+
+  openModal("editKernelRuleModal");
+}
+
+function setEditKernelVerdict(v) {
+  const el = document.getElementById("editKernelStatement");
+  let stmt = el.value.trim();
+  if (/\b(accept|drop|reject)\b/i.test(stmt)) {
+    stmt = stmt.replace(/\b(accept|drop|reject)\b/i, v);
+  } else {
+    stmt = (stmt + " " + v).trim();
+  }
+  el.value = stmt;
+}
+
+async function submitEditKernelRule() {
+  const family = document.getElementById("editKernelFamily").value;
+  const table = document.getElementById("editKernelTable").value;
+  const chain = document.getElementById("editKernelChain").value;
+  const handle = document.getElementById("editKernelHandle").value;
+  const statement = document.getElementById("editKernelStatement").value.trim();
+
+  if (!statement) {
+    alert("Please enter a valid rule statement.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/firewall/raw-rule/${encodeURIComponent(family)}/${encodeURIComponent(table)}/${encodeURIComponent(chain)}/${handle}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statement })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      closeModal("editKernelRuleModal");
+      showBanner("success", "Rule Updated", `Rule handle #${handle} in ${chain} was successfully updated.`);
+      await loadLiveKernelTables();
+    } else {
+      alert(`Failed to update rule: ${data.detail || data.message || ("HTTP " + res.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+// ==================== ADD HOST CONF RULE (Top Form) ====================
+function handleConfChainChange(val) {
+  const actSelect = document.getElementById("confActionSelect");
+  const portInput = document.getElementById("confPortInput");
+  if (val === "postrouting") {
+    actSelect.value = "masquerade";
+    portInput.placeholder = "Not required for masquerade";
+  } else {
+    actSelect.value = "accept";
+    portInput.placeholder = "e.g. 22 or 80, 443 (blank = All)";
+  }
+}
+
+async function addConfRule() {
+  const chain = document.getElementById("confChainSelect").value;
+  const proto = document.getElementById("confProtoSelect").value;
+  const portVal = document.getElementById("confPortInput").value.trim();
+  const srcVal = document.getElementById("confSrcInput").value.trim();
+  const actionVal = document.getElementById("confActionSelect").value;
+  const commentVal = document.getElementById("confCommentInput").value.trim();
+
+  const parts = [];
+  if (srcVal) {
+    if (srcVal.includes(",")) {
+      const cleanIps = srcVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+      parts.push(`ip saddr { ${cleanIps} }`);
+    } else {
+      parts.push(`ip saddr ${srcVal}`);
+    }
+  }
+
+  if (proto === "icmp") {
+    parts.push("ip protocol icmp");
+  } else if (proto === "tcp_udp") {
+    if (portVal) {
+      parts.push("meta l4proto { tcp, udp }");
+      if (portVal.includes(",")) {
+        const cleanPorts = portVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+        parts.push(`th dport { ${cleanPorts} }`);
+      } else {
+        parts.push(`th dport ${portVal}`);
+      }
+    }
+  } else if (proto === "tcp" || proto === "udp") {
+    if (portVal) {
+      if (portVal.includes(",")) {
+        const cleanPorts = portVal.split(",").map(x => x.trim()).filter(Boolean).join(", ");
+        parts.push(`${proto} dport { ${cleanPorts} }`);
+      } else {
+        parts.push(`${proto} dport ${portVal}`);
+      }
+    } else {
+      parts.push(`meta l4proto ${proto}`);
+    }
+  }
+
+  if (actionVal === "masquerade") {
+    if (!parts.some(p => p.includes("oifname"))) {
+      parts.push('oifname != "wg0"');
+    }
+    parts.push("masquerade");
+  } else {
+    parts.push(actionVal);
+  }
+
+  if (commentVal) {
+    parts.push(`comment "${commentVal.replace(/"/g, "'")}"`);
+  }
+
+  const statement = parts.join(" ");
+
+  try {
+    const table = (chain === "postrouting") ? "nat" : "filter";
+    const family = (chain === "postrouting") ? "ip" : "inet";
+    const res = await fetch("/api/firewall/chain-rule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ family, table, chain, statement })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      document.getElementById("confPortInput").value = "";
+      document.getElementById("confSrcInput").value = "";
+      document.getElementById("confCommentInput").value = "";
+      showBanner("success", "Rule Added", `Rule added to chain '${chain}' in kernel.`);
+      await loadLiveKernelTables();
+      return;
+    } else {
+      alert(`Failed to add rule: ${data.detail || data.message}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+function deleteConfRule(lineIdx, commentLineIdx) {
+  const lines = fileStore.conf.content.split("\n");
+  const ruleLine = lines[lineIdx] || "";
+
+  if (ruleLine.includes("include ") && !confirm("WARNING: This includes the client ACL rules! Are you sure you want to delete this include directive?")) {
+    return;
+  }
+  if (!confirm("Are you sure you want to delete this host firewall rule?")) return;
+
+  const indicesToRemove = [lineIdx];
+  if (commentLineIdx !== -1 && commentLineIdx !== undefined && commentLineIdx < lineIdx) {
+    indicesToRemove.push(commentLineIdx);
+  }
+
+  const newLines = lines.filter((_, idx) => !indicesToRemove.includes(idx));
+  fileStore.conf.content = newLines.join("\n");
+  document.getElementById("confRawTextarea").value = fileStore.conf.content;
+
+  renderConfRulesTable();
+  updateConfEditor();
+  showBanner("success", "Rule Removed", "Rule removed from /etc/nftables.conf. Click 'Save & Apply' to commit to Linux kernel.");
+}
+
+// ==================== EDIT HOST CONF RULE HANDLERS ====================
+function openEditConfRuleModal(filteredIdx) {
+  const r = currentFilteredConfRules[filteredIdx];
+  if (!r) return;
+
+  document.getElementById("editConfLineIndex").value = r.lineIndex;
+  document.getElementById("editConfCommentLineIndex").value = (r.commentLineIndex !== undefined) ? r.commentLineIndex : -1;
+  document.getElementById("editConfChain").value = r.chain || "input";
+  document.getElementById("editConfLabel").value = (r.label && r.label !== r.statement) ? r.label : "";
+  document.getElementById("editConfStatement").value = r.statement || "";
+
+  const actSelect = document.getElementById("editConfActionSelect");
+  if (r.action && ["ACCEPT", "DROP", "REJECT", "MASQUERADE"].includes(r.action.toUpperCase())) {
+    actSelect.value = r.action.toLowerCase();
+  } else {
+    actSelect.value = "";
+  }
+
+  openModal("editConfRuleModal");
+}
+
+function handleEditConfActionChange(val) {
+  if (!val) return;
+  const stmtEl = document.getElementById("editConfStatement");
+  let stmt = stmtEl.value;
+
+  if (val === "masquerade") {
+    if (/\b(accept|drop|reject)\b/.test(stmt)) {
+      stmt = stmt.replace(/\b(accept|drop|reject)\b/, "masquerade");
+    } else if (!stmt.includes("masquerade")) {
+      stmt += " masquerade";
+    }
+  } else {
+    if (/\b(accept|drop|reject|masquerade)\b/.test(stmt)) {
+      stmt = stmt.replace(/\b(accept|drop|reject|masquerade)\b/, val);
+    } else {
+      stmt += " " + val;
+    }
+  }
+  stmtEl.value = stmt;
+}
+
+function handleEditConfLabelInput(labelVal) {
+  const stmtEl = document.getElementById("editConfStatement");
+  let stmt = stmtEl.value;
+  if (!labelVal) {
+    stmt = stmt.replace(/\s+comment\s+"[^"]*"/, "");
+  } else {
+    const safeComment = labelVal.replace(/"/g, "'");
+    if (/comment\s+"[^"]*"/.test(stmt)) {
+      stmt = stmt.replace(/comment\s+"[^"]*"/, `comment "${safeComment}"`);
+    } else {
+      stmt += ` comment "${safeComment}"`;
+    }
+  }
+  stmtEl.value = stmt;
+}
+
+function handleUpdateConfRule(event) {
+  event.preventDefault();
+
+  const lineIdx = parseInt(document.getElementById("editConfLineIndex").value, 10);
+  const commentLineIdx = parseInt(document.getElementById("editConfCommentLineIndex").value, 10);
+  const labelVal = document.getElementById("editConfLabel").value.trim();
+  const stmtVal = document.getElementById("editConfStatement").value.trim();
+
+  if (!stmtVal) {
+    alert("Rule statement cannot be empty.");
+    return;
+  }
+
+  const lines = fileStore.conf.content.split("\n");
+  if (lineIdx < 0 || lineIdx >= lines.length) {
+    alert("Invalid rule index.");
+    return;
+  }
+
+  const origLine = lines[lineIdx];
+  const indent = origLine.match(/^\s*/)[0] || "        ";
+
+  lines[lineIdx] = indent + stmtVal;
+
+  if (commentLineIdx >= 0 && commentLineIdx < lines.length && commentLineIdx < lineIdx) {
+    if (labelVal) {
+      lines[commentLineIdx] = indent + "# " + labelVal;
+    }
+  }
+
+  fileStore.conf.content = lines.join("\n");
+  document.getElementById("confRawTextarea").value = fileStore.conf.content;
+
+  renderConfRulesTable();
+  updateConfEditor();
+  closeModal("editConfRuleModal");
+  showBanner("success", "Rule Updated", `Updated host rule in /etc/nftables.conf. Click 'Save & Apply' to commit to Linux kernel.`);
+}
+
+function toggleRawConfEditor() {
+  rawConfEditorVisible = !rawConfEditorVisible;
+  const container = document.getElementById("rawConfEditorContainer");
+  const btnText = document.getElementById("rawConfToggleBtnText");
+  if (container) {
+    container.style.display = rawConfEditorVisible ? "block" : "none";
+  }
+  if (btnText) {
+    btnText.textContent = rawConfEditorVisible ? "✕ Hide Raw nftables.conf Editor" : "📝 View / Edit Raw nftables.conf File";
+  }
+  if (rawConfEditorVisible) {
+    document.getElementById("confRawTextarea").value = fileStore.conf.content;
+    updateConfEditor();
+  }
+}
+
+function switchMainTab(tab) {
+  currentMainTab = tab;
+  const tabAcl = document.getElementById("tabAclBtn");
+  const tabConf = document.getElementById("tabConfBtn");
+  const tabAclContent = document.getElementById("tabAclContent");
+  const tabConfContent = document.getElementById("tabConfContent");
+  const headerBadge = document.getElementById("headerFileBadge");
+  const kpiBadge = document.getElementById("kpiFileBadge");
+  const kpiPath = document.getElementById("kpiFilePath");
+  const kpiDesc = document.getElementById("kpiFileDesc");
+  const kpiStats = document.getElementById("topConfStats");
+
+  if (tab === "acl") {
+    tabAcl.classList.add("active");
+    tabConf.classList.remove("active");
+    tabAclContent.style.display = "block";
+    tabConfContent.style.display = "none";
+    if (headerBadge) headerBadge.textContent = fileStore.acl.path;
+    if (kpiBadge) kpiBadge.textContent = "CLIENT ACLS";
+    if (kpiPath) kpiPath.textContent = fileStore.acl.path;
+    if (kpiDesc) kpiDesc.textContent = "WireGuard VPN Client ACL Rules";
+    if (kpiStats) kpiStats.textContent = `${fileStore.acl.content.split('\n').length} lines · ${fileStore.acl.content.length} chars`;
+    renderSimpleRulesTable();
+  } else {
+    tabConf.classList.add("active");
+    tabAcl.classList.remove("active");
+    tabConfContent.style.display = "block";
+    tabAclContent.style.display = "none";
+    if (headerBadge) headerBadge.textContent = fileStore.conf.path;
+    if (kpiBadge) kpiBadge.textContent = "HOST MAIN";
+    if (kpiPath) kpiPath.textContent = fileStore.conf.path;
+    if (kpiDesc) kpiDesc.textContent = "Main Host Firewall Ruleset";
+    if (kpiStats) kpiStats.textContent = `${fileStore.conf.content.split('\n').length} lines · ${fileStore.conf.content.length} chars`;
+    renderConfRulesTable();
+    updateConfEditor();
+  }
+}
+
+function toggleRawEditor() {
+  rawAclEditorVisible = !rawAclEditorVisible;
+  const container = document.getElementById("rawAclEditorContainer");
+  const btnText = document.getElementById("rawToggleBtnText");
+  if (container) {
+    container.style.display = rawAclEditorVisible ? "block" : "none";
+  }
+  if (btnText) {
+    btnText.textContent = rawAclEditorVisible ? "✕ Hide Raw acl.nft Editor" : "📝 View / Edit Raw acl.nft File";
+  }
+  if (rawAclEditorVisible) {
+    document.getElementById("aclRawTextarea").value = fileStore.acl.content;
+  }
+}
+
+function handleAclRawInput() {
+  const val = document.getElementById("aclRawTextarea").value;
+  fileStore.acl.content = val;
+  renderSimpleRulesTable();
+}
+
+function handleConfRawInput() {
+  const val = document.getElementById("confRawTextarea").value;
+  fileStore.conf.content = val;
+  updateConfEditor();
+  renderConfRulesTable();
+}
+
+function updateConfEditor() {
+  const content = fileStore.conf.content;
+  const lines = content.split("\n").length;
+  const chars = content.length;
+
+  document.getElementById("confLineCount").textContent = lines;
+  document.getElementById("confCharCount").textContent = chars;
+
+  const isUnsaved = (content !== fileStore.conf.originalContent);
+  document.getElementById("confUnsavedBadge").style.display = isUnsaved ? "inline" : "none";
+  document.getElementById("tabConfUnsavedDot").style.display = isUnsaved ? "inline" : "none";
+}
+
+function copyAclTextarea() {
+  navigator.clipboard.writeText(fileStore.acl.content).then(() => alert("Copied /etc/nftables/acl.nft to clipboard."));
+}
+
+function copyConfTextarea() {
+  navigator.clipboard.writeText(fileStore.conf.content).then(() => alert("Copied /etc/nftables.conf to clipboard."));
+}
+
+function insertConfSnippet(key) {
+  if (!key) return;
+  const textarea = document.getElementById("confRawTextarea");
+  if (!textarea) return;
+
+  if (key === "reset_baseline") {
+    if (confirm("Reset /etc/nftables.conf to standard complete baseline?")) {
+      textarea.value = `#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+    chain input {
+        type filter hook input priority 0;
+    }
+    chain forward {
+        type filter hook forward priority 0;
+    }
+    chain output {
+        type filter hook output priority 0;
+    }
+}
+
+table inet wiregate {
+    chain input {
+        type filter hook input priority filter; policy accept;
+        ct state established,related accept comment "Allow established traffic"
+        iif "lo" accept comment "Allow loopback"
+        udp dport 443 accept comment "WireGuard Inbound Tunnel"
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+        ct state established,related accept comment "Allow established forwarding"
+
+        # Client ACL Rules
+        iifname "wg0" oifname != "wg0" accept comment "WireGuard Outbound Internet"
+    }
+
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        ip saddr 172.29.250.0/24 oifname != "wg0" masquerade comment "WireGuard NAT Masquerade"
+    }
+}
+`;
+      handleConfRawInput();
+    }
+    return;
+  }
+
+  const snippets = {
+    wg_inbound: '        udp dport 443 accept comment "WireGuard Inbound Tunnel"\n',
+    wg_forwarding: '        iifname "wg0" oifname != "wg0" accept comment "WireGuard Outbound Internet"\n',
+    wg_isolation: '        iifname "wg0" oifname "wg0" drop comment "WireGuard Client Isolation"\n',
+    nat_masquerade: '        ip saddr 172.29.250.0/24 oifname != "wg0" masquerade comment "WireGuard NAT Masquerade"\n',
+    allow_port: '        tcp dport { 22, 80, 443 } accept comment "Allow Standard Services"\n'
+  };
+
+  const snip = snippets[key];
+  if (snip) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    textarea.value = textarea.value.substring(0, start) + snip + textarea.value.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + snip.length;
+    handleConfRawInput();
+    textarea.focus();
+  }
+}
+
+function handleEditorKeydown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+    e.preventDefault();
+    saveConfFile();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+    e.preventDefault();
+    saveAndApplyConf();
+    return;
+  }
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const textarea = e.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    textarea.value = textarea.value.substring(0, start) + "    " + textarea.value.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + 4;
+    handleConfRawInput();
+  }
+}
+
+// ==================== API OPERATIONS ====================
+async function reloadFromDisk() {
+  const target = currentMainTab;
+  const current = fileStore[target];
+  if (current.content !== current.originalContent) {
+    if (!confirm(`Discard unsaved changes and reload ${current.path} from disk?`)) return;
+  }
+  try {
+    const res = await fetch(`/api/firewall/file?target=${target}`);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.content !== undefined) {
+      current.content = data.content;
+      current.originalContent = data.content;
+      if (target === "acl") {
+        document.getElementById("aclRawTextarea").value = data.content;
+        renderSimpleRulesTable();
+      } else {
+        document.getElementById("confRawTextarea").value = data.content;
+        updateConfEditor();
+      }
+      showBanner("success", `Reloaded: ${current.path}`, `Loaded current ${current.path} directly from server disk.`);
+    } else {
+      showBanner("error", "Reload Failed", data.detail || data.message || ("HTTP " + res.status));
+    }
+  } catch (err) {
+    showBanner("error", "Connection Error", err.message || "Failed to reach server.");
+  }
+}
+
+async function validateConfFile() {
+  const target = currentMainTab;
+  const content = fileStore[target].content;
+  try {
+    const res = await fetch("/api/firewall/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, target: target })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.is_valid) {
+      showBanner("success", `Syntax Valid: ${fileStore[target].path}`, data.message || "No syntax errors found.");
+    } else {
+      showBanner("error", `Syntax Error in ${fileStore[target].path}`, data.message || data.detail || "Compiler validation error.");
+    }
+  } catch (err) {
+    showBanner("error", "Connection Error", err.message || "Could not execute validator.");
+  }
+}
+
+async function saveConfFile() {
+  const target = currentMainTab;
+  const current = fileStore[target];
+  try {
+    const res = await fetch("/api/firewall/file", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: current.content, target: target })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      current.originalContent = current.content;
+      if (target === "acl") renderSimpleRulesTable();
+      else updateConfEditor();
+      showBanner("success", `File Saved: ${current.path}`, data.message || "File saved successfully.");
+    } else {
+      showBanner("error", "Save Failed", data.detail || data.message || ("HTTP " + res.status));
+    }
+  } catch (err) {
+    showBanner("error", "Connection Error", err.message || "Could not save file.");
+  }
+}
+
+async function saveAndApplyConf() {
+  const target = currentMainTab;
+  const current = fileStore[target];
+  try {
+    const res = await fetch("/api/firewall/reload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: current.content, target: target })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      current.originalContent = current.content;
+      if (target === "acl") renderSimpleRulesTable();
+      else updateConfEditor();
+      showBanner("success", "Applied Successfully", data.message || `Ruleset (${current.path}) applied and loaded into Linux kernel.`);
+    } else {
+      showBanner("error", "Apply Failed", data.detail || data.message || ("HTTP " + res.status));
+    }
+  } catch (err) {
+    showBanner("error", "Connection Error", err.message || "Could not apply rules.");
+  }
+}
+
+function showBanner(type, title, message) {
+  const banner = document.getElementById("fwAlertBanner");
+  const icon = document.getElementById("fwAlertIcon");
+  const titleEl = document.getElementById("fwAlertTitle");
+  const detailsEl = document.getElementById("fwAlertDetails");
+
+  banner.style.display = "block";
+  titleEl.textContent = title;
+  detailsEl.textContent = message || "";
+
+  banner.className = "alert-banner " + (type === "success" ? "alert-banner-success" : "alert-banner-danger");
+  icon.textContent = (type === "success") ? "✓" : "⚠️";
+}
+
+function openImportModal() {
+  const sel = document.getElementById("importTargetSelect");
+  if (sel) sel.value = currentMainTab;
+  openModal("importRulesModal");
+}
+
+async function triggerImportFromKernel() {
+  const target = document.getElementById("importTargetSelect").value;
+  const targetName = target === "acl" ? "/etc/nftables/acl.nft" : "/etc/nftables.conf";
+  if (!confirm(`Extract active forward rules from kernel memory and merge into ${targetName}?`)) return;
+  try {
+    const res = await fetch('/api/firewall/import-kernel', { method: 'POST' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert(`Kernel rule import failed: ${data.detail || data.message || ('HTTP ' + res.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+async function triggerImportTextRules() {
+  const content = document.getElementById("importRulesTextarea").value.trim();
+  const target = document.getElementById("importTargetSelect").value;
+  const targetName = target === "acl" ? "/etc/nftables/acl.nft" : "/etc/nftables.conf";
+
+  if (!content) {
+    alert("Please paste one or more rule statements.");
+    return;
+  }
+  try {
+    const res = await fetch('/api/firewall/import-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rules: content, target: target })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert(`Rule import failed: ${data.detail || data.message || ('HTTP ' + res.status)}`);
+    }
+  } catch (err) {
+    alert(`Connection error: ${err.message || err}`);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// Initial setup
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("aclRawTextarea").value = fileStore.acl.content;
+  document.getElementById("confRawTextarea").value = fileStore.conf.content;
+  renderSimpleRulesTable();
+  renderConfRulesTable();
+  switchMainTab("acl");
+});
+</script>
+{% endblock %}
+
+

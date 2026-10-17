@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TV Kiosk Display</title>
+  <script src="/js/hls.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Stream Layer */
+    #live-container {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      z-index: 10;
+    }
+
+    #live-video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .live-badge {
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      background: rgba(220, 38, 38, 0.9);
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(220, 38, 38, 0.5);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.98); opacity: 0.9; }
+      50% { transform: scale(1.04); opacity: 1; }
+      100% { transform: scale(0.98); opacity: 0.9; }
+    }
+
+    /* Signage Layer */
+    #signage-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #090d16 0%, #111827 50%, #0f172a 100%);
+      z-index: 5;
+      padding: 40px;
+    }
+
+    .signage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .signage-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .signage-logo {
+      font-size: 40px;
+    }
+
+    .signage-title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .signage-clock {
+      text-align: right;
+    }
+
+    .clock-time {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #38bdf8;
+    }
+
+    .clock-date {
+      font-size: 18px;
+      color: #94a3b8;
+    }
+
+    .signage-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 30px 0;
+    }
+
+    .signage-card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      padding: 40px 60px;
+      text-align: center;
+      max-width: 900px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .signage-headline {
+      font-size: 38px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .signage-desc {
+      font-size: 20px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    .signage-footer {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 15px;
+      color: #94a3b8;
+    }
+
+    /* Web Dashboard Kiosk Layer */
+    #dashboard-container {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 8;
+      border: none;
+    }
+
+    #dashboard-iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Emergency Alert Layer */
+    #emergency-banner {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #b91c1c;
+      color: #fff;
+      z-index: 9999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+      animation: alertBlink 1.2s infinite alternate;
+    }
+
+    @keyframes alertBlink {
+      0% { background: #991b1b; }
+      100% { background: #dc2626; }
+    }
+
+    /* Device Info HUD (Subtle) */
+    .hud-info {
+      position: fixed;
+      bottom: 8px;
+      right: 12px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.3);
+      z-index: 100;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body ondblclick="toggleFullScreen()">
+
+  <!-- Live Stream Layer -->
+  <div id="live-container">
+    <div class="live-badge">
+      <span>●</span> LIVE BROADCAST
+    </div>
+    <video id="live-video" autoplay playsinline muted></video>
+  </div>
+
+  <!-- Video Playlist Layer (Continuous Looping Video Stream) -->
+  <div id="playlist-container" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 6;">
+    <video id="playlist-video" autoplay muted playsinline preload="auto" style="width: 100%; height: 100%; object-fit: contain;"></video>
+    <!-- On-Screen Branding in corner -->
+    <div style="position: absolute; top: 20px; left: 24px; background: rgba(255, 255, 255, 0.95); padding: 5px 12px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); pointer-events: none; opacity: 0.9;">
+      <img src="/logo.png" alt="CiSAI" style="height: 28px; display: block;">
+    </div>
+    <div style="position: absolute; bottom: 20px; right: 24px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); font-size: 14px; color: #38bdf8; pointer-events: none;" id="playlist-clock">
+      12:00:00
+    </div>
+    <!-- Interactive Autoplay Unlock Prompt if browser policy blocks video -->
+    <div id="autoplay-overlay" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.9); border: 2px solid #2563eb; color: #ffffff; padding: 24px 44px; border-radius: 16px; font-size: 22px; font-weight: 700; cursor: pointer; z-index: 50; box-shadow: 0 16px 40px rgba(0,0,0,0.8); text-align: center; letter-spacing: 0.5px;">
+      <div style="font-size: 14px; color: #38bdf8; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px;">Smart TV Playback Ready</div>
+      <div>Click Screen or Press OK on Remote to Start Video</div>
+    </div>
+  </div>
+
+  <!-- Signage Loop Layer (Fallback when no videos uploaded) -->
+  <div id="signage-container">
+    <div class="signage-header">
+      <div class="signage-brand">
+        <div style="background: #ffffff; padding: 6px 14px; border-radius: 12px; display: flex; align-items: center; box-shadow: 0 4px 16px rgba(0,0,0,0.3);">
+          <img src="/logo.png" alt="CiSAI" style="height: 42px; display: block;">
+        </div>
+        <div>
+          <div class="signage-title" id="display-site-title">CiSAI Network Display</div>
+          <div style="font-size: 15px; color: #38bdf8;" id="display-location-name">Headquarters • Display Screen</div>
+        </div>
+      </div>
+      <div class="signage-clock">
+        <div class="clock-time" id="clock-time">12:00:00</div>
+        <div class="clock-date" id="clock-date">Thursday, October 1</div>
+      </div>
+    </div>
+
+    <div class="signage-body">
+      <div class="signage-card" id="signage-slide">
+        <div class="signage-headline" id="slide-title">Welcome to the Network</div>
+        <div class="signage-desc" id="slide-text">
+          Display connected to the Central TV Streaming & Signage Hub via Site-to-Site VPN. Standing by for live broadcasts and scheduled presentations.
+        </div>
+      </div>
+    </div>
+
+    <div class="signage-footer">
+      <div>Notice: <span id="ticker-text">Centralized broadcast system active • Low latency streaming ready</span></div>
+      <div>Status: <span style="color: #34d399;">Connected</span></div>
+    </div>
+  </div>
+
+  <!-- Web Dashboard Kiosk Layer -->
+  <div id="dashboard-container">
+    <iframe id="dashboard-iframe" src="about:blank"></iframe>
+  </div>
+
+  <!-- Emergency Alert Layer -->
+  <div id="emergency-banner">
+    <div style="font-size: 64px; margin-bottom: 20px; font-weight: 900; letter-spacing: 2px;">EMERGENCY ALERT</div>
+    <div id="emergency-message" style="font-size: 36px; max-width: 1000px; font-weight: 700; line-height: 1.4;">
+      ATTENTION: PLEASE EVACUATE THE PREMISES IMMEDIATELY
+    </div>
+  </div>
+
+  <!-- Subtle Device HUD -->
+  <div class="hud-info" id="hud-id">TV ID: Initializing...</div>
+
+  <script src="/js/player.js?v=4.1"></script>
+</body>
+</html>

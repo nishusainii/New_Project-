@@ -1,0 +1,65 @@
+Name: Nishu Saini
+ Date: 02/09/2026
+ Login: 09:05 AM
+ Logout: 06:50 PM
+ 
+ Today's Work Summary
+
+9:05 AM to 1: 20 PM
+
+-Reviewed and cleaned the active nftables firewall ruleset.
+-Removed duplicate input, forwarding, and NAT rules from the firewall configuration.
+-Added flush ruleset to prevent rule duplication during future nftables reloads.
+-Verified access rules for SSH, Squid ports 3128/8085, Webmin port 10000, ICMP, and FortiGate SSL-VPN port 4433.
+-Confirmed NAT masquerading for OpenFortiVPN client traffic.
+-Reviewed and updated the Squid proxy configuration.
+-Validated the Squid configuration using sudo squid -k parse.
+-Applied the updated configuration using sudo squid -k reconfigure without restarting the service.
+-Confirmed that Squid is active and listening on port 8085.
+-Updated and verified the Squid access log at /var/log/squid/access.log.
+-Created and configured the external normal proxy client ACL file /etc/squid/allowed_ips.txt.
+-Retained and verified the OpenFortiVPN client ACL file /etc/squid/openfortivpn_clients.txt.
+-Confirmed that normal proxy clients require both an approved source IP address and valid authentication.
+-Verified DNS resolution through systemd-resolved using the upstream DNS server 10.31.4.2.
+-Reviewed Netplan and confirmed the permanent network settings for interface ens18.
+
+1:20 PM To 2:00 PM 
+
+- Lunch break.
+
+
+2:00 PM To 4:00 PM
+
+-Tested vnStat live network monitoring on interface eth0 and reviewed RX/TX bandwidth statistics on squid server - 10.31.1.24
+-Prepared, crimped, and tested 10 LAN cables, verifying connectivity and cable functionality for testing purposes.
+
+
+4:0PM To 6:30 PM
+
+-Investigated the unexpected power-down of Proxmox node prox001.
+-Reviewed the previous boot journal and confirmed that no graceful shutdown or reboot occurred.
+-Verified that the previous boot ended abruptly.
+-Confirmed that the server restarted at approximately 12:15 PM IST on September 1, 2026.
+-Reviewed the BMC/IPMI System Event Log and identified two hardware-level power-off/down transitions.
+-Compared the Linux and BMC clocks and confirmed that they were synchronized within approximately three seconds.
+-Checked CPU, memory, motherboard, PSU, voltage, and fan sensor readings.
+-Confirmed that all current IPMI sensor readings were normal, with no active warning or critical condition.
+-Identified CPU0 and CPU1 throttling events during startup, but found no current overheating.
+-Checked the BMC Audit Log for the incident period, but no audit entries were available to confirm a remote BMC user action.
+-Investigated the RAID disk health and identified a failing drive at controller path /c0/e251/s1.
+-Recorded the affected disk details: serial number 2TG0V89E and device ID 12.
+-Found 1,264 pending unreadable sectors, one offline uncorrectable sector, and 29,086 reported uncorrectable errors.
+-Confirmed that the disk failed the SMART short test due to a read error.
+-Verified that the failing disk remains online in the RAID array but requires urgent replacement planning.
+-Recommended verifying RAID redundancy and backup availability before replacing the disk.
+-Prepared a summarized Root Cause Analysis report in Word format.
+-Concluded that the shutdown was caused by an abrupt hardware-level power interruption or forced reset, though the exact trigger remains unconfirmed.
+-Identified UPS/PDU event history as the remaining evidence required for final root-cause confirmation.
+-Confirmed that the PBS routing failure and failing RAID disk are separate issues requiring corrective action.
+
+Current RCA Status
+
+The server experienced an abrupt hardware-level power interruption or forced reset. No graceful Linux shutdown was recorded. 
+The precise initiating trigger remains unconfirmed because no corresponding PSU AC-loss, thermal-trip, watchdog, or BMC audit event was found. 
+UPS/PDU event history is the remaining evidence required for final confirmation.
+The PBS routing failure and failing RAID disk are confirmed separate issues requiring corrective action.

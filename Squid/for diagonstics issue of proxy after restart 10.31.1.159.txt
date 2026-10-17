@@ -1,0 +1,382 @@
+Understood, Nishu. You do not need another document. You need the exact emergency steps to follow after a power failure when Ubuntu boots but 
+Squid, networking, routes, policy rules, or firewall settings appear missing.
+
+Your verified recovery snapshot is:
+
+/var/backups/proxy-safe/last-known-good-20260829-151029
+
+Emergency recovery after the proxy server powers on
+Step 1: Use console access
+
+Because routes and firewall rules may be missing, use one of these:
+
+Physical console
+Proxmox console
+IPMI, iDRAC, or iLO
+A working second SSH session
+
+Do not rely only on one SSH session when applying Netplan or iptables.
+
+Step 2: Log in and become root
+sudo -i
+
+
+Confirm that the operating system completed booting:
+
+systemctl is-system-running
+
+
+running or degraded allows you to continue troubleshooting. If it shows starting, inspect failed services:
+
+systemctl --failed --no-pager
+
+Step 3: Confirm the backup still exists
+/usr/local/sbin/proxy-safe list
+
+
+Confirm the exact snapshot directory:
+
+ls -ld \
+  /var/backups/proxy-safe/last-known-good-20260829-151029
+
+
+Check its contents:
+
+ls -lh \
+  /var/backups/proxy-safe/last-known-good-20260829-151029
+
+
+If the directory is missing, do not run restore.
+
+Step 4: Verify the backup before using it
+BACKUP="/var/backups/proxy-safe/last-known-good-20260829-151029"
+
+sudo /usr/local/sbin/proxy-safe verify "$BACKUP"
+
+
+Continue only if:
+
+Every backup file reports OK.
+The final line says Snapshot verification passed.
+No iptables validation error appears.
+Step 5: Check what is actually missing
+
+First run the read-only comparison:
+
+sudo /usr/local/sbin/proxy-recovery-assistant compare \
+  "$BACKUP"
+
+
+Find the latest report:
+
+LATEST_REPORT="$(
+  sudo find /var/log/proxy-recovery \
+    -mindepth 1 -maxdepth 1 \
+    -type d \
+    -name 'incident-*' \
+    -printf '%T@ %p\n' |
+  sort -nr |
+  head -n1 |
+  cut -d' ' -f2-
+)"
+
+
+Read the summary:
+
+sudo cat "$LATEST_REPORT/SUMMARY.txt"
+
+
+Also manually check:
+
+ip -br link
+ip -br address
+ip -details rule show
+ip -details route show table all
+sudo iptables-save
+sudo squid -k parse
+sudo systemctl status squid --no-pager
+
+
+If all checks pass and differences are only dynamic timers or generated timestamps, do not restore.
+
+When networking and routes are really missing
+Step 6: Check persistent Netplan files
+sudo ls -lah /etc/netplan/
+sudo sed -n '1,240p' /etc/netplan/*.yaml
+
+
+Netplan configuration stored as YAML under /etc/netplan/ is intended to persist across reboots.
+
+Validate it without applying:
+
+sudo netplan --debug generate
+
+If validation passes
+
+From the console, run:
+
+sudo netplan try --timeout 120
+
+
+Before confirming, check:
+
+ip -br address
+ip -details rule show
+ip -details route show table all
+ip route get 1.1.1.1
+
+If Netplan files are empty, damaged, or incorrect
+
+Do not manually rebuild everything first. Continue with controlled restoration from the verified snapshot.
+
+Controlled full restoration
+Step 7: Run the recovery assistant restore
+
+Only from console access or with a second administration session available:
+
+sudo /usr/local/sbin/proxy-recovery-assistant restore \
+  "$BACKUP"
+
+
+The assistant will:
+
+Verify the snapshot.
+Show a warning.
+Ask you to type RESTORE.
+Capture the current incident state.
+Restore Squid files.
+Validate Squid configuration.
+Restore Netplan files.
+Validate Netplan.
+Test and restore iptables.
+Reload or restart Squid.
+Leave Netplan unapplied to protect your connection.
+
+When prompted, type:
+
+RESTORE
+
+
+Do not type RESTORE unless the comparison confirms configuration loss.
+
+Step 8: Apply restored networking safely
+
+After the restore command completes:
+
+sudo netplan --debug generate
+
+
+If there is no validation error:
+
+sudo netplan try --timeout 120
+
+
+Before confirming, verify your management interface and all WAN interfaces:
+
+ip -br address
+
+
+Verify policy rules:
+
+ip -details rule show
+
+
+Verify all routing tables:
+
+ip -details route show table all
+
+
+Check your individual tables:
+
+ip route show table main
+ip route show table t1
+ip route show table t3
+ip route show table t4
+ip route show table t5
+ip route show table t6
+ip route show table t7
+ip route show table t8
+ip route show table t9
+
+
+Check route selection:
+
+ip route get 1.1.1.1
+
+
+Confirm Netplan only when:
+
+enp4s0 has its expected management address.
+kv1 through kv9 have their expected addresses.
+Main default routes and metrics are present.
+Custom routing tables are present.
+Policy rules are present.
+Your administration connection remains working.
+When firewall rules are missing
+Step 9: Verify restored iptables rules
+sudo iptables-save
+
+
+Inspect each important table:
+
+sudo iptables -t filter -L -n -v --line-numbers
+sudo iptables -t nat -L -n -v --line-numbers
+sudo iptables -t mangle -L -n -v --line-numbers
+
+
+Check for the rules your deployment requires, such as:
+
+Input and forwarding controls
+NAT, MASQUERADE, or SNAT
+Transparent-proxy REDIRECT, if used
+Packet marks
+CONNMARK save and restore
+Rules connected to kv1 through kv9
+
+Your earlier baseline showed only default chains and ACCEPT policies. If you expected NAT, packet marking, or forwarding rules, verify whether they are managed through another system such as nftables:
+
+sudo iptables --version
+sudo update-alternatives --display iptables
+sudo nft list ruleset
+
+
+iptables rules created only in kernel runtime normally require a persistence mechanism to reload them following reboot.
+
+When Squid is not working
+Step 10: Validate and start Squid
+sudo squid -k parse
+
+
+If parsing succeeds:
+
+sudo systemctl enable squid
+sudo systemctl restart squid
+
+
+Check:
+
+sudo systemctl --no-pager --full status squid
+sudo journalctl -u squid -n 100 --no-pager
+sudo ss -lntp | grep ':3128'
+
+
+Run a local proxy test:
+
+curl -I --max-time 10 \
+  -x http://127.0.0.1:3128 \
+  http://example.com/
+
+
+If authentication is enabled, test with an approved test account and avoid exposing its password in shell history.
+
+Step 11: Confirm persistent boot services
+
+Check which network backend Netplan uses:
+
+sudo netplan get | grep -i renderer
+
+
+If it uses networkd:
+
+sudo systemctl enable systemd-networkd
+sudo systemctl status systemd-networkd --no-pager
+
+
+If it uses NetworkManager:
+
+sudo systemctl enable NetworkManager
+sudo systemctl status NetworkManager --no-pager
+
+
+Check Squid boot enablement:
+
+sudo systemctl is-enabled squid
+
+
+Expected:
+
+enabled
+
+
+Check the iptables persistence service if installed:
+
+sudo systemctl status netfilter-persistent --no-pager
+sudo systemctl is-enabled netfilter-persistent
+
+
+Do not enable both competing firewall managers without understanding which one is authoritative.
+
+Step 12: Final post-recovery check
+
+Run:
+
+sudo /usr/local/sbin/proxy-recovery-assistant compare \
+  "$BACKUP"
+
+
+Then display the newest summary again:
+
+LATEST_REPORT="$(
+  sudo find /var/log/proxy-recovery \
+    -mindepth 1 -maxdepth 1 \
+    -type d \
+    -name 'incident-*' \
+    -printf '%T@ %p\n' |
+  sort -nr |
+  head -n1 |
+  cut -d' ' -f2-
+)"
+
+sudo cat "$LATEST_REPORT/SUMMARY.txt"
+
+
+Expected functional result:
+
+Squid parse: PASS
+Squid service: ACTIVE
+Netplan generate: PASS
+Squid port 3128: LISTENING
+Normalized routes: MATCH
+Policy rules: MATCH
+Normalized iptables: MATCH
+
+
+If iptables still says DIFFER, inspect:
+
+sudo cat "$LATEST_REPORT/iptables.diff"
+
+
+If only Generated by and Completed on timestamps differ, the functional iptables configuration still matches.
+
+Short emergency command sequence
+
+Use this only after getting console access:
+
+sudo -i
+
+BACKUP="/var/backups/proxy-safe/last-known-good-20260829-151029"
+
+/usr/local/sbin/proxy-safe verify "$BACKUP"
+
+/usr/local/sbin/proxy-recovery-assistant compare "$BACKUP"
+
+/usr/local/sbin/proxy-recovery-assistant restore "$BACKUP"
+
+netplan --debug generate
+
+netplan try --timeout 120
+
+
+Then check:
+
+ip -br address
+ip -details rule show
+ip -details route show table all
+iptables-save
+squid -k parse
+systemctl status squid --no-pager
+ss -lntp | grep ':3128'
+
+
+The important rule is: first use console access, verify the snapshot, compare the current state, restore only confirmed missing configuration, 
+apply Netplan with netplan try, and validate everything before confirming.

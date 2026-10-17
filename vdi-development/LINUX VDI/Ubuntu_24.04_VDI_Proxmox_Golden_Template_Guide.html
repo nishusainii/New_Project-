@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ubuntu 24.04 LTS VDI Golden Template Implementation Guide</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+  
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    color: #2d3748;
+    line-height: 1.6;
+    font-size: 11pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cover {
+    page-break-after: always;
+    padding-top: 60px;
+    text-align: center;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    border: 1px solid #bee3f8;
+  }
+
+  .cover h1 {
+    font-size: 28pt;
+    color: #1a365d;
+    margin: 0 0 15px 0;
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  .cover h2 {
+    font-size: 15pt;
+    color: #4a5568;
+    font-weight: 400;
+    margin: 0 0 40px 0;
+  }
+
+  .meta-box {
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: left;
+    max-width: 500px;
+    margin: 40px auto;
+  }
+
+  .meta-box table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .meta-box td {
+    padding: 6px 10px;
+    font-size: 10pt;
+  }
+
+  .meta-box td.label {
+    font-weight: 600;
+    color: #4a5568;
+    width: 40%;
+  }
+
+  .meta-box td.value {
+    color: #1a202c;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  h1, h2, h3, h4 {
+    color: #1a365d;
+    font-weight: 700;
+  }
+
+  h1 {
+    font-size: 18pt;
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 6px;
+    margin-top: 30px;
+    margin-bottom: 16px;
+    page-break-after: avoid;
+  }
+
+  h2 {
+    font-size: 14pt;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    color: #2b6cb0;
+    page-break-after: avoid;
+  }
+
+  h3 {
+    font-size: 12pt;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    color: #2d3748;
+    page-break-after: avoid;
+  }
+
+  p {
+    margin: 0 0 10px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 12px 0;
+    padding-left: 22px;
+  }
+
+  li {
+    margin-bottom: 4px;
+  }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background-color: #edf2f7;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 9.5pt;
+    color: #c53030;
+  }
+
+  pre {
+    background-color: #1a202c;
+    color: #f7fafc;
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 9pt;
+    line-height: 1.45;
+    overflow-x: auto;
+    margin: 10px 0 14px 0;
+    border-left: 4px solid #3182ce;
+    page-break-inside: avoid;
+  }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+
+  table.data-table th, table.data-table td {
+    border: 1px solid #cbd5e0;
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  table.data-table th {
+    background-color: #ebf8ff;
+    color: #2c5282;
+    font-weight: 600;
+  }
+
+  table.data-table tr:nth-child(even) {
+    background-color: #f7fafc;
+  }
+
+  .callout {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin: 14px 0;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+
+  .callout-info {
+    background-color: #ebf8ff;
+    border-left: 4px solid #3182ce;
+    color: #2b6cb0;
+  }
+
+  .callout-success {
+    background-color: #f0fff4;
+    border-left: 4px solid #38a169;
+    color: #276749;
+  }
+
+  .callout-warning {
+    background-color: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    color: #9c4221;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover Page -->
+<div class="cover">
+  <div class="cover-badge">Enterprise Engineering Guide</div>
+  <h1>Ubuntu 24.04 LTS VDI Golden Template Implementation</h1>
+  <h2>Building a Production-Ready Linux VDI Golden Image on Proxmox VE<br>with TigerVNC and Apache Guacamole Browser Access</h2>
+
+  <div class="meta-box">
+    <table>
+      <tr>
+        <td class="label">Proxmox Host:</td>
+        <td class="value">prox000innspark (10.31.1.163)</td>
+      </tr>
+      <tr>
+        <td class="label">Guacamole Gateway:</td>
+        <td class="value">https://10.31.4.55/</td>
+      </tr>
+      <tr>
+        <td class="label">Base OS:</td>
+        <td class="value">Ubuntu Server 24.04 LTS (Noble)</td>
+      </tr>
+      <tr>
+        <td class="label">Desktop Environment:</td>
+        <td class="value">XFCE 4 (Minimal, Lightweight)</td>
+      </tr>
+      <tr>
+        <td class="label">Remote Display:</td>
+        <td class="value">TigerVNC (Port 5901, Display :1)</td>
+      </tr>
+      <tr>
+        <td class="label">Template ID:</td>
+        <td class="value">9051 (ubuntu-2404-vdi-vnc-template-9051)</td>
+      </tr>
+      <tr>
+        <td class="label">Validated Clone:</td>
+        <td class="value">VM 201 (vdi-user-test)</td>
+      </tr>
+      <tr>
+        <td class="label">Storage Pool:</td>
+        <td class="value">local-lvm (LVM-Thin, Discard/TRIM)</td>
+      </tr>
+      <tr>
+        <td class="label">Execution Status:</td>
+        <td class="value" style="color: #276749; font-weight: bold;">Verified & Tested OK</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- Section 1: Overview & Architecture -->
+<h1>1. Overview and Architecture</h1>
+<p>
+Virtual Desktop Infrastructure (VDI) running on Linux provides high-density, cost-effective, and secure virtual workstations. Instead of deploying a resource-intensive desktop distribution, this architecture utilizes <strong>Ubuntu Server 24.04 LTS</strong> as the minimal operating-system base.
+</p>
+<p>
+On top of this clean baseline, <strong>XFCE 4</strong> provides an enterprise, lightweight graphical interface (~400 MB RAM per idle session), while <strong>TigerVNC</strong> exposes the X11 display on TCP port <code>5901</code>. End users access the virtual desktop directly via their web browser through an enterprise <strong>Apache Guacamole Gateway (10.31.4.55)</strong>.
+</p>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Layer</th>
+      <th>Component</th>
+      <th>Configuration Specification</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Hypervisor</strong></td>
+      <td>Proxmox VE 8.x</td>
+      <td>Node: <code>prox000innspark</code> (10.31.1.163), Kernel 6.8+</td>
+    </tr>
+    <tr>
+      <td><strong>Virtual Hardware</strong></td>
+      <td>QEMU / KVM</td>
+      <td>Machine: <code>q35</code>, Firmware: <code>OVMF (UEFI)</code>, 4 vCPUs (host), 4GB RAM</td>
+    </tr>
+    <tr>
+      <td><strong>Storage Controller</strong></td>
+      <td>VirtIO SCSI Single</td>
+      <td>32 GB SCSI Disk on <code>local-lvm</code>, Discard/TRIM enabled, SSD emulation</td>
+    </tr>
+    <tr>
+      <td><strong>Networking</strong></td>
+      <td>VirtIO Paravirtualized</td>
+      <td>Bridged to <code>vmbr0</code>, DHCP IPv4 auto-addressing</td>
+    </tr>
+    <tr>
+      <td><strong>Guest Operating System</strong></td>
+      <td>Ubuntu Server 24.04 LTS</td>
+      <td>Minimal cloud image baseline (<code>noble-server-cloudimg-amd64.img</code>)</td>
+    </tr>
+    <tr>
+      <td><strong>Desktop Interface</strong></td>
+      <td>XFCE 4</td>
+      <td>Minimal core (xfce4, xfce4-session, thunar, xfce4-terminal, xfwm4)</td>
+    </tr>
+    <tr>
+      <td><strong>Remote Display Transport</strong></td>
+      <td>TigerVNC Server</td>
+      <td>Display <code>:1</code> on TCP Port <code>5901</code>, 1080p 24-bit True Color</td>
+    </tr>
+    <tr>
+      <td><strong>Client Access Gateway</strong></td>
+      <td>Apache Guacamole</td>
+      <td><code>https://10.31.4.55/</code> (HTML5 clientless browser access)</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>Key Architecture Advantage:</strong> Users require no local client installation (no VPN client, no VNC viewer). They simply navigate to <code>https://10.31.4.55/</code> in Chrome, Firefox, or Edge, and receive a secure, responsive Linux virtual desktop inside their web browser.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 2: Infrastructure Fixes -->
+<h1>2. Infrastructure Pre-Flight Fixes</h1>
+<p>
+During initial deployment on the Proxmox host, two environmental roadblocks were identified and resolved:
+</p>
+
+<h3>2.1 Corporate DNS Resolution Fix</h3>
+<p>
+<strong>Issue:</strong> The Proxmox host was initially configured with Google DNS (<code>8.8.8.8</code>). Corporate network firewall rules blocked outbound UDP/TCP port 53 to public DNS, resulting in <code>Temporary failure in name resolution</code> when attempting to download base operating system images.
+</p>
+<p>
+<strong>Resolution:</strong> The DNS configuration was updated to the corporate internal DNS resolver:
+</p>
+<pre># Updated on Proxmox VE (prox000innspark):
+dns1: 10.31.4.2
+search: local</pre>
+
+<h3>2.2 Storage Selection: Local SSD vs. Read-Only NFS</h3>
+<p>
+<strong>Issue:</strong> Initial VM creation failed with:
+<code>TASK ERROR: unable to create VM - mkdir /mnt/pve/NFS-Storage/images: Read-only file system</code>. The remote NFS export at <code>10.31.1.161</code> was mounted in a read-only state.
+</p>
+<p>
+<strong>Resolution:</strong> All virtual machine disks, EFI disks, and cloud-init metadata drives were explicitly targeted to <strong><code>local-lvm</code></strong> (371 GB free local SSD storage). This eliminated network dependencies and maximized desktop disk I/O performance.
+</p>
+
+<div class="page-break"></div>
+
+<!-- Section 3: Base VM Creation -->
+<h1>3. Creating the Base Build Virtual Machine (VM 9051)</h1>
+
+<p>
+The build virtual machine was provisioned directly on the Proxmox host shell using the official, cryptographically verified Ubuntu 24.04 LTS Cloud Image.
+</p>
+
+<h3>Step 1: Download Official Ubuntu 24.04 Cloud Image</h3>
+<pre>cd /var/lib/vz/template/iso
+wget -nc https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img</pre>
+
+<h3>Step 2: Initialize VM 9051 with Modern Virtual Hardware</h3>
+<pre>qm create 9051 \
+  --name "ubuntu-2404-vdi-gold-build" \
+  --machine q35 \
+  --bios ovmf \
+  --cpu host \
+  --cores 4 \
+  --memory 4096 \
+  --balloon 0 \
+  --scsihw virtio-scsi-single \
+  --net0 virtio,bridge=vmbr0 \
+  --agent enabled=1 \
+  --ostype l26</pre>
+
+<h3>Step 3: Allocate EFI Disk, Import Cloud Image, and Resize</h3>
+<pre># 1. Allocate 4MB OVMF EFI Disk on local-lvm
+qm set 9051 --efidisk0 local-lvm:0,pre-enrolled-keys=1,efitype=4m
+
+# 2. Import cloud image into local-lvm
+qm importdisk 9051 /var/lib/vz/template/iso/noble-server-cloudimg-amd64.img local-lvm
+
+# 3. Attach imported disk as SCSI 0 with TRIM (discard) and SSD emulation
+qm set 9051 --scsi0 local-lvm:vm-9051-disk-1,discard=on,ssd=1,iothread=1
+
+# 4. Resize virtual hard disk to 32 GB
+qm disk resize 9051 scsi0 32G</pre>
+
+<h3>Step 4: Configure Cloud-Init Provisioning and Start</h3>
+<pre># Attach Cloud-Init Drive on local-lvm
+qm set 9051 --ide2 local-lvm:cloudinit
+qm set 9051 --boot order=scsi0
+
+# Configure administrative user and DHCP
+qm set 9051 --ciuser vdiadmin
+qm set 9051 --cipassword "TempPassword123!"
+qm set 9051 --ipconfig0 ip=dhcp
+
+# Power on the VM
+qm start 9051</pre>
+
+<div class="callout callout-success">
+  <strong>Result:</strong> VM 9051 booted in UEFI mode, automatically expanded its root filesystem to 32 GB, created the <code>vdiadmin</code> user, and acquired IP <code>10.31.0.232</code> from DHCP.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 4: OS & Desktop Installation -->
+<h1>4. Operating System and Desktop Environment Setup</h1>
+
+<p>
+Logging into VM 9051 via console or SSH (<code>ssh vdiadmin@10.31.0.232</code>), the operating system baseline and desktop packages were installed.
+</p>
+
+<h3>Step 1: System Baseline & QEMU Guest Agent</h3>
+<pre>export DEBIAN_FRONTEND=noninteractive
+apt-get update && apt-get dist-upgrade -y
+apt-get install -y qemu-guest-agent curl wget vim chrony dbus-x11</pre>
+
+<h3>Step 2: Minimal XFCE 4 Desktop Environment</h3>
+<p>
+To prevent desktop bloat, heavy consumer suites (LibreOffice, Thunderbird, games) were excluded. The minimal graphical set was installed:
+</p>
+<pre>apt-get install -y --no-install-recommends \
+    xorg x11-xserver-utils xfce4 xfce4-session xfce4-terminal xfce4-appfinder \
+    thunar fonts-dejavu-core</pre>
+
+<h3>Step 3: PolicyKit Authorization Fix for Remote Sessions</h3>
+<p>
+Under Linux, remote X11/VNC display sessions often trigger intrusive desktop popups requesting administrative credentials for color device profiles (<code>colord</code>) or network management. This was permanently resolved by deploying an override rule:
+</p>
+<pre>mkdir -p /etc/polkit-1/localauthority/50-local.d/
+
+cat &lt;&lt;'EOF' &gt; /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla
+[Allow Colord and Network for all users]
+Identity=unix-user:*
+Action=org.freedesktop.color-manager.*;org.freedesktop.NetworkManager.*
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF</pre>
+
+<div class="page-break"></div>
+
+<!-- Section 5: TigerVNC Setup -->
+<h1>5. TigerVNC Server Setup and Multi-User Service Integration</h1>
+
+<p>
+TigerVNC was chosen for its high rendering speed, low bandwidth utilization, and seamless compatibility with Apache Guacamole.
+</p>
+
+<h3>Step 1: Install TigerVNC</h3>
+<pre>apt-get install -y tigervnc-standalone-server tigervnc-common</pre>
+
+<h3>Step 2: Set VNC Password for <code>vdiadmin</code></h3>
+<pre>su - vdiadmin -c '
+mkdir -p ~/.vnc
+echo "TempPassword123!" | vncpasswd -f > ~/.vnc/passwd
+chmod 600 ~/.vnc/passwd
+'</pre>
+
+<h3>Step 3: Configure XFCE Session Startup Script</h3>
+<p>
+Configured <code>/home/vdiadmin/.vnc/xstartup</code> to cleanly initialize environment variables and launch XFCE:
+</p>
+<pre>cat &lt;&lt;'EOF' &gt; /home/vdiadmin/.vnc/xstartup
+#!/bin/sh
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+export XDG_CURRENT_DESKTOP=XFCE
+export XDG_SESSION_DESKTOP=xfce
+exec startxfce4
+EOF
+
+chmod +x /home/vdiadmin/.vnc/xstartup
+chown -R vdiadmin:vdiadmin /home/vdiadmin/.vnc</pre>
+
+<h3>Step 4: Multi-User Mapping and Global Defaults</h3>
+<p>
+In Ubuntu 24.04 LTS, TigerVNC manages sessions via native systemd templates. Display <code>:1</code> was mapped to <code>vdiadmin</code>:
+</p>
+<pre># 1. Map Display :1 to user vdiadmin
+echo ':1=vdiadmin' &gt; /etc/tigervnc/vncserver.users
+
+# 2. Configure system defaults in Perl format (1080p, remote access allowed)
+cat &lt;&lt;'EOF' &gt; /etc/tigervnc/vncserver-config-defaults
+$session = "xfce";
+$geometry = "1920x1080";
+$localhost = "no";
+1;
+EOF</pre>
+
+<h3>Step 5: Enable and Start Native Systemd Service</h3>
+<pre>systemctl daemon-reload
+systemctl enable --now tigervncserver@:1.service
+systemctl enable --now qemu-guest-agent</pre>
+
+<div class="callout callout-success">
+  <strong>Verification:</strong> Running <code>ss -tlpn | grep 5901</code> confirmed:
+  <code>LISTEN 0 5 0.0.0.0:5901 (Xtigervnc)</code>. The desktop was verified live via VNC viewer.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 6: Sealing and Template Conversion -->
+<h1>6. Generalization, Sealing, and Template Conversion</h1>
+
+<p>
+Before a virtual machine can become a production template, all machine-specific identifiers, temporary session files, package caches, and network leases must be purged. This guarantees that clones do not conflict on IP addresses or cryptographic identities.
+</p>
+
+<h3>Step 1: Execute Sealing Operations Inside the VM</h3>
+<p>
+Executed inside VM 9051 as root:
+</p>
+<pre># 1. Stop VNC service and clean session logs
+systemctl stop tigervncserver@:1.service
+rm -f /home/vdiadmin/.vnc/*.log /home/vdiadmin/.vnc/*.pid
+
+# 2. Populate skeleton directory so new users automatically receive VNC xstartup
+mkdir -p /etc/skel/.vnc
+cp /home/vdiadmin/.vnc/xstartup /etc/skel/.vnc/xstartup
+chmod +x /etc/skel/.vnc/xstartup
+
+# 3. Clean APT package caches and residual deb files
+export DEBIAN_FRONTEND=noninteractive
+apt-get autoremove -y --purge
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+rm -rf /var/cache/apt/archives/*.deb /var/cache/apt/archives/partial/*
+
+# 4. Clean cloud-init artifacts (enables cloud-init execution on new clones)
+cloud-init clean --logs --seed
+rm -rf /var/lib/cloud/instances/*
+rm -rf /var/lib/cloud/instance
+rm -rf /var/lib/cloud/data/*
+
+# 5. Reset machine-id (Guarantees unique DHCP IP lease per clone)
+truncate -s 0 /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+ln -sf /etc/machine-id /var/lib/dbus/machine-id
+
+# 6. Purge SSH host keys (Clones will regenerate unique key pairs)
+rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+
+# 7. Clean temporary files and caches
+find /tmp -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2&gt;/dev/null || true
+find /var/tmp -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2&gt;/dev/null || true
+rm -rf /root/.cache/* /home/vdiadmin/.cache/* 2&gt;/dev/null || true
+
+# 8. Clear bash history, flush filesystem, and power off cleanly
+history -c
+sync
+shutdown -h now</pre>
+
+<h3>Step 2: Convert VM 9051 to an Immutable Proxmox Template</h3>
+<p>
+Once the VM powered off in Proxmox, it was converted to a master template:
+</p>
+<pre># On Proxmox Host Shell:
+qm set 9051 --name "ubuntu-2404-vdi-vnc-template-9051"
+qm template 9051</pre>
+
+<div class="callout callout-success">
+  <strong>Template Created:</strong> VM 9051 was successfully sealed and converted into <code>ubuntu-2404-vdi-vnc-template-9051</code>.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 7: Apache Guacamole Integration -->
+<h1>7. Apache Guacamole Integration (Gateway: 10.31.4.55)</h1>
+
+<p>
+Your organization operates an <strong>Apache Guacamole Gateway at <code>https://10.31.4.55/</code></strong>. Guacamole provides HTML5 clientless remote desktop connectivity over HTTPS.
+</p>
+
+<h3>Step-by-Step Guacamole Configuration</h3>
+<ol>
+  <li>Open a browser and navigate to <strong><code>https://10.31.4.55/</code></strong>.</li>
+  <li>Log in with administrative credentials.</li>
+  <li>In the top-right navigation dropdown, select <strong>Settings</strong>.</li>
+  <li>Navigate to the <strong>Connections</strong> tab and click <strong>New Connection</strong>.</li>
+  <li>Configure the connection using the exact parameters below:</li>
+</ol>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Section</th>
+      <th>Field</th>
+      <th>Configuration Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td rowspan="3"><strong>Edit Connection</strong></td>
+      <td>Name</td>
+      <td><code>Ubuntu 24.04 VDI Desktop</code></td>
+    </tr>
+    <tr>
+      <td>Location</td>
+      <td><code>ROOT</code> (or your department group)</td>
+    </tr>
+    <tr>
+      <td>Protocol</td>
+      <td><strong><code>VNC</code></strong></td>
+    </tr>
+    <tr>
+      <td rowspan="2"><strong>Network</strong></td>
+      <td>Hostname</td>
+      <td><strong><code>&lt;VDI_CLONE_IP&gt;</code></strong> (e.g., <code>10.31.0.232</code> or new clone IP)</td>
+    </tr>
+    <tr>
+      <td>Port</td>
+      <td><strong><code>5901</code></strong></td>
+    </tr>
+    <tr>
+      <td><strong>Authentication</strong></td>
+      <td>Password</td>
+      <td><strong><code>TempPassword123!</code></strong> (or user's password)</td>
+    </tr>
+    <tr>
+      <td rowspan="3"><strong>Display Settings</strong></td>
+      <td>Color depth</td>
+      <td><code>True color (24-bit)</code></td>
+    </tr>
+    <tr>
+      <td>Cursor</td>
+      <td><code>Remote (server-rendered)</code> or <code>Local</code></td>
+    </tr>
+    <tr>
+      <td>DPI</td>
+      <td><code>96</code> (Standard desktop DPI)</td>
+    </tr>
+  </tbody>
+</table>
+
+<ol start="6">
+  <li>Click <strong>Save</strong> at the bottom of the page.</li>
+  <li>Click the <strong>Home</strong> icon in the top left, click the new desktop connection, and your full XFCE Linux desktop will instantly render inside your web browser tab!</li>
+</ol>
+
+<div class="callout callout-info">
+  <strong>Single Sign-On & User Isolation:</strong> In production, each user can be assigned their own dedicated clone IP in Guacamole, or Guacamole parameter tokens (<code>${GUAC_USERNAME}</code>) can be utilized to automatically route users to their assigned desktops.
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 8: Operations & Maintenance -->
+<h1>8. Creating and Managing VDI Clones</h1>
+
+<h3>8.1 Deploying a New User Desktop in 15 Seconds</h3>
+<p>
+Whenever a new user desktop is needed, deploy a <strong>Full Clone</strong> from the golden template:
+</p>
+
+<h4>Via Proxmox Web GUI:</h4>
+<ol>
+  <li>Right-click <strong><code>ubuntu-2404-vdi-vnc-template-9051</code></strong> &rarr; click <strong>Clone</strong>.</li>
+  <li>Enter Target VM ID (e.g., <code>202</code>), Name (e.g., <code>vdi-finance-user01</code>).</li>
+  <li>Mode: <strong>Full Clone</strong> | Target Storage: <strong><code>local-lvm</code></strong>.</li>
+  <li>Click <strong>Clone</strong>.</li>
+  <li>Click the new VM &rarr; click <strong>Start</strong>.</li>
+  <li>Under the <strong>Summary</strong> tab, note the assigned IP address, and add it to Guacamole.</li>
+</ol>
+
+<h4>Via Proxmox CLI:</h4>
+<pre># 1. Create full clone
+qm clone 9051 202 --name "vdi-finance-user01" --full 1 --storage local-lvm
+
+# 2. (Optional) Customize user credentials via Cloud-Init
+qm set 202 --ciuser "john" --cipassword "SecurePassword2026!"
+
+# 3. Start the clone
+qm start 202</pre>
+
+---
+
+<h3>8.2 Golden Template Maintenance Lifecycle</h3>
+<p>
+To apply future security patches or new software, <strong>never edit the template directly</strong>. Follow the immutable versioning lifecycle:
+</p>
+<ol>
+  <li>Clone the active template to a temporary maintenance VM (e.g., VM <code>9099</code>).</li>
+  <li>Start VM <code>9099</code>, apply updates (<code>apt-get dist-upgrade</code>), and test VNC functionality.</li>
+  <li>Run the generalization/sealing commands from Section 6.</li>
+  <li>Shut down VM <code>9099</code> and convert it into a new template version (e.g., <code>ubuntu-2404-vdi-vnc-template-v2</code>).</li>
+  <li>Retain the previous template version as a rollback fallback.</li>
+</ol>
+
+<div class="callout callout-success">
+  <strong>Production Sign-Off:</strong>
+  All steps outlined in this runbook have been verified and tested live on Proxmox node <code>prox000innspark</code> (10.31.1.163) and validated against Apache Guacamole (10.31.4.55). The golden template is production-ready.
+</div>
+
+</body>
+</html>

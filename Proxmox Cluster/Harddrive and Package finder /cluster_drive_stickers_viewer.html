@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxmox Cluster — Physical Hard Drive & Sticker Label Manager</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-2: #1f2937;
+      --surface-3: #374151;
+      --border: #374151;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --ceph: #f97316;
+      --ceph-bg: rgba(249, 115, 22, 0.15);
+      --zfs: #0284c7;
+      --zfs-bg: rgba(2, 132, 199, 0.15);
+      --os: #10b981;
+      --os-bg: rgba(16, 185, 129, 0.15);
+      --free: #8b5cf6;
+      --free-bg: rgba(139, 92, 246, 0.15);
+      --warn: #eab308;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 24px;
+    }
+
+    .container { max-width: 1400px; margin: 0 auto; }
+
+    /* Header */
+    .app-header {
+      background: linear-gradient(135deg, #111827 0%, #1e1b4b 50%, #0f172a 100%);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .app-title h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .app-title p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+    .btn-secondary:hover { background: var(--surface-3); }
+    .btn-ceph { background: var(--ceph); color: #fff; }
+    .btn-ceph:hover { opacity: 0.9; }
+
+    /* Filter & Search Bar */
+    .toolbar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn.active, .filter-btn:hover {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+
+    .search-input {
+      background: #000;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      min-width: 280px;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+    }
+
+    /* Rack / Server Chassis Representation */
+    .chassis-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 30px;
+    }
+
+    .chassis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .node-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .node-ip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 400;
+      background: var(--surface-2);
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    /* 12-Bay Chassis Grid (Standard 2U front panel: 4 columns x 3 rows) */
+    .chassis-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      background: #000;
+      padding: 16px;
+      border-radius: 10px;
+      border: 2px solid #374151;
+    }
+
+    .bay-slot {
+      background: #1e293b;
+      border: 2px solid #475569;
+      border-radius: 6px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .bay-slot:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+    }
+    .bay-slot.role-ceph { border-color: var(--ceph); background: linear-gradient(180deg, #1e293b 0%, rgba(249, 115, 22, 0.12) 100%); }
+    .bay-slot.role-zfs  { border-color: var(--zfs);  background: linear-gradient(180deg, #1e293b 0%, rgba(2, 132, 199, 0.12) 100%); }
+    .bay-slot.role-os   { border-color: var(--os);   background: linear-gradient(180deg, #1e293b 0%, rgba(16, 185, 129, 0.12) 100%); }
+    .bay-slot.role-free { border-color: var(--free); background: linear-gradient(180deg, #1e293b 0%, rgba(139, 92, 246, 0.12) 100%); }
+
+    .bay-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bay-name {
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .bay-role-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .badge-c { background: var(--ceph); color: #000; }
+    .badge-z { background: var(--zfs); color: #fff; }
+    .badge-o { background: var(--os); color: #000; }
+    .badge-f { background: var(--free); color: #fff; }
+
+    .bay-sn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .bay-dev {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Printable Sticker Cards Section */
+    .stickers-section-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 35px 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stickers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+    }
+
+    .sticker {
+      background: #0f172a;
+      border: 2px dashed #475569;
+      border-radius: 12px;
+      padding: 18px;
+      position: relative;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      page-break-inside: avoid;
+    }
+    .sticker.ceph { border-color: var(--ceph); }
+    .sticker.zfs  { border-color: var(--zfs); }
+    .sticker.os   { border-color: var(--os); }
+    .sticker.free { border-color: var(--free); }
+
+    .sticker-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .sticker-host {
+      font-size: 13px;
+      font-weight: 800;
+      color: #94a3b8;
+      letter-spacing: 1px;
+    }
+    .sticker-loc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      background: #334155;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .sticker-main-role {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 2px;
+    }
+    .text-ceph { color: var(--ceph); }
+    .text-zfs  { color: var(--zfs); }
+    .text-os   { color: var(--os); }
+    .text-free { color: var(--free); }
+
+    .sticker-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .sn-box {
+      background: #000;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .sn-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .sn-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #38bdf8;
+      letter-spacing: 2px;
+    }
+
+    .sticker-props {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .prop strong {
+      display: block;
+      color: #e2e8f0;
+      font-size: 12px;
+    }
+
+    /* Print optimization */
+    @media print {
+      body { background: #fff !important; color: #000 !important; padding: 0 !important; }
+      .app-header, .toolbar, .chassis-section, .btn, .no-print { display: none !important; }
+      .stickers-section-title { color: #000 !important; margin: 10px 0 !important; }
+      .stickers-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+      }
+      .sticker {
+        background: #fff !important;
+        color: #000 !important;
+        border: 2px dashed #000 !important;
+        box-shadow: none !important;
+      }
+      .sticker-head { border-color: #000 !important; }
+      .sticker-host, .sticker-sub, .sticker-props { color: #475569 !important; }
+      .sticker-loc { background: #e2e8f0 !important; color: #000 !important; }
+      .sn-box { background: #f8fafc !important; border-color: #000 !important; }
+      .sn-label { color: #475569 !important; }
+      .sn-val { color: #000 !important; }
+      .prop strong { color: #000 !important; }
+      .text-ceph { color: #c2410c !important; }
+      .text-zfs  { color: #0369a1 !important; }
+      .text-os   { color: #047857 !important; }
+      .text-free { color: #6b21a8 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-title">
+      <h1>🏷️ Proxmox Cluster Drive Sticker Finder</h1>
+      <p>Physical drive mapping, serial number verification, and chassis bay label generator</p>
+    </div>
+    <div class="header-actions no-print">
+      <button class="btn btn-secondary" onclick="loadSampleCluster()">📂 Load Cluster Inventory</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('csvFileInput').click()">📥 Import Scan CSV</button>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCSVUpload(event)">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print Sticker Labels</button>
+    </div>
+  </header>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="toolbar no-print">
+    <div class="filter-group">
+      <span style="font-size:13px; color:var(--muted); font-weight:600;">Filter Role:</span>
+      <button class="filter-btn active" onclick="filterRole('all', this)">All Disks</button>
+      <button class="filter-btn" onclick="filterRole('CEPH', this)">Ceph OSDs</button>
+      <button class="filter-btn" onclick="filterRole('ZFS', this)">ZFS Pools</button>
+      <button class="filter-btn" onclick="filterRole('PVE-OS', this)">OS / Root</button>
+      <button class="filter-btn" onclick="filterRole('FREE', this)">Available / Free</button>
+    </div>
+
+    <div class="filter-group">
+      <span style="font-size:13px; color:var(--muted); font-weight:600;">Filter Node:</span>
+      <select id="nodeSelect" class="search-input" style="min-width:140px; cursor:pointer;" onchange="filterNode(this.value)">
+        <option value="all">All Nodes</option>
+        <option value="prox22">prox22 (10.31.6.172)</option>
+        <option value="prox23">prox23 (10.31.6.173)</option>
+        <option value="prox24">prox24 (10.31.6.174)</option>
+      </select>
+    </div>
+
+    <div>
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 Search Serial No, Device, or Role..." oninput="handleSearch(this.value)">
+    </div>
+  </div>
+
+  <!-- Chassis Physical Front View -->
+  <section class="chassis-section no-print">
+    <div class="chassis-header">
+      <div class="node-title">
+        <span>🖥️ Server Chassis Front Drive Bays</span>
+        <span class="node-ip" id="chassisNodeLabel">All Nodes Overview</span>
+      </div>
+      <div style="font-size:12px; color:var(--muted)">
+        Click any bay slot to view or highlight its physical sticker
+      </div>
+    </div>
+    <div class="chassis-grid" id="chassisGrid">
+      <!-- Generated via JS -->
+    </div>
+  </section>
+
+  <!-- Printable Sticker Cards -->
+  <h2 class="stickers-section-title">
+    <span>🏷️ Physical Sticker Cut-Out Labels</span>
+    <span style="font-size:14px; font-weight:400; color:var(--muted); margin-left:auto;" id="stickerCountLabel">Showing 39 stickers</span>
+  </h2>
+
+  <div class="stickers-grid" id="stickersGrid">
+    <!-- Generated via JS -->
+  </div>
+</div>
+
+<script>
+// LIVE 3-Node Proxmox Cluster Inventory (prox22: 10.31.6.172, prox23: 10.31.6.173, prox24: 10.31.6.174)
+// Scanned live from Dell PowerEdge chassis with 12 x 18.2TB Seagate Exos HDDs + Micron BOSS OS SSD
+const CLUSTER_DATA = [
+  // ── PROX22 (10.31.6.172) ──
+  { node: "prox22", slot: "Slot 0",  dev: "/dev/sda", role: "CEPH", details: "CEPH OSD.0 (BlueStore block)", sn: "ZYDGFEW6", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588820f" },
+  { node: "prox22", slot: "Slot 1",  dev: "/dev/sdb", role: "CEPH", details: "CEPH OSD.3 (BlueStore block)", sn: "ZYDG4WXP", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5882673" },
+  { node: "prox22", slot: "Slot 2",  dev: "/dev/sdc", role: "CEPH", details: "CEPH OSD.6 (BlueStore block)", sn: "ZYDG0CL3", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5885547" },
+  { node: "prox22", slot: "Slot 3",  dev: "/dev/sdd", role: "CEPH", details: "CEPH OSD.9 (BlueStore block)", sn: "ZYDFZ35V", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5881477" },
+  { node: "prox22", slot: "Slot 4",  dev: "/dev/sde", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG62WJ", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5881f8b" },
+  { node: "prox22", slot: "Slot 5",  dev: "/dev/sdf", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG2VVR", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f589219b" },
+  { node: "prox22", slot: "Slot 6",  dev: "/dev/sdg", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDFV3PC", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587c8af" },
+  { node: "prox22", slot: "Slot 7",  dev: "/dev/sdh", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDGDMT3", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5889713" },
+  { node: "prox22", slot: "Slot 8",  dev: "/dev/sdi", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDGBV46", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588891f" },
+  { node: "prox22", slot: "Slot 9",  dev: "/dev/sdj", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG6AWH", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5893a8b" },
+  { node: "prox22", slot: "Slot 10", dev: "/dev/sdk", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDFWL9E", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58801ff" },
+  { node: "prox22", slot: "Slot 11", dev: "/dev/sdl", role: "FREE", details: "Standby / Spare Raw Disk",     sn: "ZYDFW4AP", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5881478" },
+  { node: "prox22", slot: "Rear OS", dev: "/dev/sdm", role: "PVE-OS", details: "PVE Root, EFI, local-lvm",  sn: "00153b996d278a19", size: "893.8 GB", type: "SSD", model: "PERC H755 / Micron", wwn: "0x6000507000000000" },
+
+  // ── PROX23 (10.31.6.173) ──
+  { node: "prox23", slot: "Slot 0",  dev: "/dev/sda", role: "CEPH", details: "CEPH OSD.1 (BlueStore block)", sn: "ZYDFR75F", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587e5b3" },
+  { node: "prox23", slot: "Slot 1",  dev: "/dev/sdb", role: "CEPH", details: "CEPH OSD.4 (BlueStore block)", sn: "ZYDG3L2Q", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58832a7" },
+  { node: "prox23", slot: "Slot 2",  dev: "/dev/sdc", role: "CEPH", details: "CEPH OSD.7 (BlueStore block)", sn: "ZYDGCX8R", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588d927" },
+  { node: "prox23", slot: "Slot 3",  dev: "/dev/sdd", role: "CEPH", details: "CEPH OSD.10 (BlueStore block)",sn: "ZYDGD4MM", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588d757" },
+  { node: "prox23", slot: "Slot 4",  dev: "/dev/sde", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG1DK6", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588cdcf" },
+  { node: "prox23", slot: "Slot 5",  dev: "/dev/sdf", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG05BG", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588b7af" },
+  { node: "prox23", slot: "Slot 6",  dev: "/dev/sdg", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG2WPB", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58832bb" },
+  { node: "prox23", slot: "Slot 7",  dev: "/dev/sdh", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDFYB0P", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588cf43" },
+  { node: "prox23", slot: "Slot 8",  dev: "/dev/sdi", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG252H", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f588010b" },
+  { node: "prox23", slot: "Slot 9",  dev: "/dev/sdj", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDGADQ1", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587afcf" },
+  { node: "prox23", slot: "Slot 10", dev: "/dev/sdk", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDDT9JV", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f55169b3" },
+  { node: "prox23", slot: "Slot 11", dev: "/dev/sdl", role: "FREE", details: "Standby / Spare Raw Disk",     sn: "ZYDG7ZYQ", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58872b7" },
+  { node: "prox23", slot: "Rear OS", dev: "/dev/sdm", role: "PVE-OS", details: "PVE Root, EFI, local-lvm",  sn: "00dca4406c50ea19", size: "893.8 GB", type: "SSD", model: "PERC H755 / Micron", wwn: "0x6000507000000001" },
+
+  // ── PROX24 (10.31.6.174) ──
+  { node: "prox24", slot: "Slot 0",  dev: "/dev/sda", role: "CEPH", details: "CEPH OSD.2 (BlueStore block)", sn: "ZYDFWT0C", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58814bb" },
+  { node: "prox24", slot: "Slot 1",  dev: "/dev/sdb", role: "CEPH", details: "CEPH OSD.5 (BlueStore block)", sn: "ZYDFMNJ2", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587afb7" },
+  { node: "prox24", slot: "Slot 2",  dev: "/dev/sdc", role: "CEPH", details: "CEPH OSD.8 (BlueStore block)", sn: "ZYDEHZW4", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58826db" },
+  { node: "prox24", slot: "Slot 3",  dev: "/dev/sdd", role: "CEPH", details: "CEPH OSD.11 (BlueStore block)",sn: "ZYDEML2L", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58807df" },
+  { node: "prox24", slot: "Slot 4",  dev: "/dev/sde", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG9GLB", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5882a53" },
+  { node: "prox24", slot: "Slot 5",  dev: "/dev/sdf", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDGDGGH", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587fe6b" },
+  { node: "prox24", slot: "Slot 6",  dev: "/dev/sdg", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDB04XZ", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f56ad933" },
+  { node: "prox24", slot: "Slot 7",  dev: "/dev/sdh", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDGH3XB", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5880d57" },
+  { node: "prox24", slot: "Slot 8",  dev: "/dev/sdi", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDFXRKY", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587ab8f" },
+  { node: "prox24", slot: "Slot 9",  dev: "/dev/sdj", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDFT406", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f587cc7b" },
+  { node: "prox24", slot: "Slot 10", dev: "/dev/sdk", role: "ZFS",  details: "ZFS Pool: zfs-ha (raidz2-0)",  sn: "ZYDG9GR2", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f5880f23" },
+  { node: "prox24", slot: "Slot 11", dev: "/dev/sdl", role: "FREE", details: "Standby / Spare Raw Disk",     sn: "ZYDFHHAE", size: "18.2 TB", type: "HDD", model: "ST20000NM007H", wwn: "0x5000c500f58809ff" },
+  { node: "prox24", slot: "Rear OS", dev: "/dev/sdm", role: "PVE-OS", details: "PVE Root, EFI, local-lvm",  sn: "004316a6c398ac19", size: "893.8 GB", type: "SSD", model: "PERC H755 / Micron", wwn: "0x6000507000000002" },
+];
+
+let activeData = [...CLUSTER_DATA];
+let currentRoleFilter = 'all';
+let currentNodeFilter = 'all';
+let currentSearch = '';
+
+function renderUI() {
+  const filtered = activeData.filter(item => {
+    const roleMatch = currentRoleFilter === 'all' || item.role === currentRoleFilter;
+    const nodeMatch = currentNodeFilter === 'all' || item.node === currentNodeFilter;
+    const query = currentSearch.toLowerCase();
+    const searchMatch = !query || 
+      item.sn.toLowerCase().includes(query) ||
+      item.dev.toLowerCase().includes(query) ||
+      item.role.toLowerCase().includes(query) ||
+      item.details.toLowerCase().includes(query) ||
+      item.slot.toLowerCase().includes(query) ||
+      item.node.toLowerCase().includes(query);
+    return roleMatch && nodeMatch && searchMatch;
+  });
+
+  document.getElementById('stickerCountLabel').innerText = `Showing ${filtered.length} of ${activeData.length} stickers`;
+
+  // Render Chassis Grid
+  const chassisGrid = document.getElementById('chassisGrid');
+  chassisGrid.innerHTML = '';
+  
+  // Group bays for the selected node or show first 12 of active
+  const chassisDrives = (currentNodeFilter !== 'all') 
+    ? activeData.filter(d => d.node === currentNodeFilter)
+    : activeData.filter(d => d.node === 'prox22');
+
+  document.getElementById('chassisNodeLabel').innerText = (currentNodeFilter !== 'all') 
+    ? `Node: ${currentNodeFilter}` 
+    : `Node: prox22 (Default View - Select node above to switch)`;
+
+  chassisDrives.forEach(d => {
+    let roleClass = 'role-free';
+    let badgeClass = 'badge-f';
+    if (d.role === 'CEPH') { roleClass = 'role-ceph'; badgeClass = 'badge-c'; }
+    else if (d.role === 'ZFS') { roleClass = 'role-zfs'; badgeClass = 'badge-z'; }
+    else if (d.role === 'PVE-OS') { roleClass = 'role-os'; badgeClass = 'badge-o'; }
+
+    const bayEl = document.createElement('div');
+    bayEl.className = `bay-slot ${roleClass}`;
+    bayEl.innerHTML = `
+      <div class="bay-top">
+        <span class="bay-name">${d.slot}</span>
+        <span>${d.size}</span>
+      </div>
+      <div class="bay-role-badge ${badgeClass}">${d.role}</div>
+      <div class="bay-sn">${d.sn}</div>
+      <div class="bay-dev">${d.dev} &bull; ${d.type}</div>
+    `;
+    bayEl.onclick = () => {
+      document.getElementById('searchInput').value = d.sn;
+      handleSearch(d.sn);
+    };
+    chassisGrid.appendChild(bayEl);
+  });
+
+  // Render Stickers Grid
+  const stickersGrid = document.getElementById('stickersGrid');
+  stickersGrid.innerHTML = '';
+
+  filtered.forEach(d => {
+    let cardClass = 'free';
+    let textClass = 'text-free';
+    if (d.role === 'CEPH') { cardClass = 'ceph'; textClass = 'text-ceph'; }
+    else if (d.role === 'ZFS') { cardClass = 'zfs'; textClass = 'text-zfs'; }
+    else if (d.role === 'PVE-OS') { cardClass = 'os'; textClass = 'text-os'; }
+
+    const card = document.createElement('div');
+    card.className = `sticker ${cardClass}`;
+    card.innerHTML = `
+      <div class="sticker-head">
+        <span class="sticker-host">NODE: ${d.node.toUpperCase()}</span>
+        <span class="sticker-loc">${d.slot}</span>
+      </div>
+      <div class="sticker-main-role ${textClass}">
+        ${d.role === 'CEPH' ? '🟧 ' : d.role === 'ZFS' ? '🟦 ' : d.role === 'PVE-OS' ? '🟩 ' : '🟪 '}${d.role}
+      </div>
+      <div class="sticker-sub">${d.details}</div>
+      <div class="sn-box">
+        <div class="sn-label">Physical Serial Number (Check Drive Caddy)</div>
+        <div class="sn-val">${d.sn}</div>
+      </div>
+      <div class="sticker-props">
+        <div class="prop">Device: <strong>${d.dev}</strong></div>
+        <div class="prop">Size / Type: <strong>${d.size} (${d.type})</strong></div>
+        <div class="prop">Model: <strong>${d.model}</strong></div>
+        <div class="prop">WWN: <strong>${d.wwn ? d.wwn.substring(0, 16) + '...' : '-'}</strong></div>
+      </div>
+    `;
+    stickersGrid.appendChild(card);
+  });
+}
+
+function filterRole(role, btn) {
+  currentRoleFilter = role;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderUI();
+}
+
+function filterNode(node) {
+  currentNodeFilter = node;
+  renderUI();
+}
+
+function handleSearch(q) {
+  currentSearch = q;
+  renderUI();
+}
+
+function handleCSVUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    parseCSV(text);
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length <= 1) return;
+  
+  const parsed = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    // Simple CSV parser for quoted fields
+    const cols = [];
+    let match;
+    const regex = /(?:\"([^\"]*(?:\"\"[^\"]*)*)\")|([^,]+)|(?=,)/g;
+    let colIdx = 0;
+    while ((match = regex.exec(line)) !== null && colIdx < 12) {
+      let val = match[1] ? match[1].replace(/\"\"/g, '"') : (match[2] || '');
+      cols.push(val);
+      colIdx++;
+    }
+    if (cols.length >= 6) {
+      parsed.push({
+        node: cols[0] || "prox-node",
+        slot: cols[1] || "Slot",
+        dev: cols[2] || "/dev/sdX",
+        role: cols[3] || "OTHER",
+        details: cols[4] || "",
+        sn: cols[5] || "UNKNOWN",
+        size: cols[6] || "",
+        type: cols[7] || "HDD",
+        model: cols[8] || "",
+        wwn: cols[9] || ""
+      });
+    }
+  }
+
+  if (parsed.length > 0) {
+    activeData = parsed;
+    alert(`Successfully imported ${parsed.length} drives from CSV!`);
+    renderUI();
+  }
+}
+
+function loadSampleCluster() {
+  activeData = [...CLUSTER_DATA];
+  currentRoleFilter = 'all';
+  currentNodeFilter = 'all';
+  currentSearch = '';
+  document.getElementById('searchInput').value = '';
+  renderUI();
+}
+
+// Initial Render
+renderUI();
+</script>
+
+</body>
+</html>

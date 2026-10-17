@@ -1,0 +1,2702 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CiSai Squid Proxy Portal | {{ server_ip }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260928_nft2">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+
+<body class="dashboard-body">
+
+  <!-- Top Global Navigation -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <div class="brand-logo">
+        <img src="/static/img/cisai_logo.png" alt="CiSai Logo" class="brand-logo-img" />
+        <span class="badge-portal-tag">SQUID PORTAL</span>
+      </div>
+
+      <div class="server-status-pill">
+        <span class="pulse-indicator online" id="squidPulse"></span>
+        <span class="server-node-text">{{ server_ip }}</span>
+        <span class="status-badge-text" id="squidStatusText">Checking...</span>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <div class="telemetry-bar">
+        <div class="telemetry-item">
+          <span class="tel-label">Squid PID</span>
+          <span class="tel-val" id="squidPid">—</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">RAM Usage</span>
+          <span class="tel-val" id="squidRam">— MB</span>
+        </div>
+        <div class="telemetry-item">
+          <span class="tel-label">Ports</span>
+          <span class="tel-val" id="squidPortCount">--</span>
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="btn btn-secondary btn-sm" id="btnSyntaxCheck" title="Validate configuration with squid -k parse">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Test Syntax</span>
+        </button>
+
+        <button class="btn btn-primary btn-sm" id="btnGracefulReload"
+          title="Gracefully reload squid with zero connection loss">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Safe Reload</span>
+        </button>
+      </div>
+
+      <div class="user-profile-menu">
+        <div class="user-avatar" id="avatarDropdownToggle">
+          <span>{{ user[0] | upper }}</span>
+        </div>
+        <div class="dropdown-panel" id="userDropdownPanel">
+          <div class="dropdown-header">
+            <strong>{{ user }}</strong>
+            <small>Administrator</small>
+          </div>
+          <a href="#settings" class="dropdown-item nav-link-hash">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+            <span>Settings</span>
+          </a>
+          <a href="/logout" class="dropdown-item text-danger">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- App Layout -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-section-title">MANAGEMENT</div>
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-tab="dashboard">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </a>
+
+        <a href="#users" class="nav-item" data-tab="users">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Proxy Users</span>
+          <span class="nav-badge" id="badgeUserCount">0</span>
+        </a>
+
+        <a href="#groups" class="nav-item" data-tab="groups">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>User Groups & ACLs</span>
+        </a>
+
+        <a href="#domains" class="nav-item" data-tab="domains">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+          </svg>
+          <span>Domain Policies</span>
+          <span class="nav-badge" id="badgeDomainCount">0</span>
+        </a>
+
+        <a href="#allowed-ips" class="nav-item" data-tab="allowed-ips">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          <span>Allowed IPs</span>
+        </a>
+
+        <a href="#ports" class="nav-item" data-tab="ports">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 3 21 3 21 8"></polyline>
+            <line x1="4" y1="20" x2="21" y2="3"></line>
+            <polyline points="21 16 21 21 16 21"></polyline>
+            <line x1="15" y1="15" x2="21" y2="21"></line>
+            <line x1="4" y1="4" x2="9" y2="9"></line>
+          </svg>
+          <span>Port Routing</span>
+        </a>
+
+        <a href="#nftables" class="nav-item" data-tab="nftables">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>Firewall (nftables)</span>
+          <span class="nav-badge emerald" id="badgeNftRuleCount">0</span>
+        </a>
+
+        <div class="sidebar-section-title">MONITORING & TOOLS</div>
+
+        <a href="#bandwidth" class="nav-item" data-tab="bandwidth">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+          <span>Port Bandwidth</span>
+          <span class="nav-badge cyan" id="badgeBandwidthCount">0 B</span>
+        </a>
+
+        <a href="#logs" class="nav-item" data-tab="logs">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+          <span>Live Traffic Stream</span>
+        </a>
+
+        <a href="#sarg" class="nav-item" data-tab="sarg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>SARG Analytics</span>
+        </a>
+
+        <a href="#editor" class="nav-item" data-tab="editor">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <span>Direct File Editor</span>
+        </a>
+
+        <a href="#backups" class="nav-item" data-tab="backups">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+            </path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span>Backups (5 Retained)</span>
+        </a>
+
+        <a href="#settings" class="nav-item" data-tab="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+            </path>
+          </svg>
+          <span>Portal Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="safety-guard-badge">
+          <span class="dot-green"></span>
+          <span>Zero-Disruption Guard</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Work Area -->
+    <main class="content-area">
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-dashboard" class="tab-pane active">
+        <!-- Enterprise Hero Banner -->
+        <div class="enterprise-hero-banner">
+          <div class="hero-left">
+            <div class="hero-badge">
+              <span class="pulse-indicator online" id="heroPulse"></span>
+              <span class="hero-node-text">ENTERPRISE GATEWAY NODE: {{ server_ip }}</span>
+              <span class="badge-tag cyan font-mono">HIGH AVAILABILITY</span>
+            </div>
+            <h1 class="hero-title">Squid Enterprise Security & Traffic Control Center</h1>
+            <p class="hero-subtitle">Continuous real-time proxy telemetry, egress routing & access rule orchestration
+            </p>
+          </div>
+          <div class="hero-right">
+            <div class="hero-stat-box">
+              <span class="hero-stat-label">Active Client Connections</span>
+              <span class="hero-stat-val font-mono text-cyan" id="dashActiveConnections">—</span>
+            </div>
+            <div class="hero-stat-box">
+              <span class="hero-stat-label">SLA Availability</span>
+              <span class="hero-stat-val font-mono text-emerald">99.99%</span>
+            </div>
+            <div class="hero-stat-box">
+              <span class="hero-stat-label">Zero-Downtime Guard</span>
+              <span class="hero-stat-val text-cyan">ACTIVE</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshDashboard"
+              title="Refresh all telemetry and traffic metrics">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 6 Enterprise KPI Cards -->
+        <div class="metric-grid-6 mt-4">
+          <div class="card metric-card">
+            <div class="metric-icon-box cyan">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">Proxy Users</span>
+              <h2 class="metric-number" id="cardUserCount">0</h2>
+              <span class="metric-sub">NCSA Auth Database</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon-box purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">User ACL Groups</span>
+              <h2 class="metric-number" id="cardGroupCount">5</h2>
+              <span class="metric-sub">/etc/squid/acl/</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon-box blue">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">Domain Rules</span>
+              <h2 class="metric-number" id="cardDomainCount">0</h2>
+              <span class="metric-sub" id="cardDomainListCount">Across domain lists</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon-box emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">Allowed Ingress IPs</span>
+              <h2 class="metric-number" id="cardIpCount">0</h2>
+              <span class="metric-sub">Whitelisted CIDRs</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon-box amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">Access Log Volume</span>
+              <h2 class="metric-number" id="cardLogSize">0 MB</h2>
+              <span class="metric-sub">Full audit retention</span>
+            </div>
+          </div>
+
+          <div class="card metric-card">
+            <div class="metric-icon-box rose">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+              </svg>
+            </div>
+            <div class="metric-content">
+              <span class="metric-title">Listening Ports</span>
+              <h2 class="metric-number" id="cardPortsListening">--</h2>
+              <span class="metric-sub">100% operational</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-Time Hardware & Squid Health Telemetry Strip -->
+        <div class="hardware-health-strip mt-4">
+          <!-- Card 1: CPU Load & Load Averages (1m, 5m, 15m) -->
+          <div class="card health-gauge-card">
+            <div class="health-gauge-icon cyan">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">CPU Consumption</span>
+                <span class="health-gauge-val text-cyan font-mono" id="hwCpuVal">0.0%</span>
+              </div>
+              <div class="stat-progress-track">
+                <div class="stat-progress-fill cyan" id="hwCpuFill" style="width: 0%;"></div>
+              </div>
+              <span class="health-gauge-sub">System Load: <b id="hwLoad1m" class="font-mono text-cyan">0.0</b> (1m) &bull; <b id="hwLoad5m" class="font-mono text-cyan">0.0</b> (5m) &bull; <b id="hwLoad15m" class="font-mono text-cyan">0.0</b> (15m)</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Resident Memory & System RAM -->
+          <div class="card health-gauge-card">
+            <div class="health-gauge-icon emerald">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Squid Resident Memory</span>
+                <span class="health-gauge-val text-emerald font-mono" id="hwRamVal">0 MB</span>
+              </div>
+              <div class="stat-progress-track">
+                <div class="stat-progress-fill green" id="hwRamFill" style="width: 0%;"></div>
+              </div>
+              <span class="health-gauge-sub">Host RAM: <b id="hwHostRamPct" class="font-mono text-emerald">0%</b> (<span id="hwHostRamUsed">0</span> / <span id="hwHostRamTotal">0</span> MB)</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Process Uptime & Daemon PID -->
+          <div class="card health-gauge-card">
+            <div class="health-gauge-icon purple">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Process & PID</span>
+                <span class="health-gauge-val text-purple font-mono" id="hwSquidPid">—</span>
+              </div>
+              <div class="stat-progress-track">
+                <div class="stat-progress-fill purple" style="width: 100%;"></div>
+              </div>
+              <span class="health-gauge-sub">Uptime: <b id="hwUptimeText" class="font-mono text-purple">—</b></span>
+            </div>
+          </div>
+
+          <!-- Card 4: Cache Hit Ratio & Policy Compliance -->
+          <div class="card health-gauge-card">
+            <div class="health-gauge-icon amber">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Policy Compliance</span>
+                <span class="health-gauge-val text-amber font-mono" id="hwPolicyComp">99.0%</span>
+              </div>
+              <div class="stat-progress-track">
+                <div class="stat-progress-fill amber" id="hwPolicyCompFill" style="width: 99%;"></div>
+              </div>
+              <span class="health-gauge-sub">Cache Efficiency: <b id="hwCacheEffVal" class="font-mono text-amber">96.4%</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Enlarged Traffic Distribution & Real-Time Status Telemetry -->
+        <div class="card card-enlarged-analytics mt-4">
+          <div class="card-header">
+            <div class="card-title-icon">
+              <div class="header-icon-glow">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 2a10 10 0 0 1 10 10"></path>
+                  <path d="M12 12 19 5"></path>
+                </svg>
+              </div>
+              <div>
+                <h3>Traffic Distribution & Status Telemetry</h3>
+                <span class="text-xs text-muted">Deep volumetric inspection across request streams & protocol handlers</span>
+              </div>
+            </div>
+            <div class="flex-items-center gap-3">
+              <div class="live-pulse-badge">
+                <span class="pulse-indicator"></span>
+                <span>Active Telemetry</span>
+              </div>
+              <!-- Interactive Time-Range Selector -->
+              <div class="time-range-picker" id="telemetryTimePicker">
+                <button type="button" class="time-range-btn" data-range="1m" title="Last 1 Minute">1m</button>
+                <button type="button" class="time-range-btn" data-range="5m" title="Last 5 Minutes">5m</button>
+                <button type="button" class="time-range-btn" data-range="15m" title="Last 15 Minutes">15m</button>
+                <button type="button" class="time-range-btn" data-range="1h" title="Last 1 Hour">1h</button>
+                <button type="button" class="time-range-btn" data-range="24h" title="Last 24 Hours">24h</button>
+                <button type="button" class="time-range-btn active" data-range="500" title="Recent 500 Requests">500 Reqs</button>
+                <button type="button" class="time-range-btn" data-range="1000" title="Recent 1000 Requests">1000 Reqs</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <!-- 3-Column Analytics Grid: Donut Gauge, 4 Status KPIs, Velocity Waveform -->
+            <div class="enlarged-telemetry-grid">
+
+              <!-- Column 1: Enlarged Multi-Segment SVG Donut Chart -->
+              <div class="donut-card-col">
+                <div class="donut-chart-header">
+                  <span class="chart-col-title">PROTOCOL DISTRIBUTION GAUGE</span>
+                  <span class="chart-col-sub">Multi-layer SSL/TCP Analysis</span>
+                </div>
+
+                <div class="donut-visual-container">
+                  <svg class="donut-svg" width="220" height="220" viewBox="0 0 220 220">
+                    <defs>
+                      <linearGradient id="gradTunnel" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#00f2fe" />
+                        <stop offset="100%" stop-color="#4facfe" />
+                      </linearGradient>
+                      <linearGradient id="gradMiss" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38ef7d" />
+                        <stop offset="100%" stop-color="#11998e" />
+                      </linearGradient>
+                      <linearGradient id="gradHit" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#c471ed" />
+                        <stop offset="100%" stop-color="#f64f59" />
+                      </linearGradient>
+                      <linearGradient id="gradDenied" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#ff416c" />
+                        <stop offset="100%" stop-color="#ff4b2b" />
+                      </linearGradient>
+                      <filter id="glowDonut" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="3.5" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    <!-- Background track circle: cx=110, cy=110, r=72, circumference = 2*PI*72 = 452.39 -->
+                    <circle cx="110" cy="110" r="72" fill="none" stroke="rgba(255, 255, 255, 0.05)" stroke-width="20">
+                    </circle>
+
+                    <!-- Segment 1: TCP_TUNNEL (Cyan) -->
+                    <circle id="donutSegTunnel" cx="110" cy="110" r="72" fill="none" stroke="url(#gradTunnel)"
+                      stroke-width="20" stroke-linecap="round" stroke-dasharray="452.39" stroke-dashoffset="0"
+                      filter="url(#glowDonut)" class="donut-segment"></circle>
+
+                    <!-- Segment 2: TCP_MISS (Green/Blue) -->
+                    <circle id="donutSegMiss" cx="110" cy="110" r="72" fill="none" stroke="url(#gradMiss)"
+                      stroke-width="20" stroke-linecap="round" stroke-dasharray="452.39" stroke-dashoffset="452.39"
+                      class="donut-segment"></circle>
+
+                    <!-- Segment 3: TCP_HIT (Purple) -->
+                    <circle id="donutSegHit" cx="110" cy="110" r="72" fill="none" stroke="url(#gradHit)"
+                      stroke-width="20" stroke-linecap="round" stroke-dasharray="452.39" stroke-dashoffset="452.39"
+                      class="donut-segment"></circle>
+
+                    <!-- Segment 4: TCP_DENIED (Rose/Red) -->
+                    <circle id="donutSegDenied" cx="110" cy="110" r="72" fill="none" stroke="url(#gradDenied)"
+                      stroke-width="20" stroke-linecap="round" stroke-dasharray="452.39" stroke-dashoffset="452.39"
+                      class="donut-segment"></circle>
+                  </svg>
+
+                  <!-- Dynamic Donut Center Gauge Readout -->
+                  <div class="donut-center-overlay">
+                    <span class="donut-center-pct font-mono" id="donutCenterPct">--%</span>
+                    <span class="donut-center-tag" id="donutCenterSub">TUNNEL SLA</span>
+                    <span class="donut-center-sub font-mono" id="donutCenterReqs">0 / 0 Reqs</span>
+                  </div>
+                </div>
+
+                <div class="donut-legend-row">
+                  <div class="donut-legend-item">
+                    <span class="legend-dot dot-tunnel"></span>
+                    <span>Tunnel</span>
+                  </div>
+                  <div class="donut-legend-item">
+                    <span class="legend-dot dot-miss"></span>
+                    <span>Miss</span>
+                  </div>
+                  <div class="donut-legend-item">
+                    <span class="legend-dot dot-hit"></span>
+                    <span>Cache Hit</span>
+                  </div>
+                  <div class="donut-legend-item">
+                    <span class="legend-dot dot-denied"></span>
+                    <span>Denied</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Column 2: 4 Enlarged Status KPI Cards -->
+              <div class="status-kpis-col">
+                <div class="status-kpis-header">
+                  <span class="chart-col-title">HTTP STATUS CODE BREAKDOWN</span>
+                  <span class="chart-col-sub">Real-time volumetric status classification</span>
+                </div>
+
+                <div class="kpi-quad-grid">
+                  <!-- KPI 1: TCP_TUNNEL -->
+                  <div class="status-kpi-card card-kpi-tunnel">
+                    <div class="status-kpi-head">
+                      <div class="status-kpi-meta">
+                        <span class="status-pill cyan">TCP_TUNNEL</span>
+                        <span class="status-kpi-subtitle">Direct HTTPS Connect Tunnels</span>
+                      </div>
+                      <span class="status-kpi-pct font-mono text-cyan" id="statTunnelPct">0.0%</span>
+                    </div>
+                    <div class="status-kpi-body">
+                      <span class="status-kpi-count font-mono" id="statTunnelCount">0</span>
+                      <span class="status-kpi-unit">Requests</span>
+                    </div>
+                    <div class="stat-progress-track mt-2">
+                      <div class="stat-progress-fill cyan" id="statTunnelFill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- KPI 2: TCP_MISS -->
+                  <div class="status-kpi-card card-kpi-miss">
+                    <div class="status-kpi-head">
+                      <div class="status-kpi-meta">
+                        <span class="status-pill green">TCP_MISS</span>
+                        <span class="status-kpi-subtitle">Direct Origin Server Forwarding</span>
+                      </div>
+                      <span class="status-kpi-pct font-mono text-emerald" id="statMissPct">0.0%</span>
+                    </div>
+                    <div class="status-kpi-body">
+                      <span class="status-kpi-count font-mono" id="statMissCount">0</span>
+                      <span class="status-kpi-unit">Requests</span>
+                    </div>
+                    <div class="stat-progress-track mt-2">
+                      <div class="stat-progress-fill blue" id="statMissFill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- KPI 3: TCP_HIT -->
+                  <div class="status-kpi-card card-kpi-hit">
+                    <div class="status-kpi-head">
+                      <div class="status-kpi-meta">
+                        <span class="status-pill purple">TCP_HIT</span>
+                        <span class="status-kpi-subtitle">Accelerated Cache Deliveries</span>
+                      </div>
+                      <span class="status-kpi-pct font-mono text-purple" id="statHitPct">0.0%</span>
+                    </div>
+                    <div class="status-kpi-body">
+                      <span class="status-kpi-count font-mono" id="statHitCount">0</span>
+                      <span class="status-kpi-unit">Requests</span>
+                    </div>
+                    <div class="stat-progress-track mt-2">
+                      <div class="stat-progress-fill purple" id="statHitFill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+
+                  <!-- KPI 4: TCP_DENIED -->
+                  <div class="status-kpi-card card-kpi-denied">
+                    <div class="status-kpi-head">
+                      <div class="status-kpi-meta">
+                        <span class="status-pill rose">TCP_DENIED</span>
+                        <span class="status-kpi-subtitle">ACL & Security Policy Blocks</span>
+                      </div>
+                      <span class="status-kpi-pct font-mono text-rose" id="statDeniedPct">0.0%</span>
+                    </div>
+                    <div class="status-kpi-body">
+                      <span class="status-kpi-count font-mono" id="statDeniedCount">0</span>
+                      <span class="status-kpi-unit">Requests</span>
+                    </div>
+                    <div class="stat-progress-track mt-2">
+                      <div class="stat-progress-fill rose" id="statDeniedFill" style="width: 0%;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Column 3: Traffic Velocity Waveform & Performance Profile -->
+              <div class="velocity-col">
+                <div class="velocity-header">
+                  <div>
+                    <span class="chart-col-title">TRAFFIC VELOCITY & RATE BURSTS</span>
+                    <span class="chart-col-sub">Requests distribution across sample window</span>
+                  </div>
+                  <div class="velocity-badge-rate">
+                    <span class="text-xs text-muted">Peak Velocity:</span>
+                    <span class="font-mono text-cyan font-bold text-sm" id="velocityPeakRate">0 req/slot</span>
+                  </div>
+                </div>
+
+                <div class="velocity-chart-wrapper">
+                  <svg class="velocity-svg" viewBox="0 0 360 140" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="velocityGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.35" />
+                        <stop offset="70%" stop-color="#4facfe" stop-opacity="0.08" />
+                        <stop offset="100%" stop-color="#000" stop-opacity="0.0" />
+                      </linearGradient>
+                      <linearGradient id="velocityStrokeGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#00d2ff" />
+                        <stop offset="50%" stop-color="#38bdf8" />
+                        <stop offset="100%" stop-color="#818cf8" />
+                      </linearGradient>
+                      <filter id="waveGlow" x="-10%" y="-10%" width="120%" height="120%">
+                        <feGaussianBlur stdDeviation="2" result="blur" />
+                        <feMerge>
+                          <feMergeNode in="blur" />
+                          <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                      </filter>
+                    </defs>
+
+                    <!-- Horizontal Grid Lines -->
+                    <line x1="0" y1="20" x2="360" y2="20" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3" />
+                    <line x1="0" y1="60" x2="360" y2="60" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3" />
+                    <line x1="0" y1="100" x2="360" y2="100" stroke="rgba(255,255,255,0.05)" stroke-dasharray="3,3" />
+
+                    <!-- Area fill under curve -->
+                    <path id="velocityAreaPath" d="M 0 130 L 360 130 Z" fill="url(#velocityGrad)" />
+
+                    <!-- Glow stroke line -->
+                    <path id="velocityLinePath" d="M 0 130 L 360 130" fill="none" stroke="url(#velocityStrokeGrad)"
+                      stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#waveGlow)" />
+                  </svg>
+
+                  <div class="velocity-timeline-labels">
+                    <span class="time-label">Oldest (Sample T-0)</span>
+                    <span class="time-label mid">Chronological Timeline</span>
+                    <span class="time-label">Latest (Real-time)</span>
+                  </div>
+                </div>
+
+                <div class="velocity-summary-metrics mt-2">
+                  <div class="v-metric">
+                    <span class="v-metric-label">Cache Efficiency</span>
+                    <span class="v-metric-val font-mono text-cyan" id="dashCacheEff">99.2%</span>
+                  </div>
+                  <div class="v-metric">
+                    <span class="v-metric-label">Policy Compliance</span>
+                    <span class="v-metric-val font-mono text-emerald" id="dashPolicyComp">98.8%</span>
+                  </div>
+                  <div class="v-metric">
+                    <span class="v-metric-label">Active Sockets</span>
+                    <span class="v-metric-val font-mono text-purple" id="dashActiveSockets">390+</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Destination Domains & Top Users Row (Dedicated 2-Column Grid) -->
+        <div class="grid-2-col mt-4">
+          <!-- Top Destination Domains -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                  </path>
+                </svg>
+                <h3>Top Destination Domains</h3>
+              </div>
+              <span class="badge-tag cyan font-mono">Top 5 Target Hosts</span>
+            </div>
+            <div class="card-body">
+              <div class="top-domains-container">
+                <div class="top-list-group" id="topDomainsList">
+                  <p class="text-muted text-xs">Loading domain analytics...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Active Proxy Users -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <h3>Top Active Proxy Users</h3>
+              </div>
+              <span class="badge-tag blue font-mono">Authenticated Traffic</span>
+            </div>
+            <div class="card-body">
+              <div class="top-users-container">
+                <div class="top-list-group" id="topUsersList">
+                  <p class="text-muted text-xs">Loading user analytics...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Security & Traffic Audit Stream (Recent Requests) -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <div class="card-title-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <h3>Live Security & Traffic Audit Log</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span class="badge-tag emerald">Zero-Loss Stream</span>
+              <a href="#logs" class="link-cyan text-sm nav-link-hash">View Full Stream &rarr;</a>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Client IP</th>
+                    <th>Target Destination</th>
+                    <th>Method</th>
+                    <th>Status Code</th>
+                    <th>Size</th>
+                  </tr>
+                </thead>
+                <tbody id="dashRecentAuditBody">
+                  <tr>
+                    <td colspan="7" class="text-center text-muted">Awaiting traffic events...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Details & Port Overview -->
+        <div class="grid-2-col mt-4">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                </svg>
+                <h3>Squid Proxy Engine Status</h3>
+              </div>
+              <span class="badge-status online" id="dashDaemonBadge">RUNNING</span>
+            </div>
+            <div class="card-body">
+              <div class="data-row">
+                <span class="data-label">Daemon Version</span>
+                <span class="data-value" id="dashSquidVersion">Squid 5.9</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Process ID (PID)</span>
+                <span class="data-value font-mono" id="dashSquidPid">—</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Active Enter Timestamp</span>
+                <span class="data-value" id="dashSquidUptime">—</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Resident Memory (RAM)</span>
+                <span class="data-value font-mono" id="dashSquidMemory">—</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">CPU Consumption</span>
+                <span class="data-value font-mono" id="dashSquidCpu">— %</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Webmin Status (Port 10443)</span>
+                <span class="data-value text-emerald">Active Fallback Enabled</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                </svg>
+                <h3>Egress Ports & Outbound IP Diagnostic</h3>
+              </div>
+              <div class="flex-items-center gap-2">
+                <span class="badge-tag cyan font-mono" id="egressPortsListeningBadge">Checking...</span>
+                <a href="#ports" class="link-cyan text-sm nav-link-hash" id="dashPortsViewAllLink">Manage Ports &rarr;</a>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Port</th>
+                      <th>State</th>
+                      <th>Route Name</th>
+                      <th>Dedicated Outbound Egress IP</th>
+                      <th>Loopback Probe</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashPortsPreviewBody">
+                    <tr>
+                      <td colspan="5" class="text-center text-muted">Loading ports...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- TAB 2: PROXY USERS -->
+      <section id="tab-users" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Proxy Users Management</h1>
+            <p class="text-muted">Manage authenticated NCSA proxy accounts stored in <code
+                class="font-mono">/etc/squid/password</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnOpenAddUserModal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Create New User</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-toolbar">
+            <div class="search-input-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="userSearchInput" placeholder="Search proxy users by name...">
+            </div>
+            <div class="toolbar-stats">
+              <span class="text-muted" id="userListCountText">Total: 0 users</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="usersTable">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Assigned ACL Groups</th>
+                  <th>Auth Method</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr>
+                  <td colspan="4" class="text-center text-muted">Loading users...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: USER GROUPS & ACLS -->
+      <section id="tab-groups" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>User Groups & ACL Rules</h1>
+            <p class="text-muted">Group definitions stored in <code class="font-mono">/etc/squid/acl/</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-sm" id="btnValidateGroups"
+              title="Validate Squid configuration syntax with squid -k parse">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Validate</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnReloadGroups" title="Gracefully reload Squid configuration">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Safe Reload</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnOpenAddGroupModal" title="Create a new user group">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ New Group</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-2-col" id="groupsContainer">
+          <!-- Dynamically populated group cards -->
+        </div>
+      </section>
+
+      <!-- TAB 4: DOMAIN POLICIES -->
+      <section id="tab-domains" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Domain Policies & ACL Lists</h1>
+            <p class="text-muted">Configure access to categorized domain lists stored in <code
+                class="font-mono">/etc/squid/acl/domains/</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnOpenAddDomainModal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Domain</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="domain-tabs-header" id="domainListPills">
+            <!-- Tabs for ai_domains, github_domains, whatsapp_domains -->
+          </div>
+
+          <div class="card-toolbar">
+            <div class="search-input-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="domainSearchInput" placeholder="Filter domains...">
+            </div>
+            <div class="toolbar-stats">
+              <span class="text-muted" id="domainListStats">0 domains</span>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Domain Pattern</th>
+                  <th>Match Scope</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="domainTableBody">
+                <tr>
+                  <td colspan="3" class="text-center text-muted">Loading domain lists...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: ALLOWED CLIENT IPS -->
+      <section id="tab-allowed-ips" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Allowed Client IPs & Networks</h1>
+            <p class="text-muted">Source IPs authorized to connect through Squid via <code
+                class="font-mono">/etc/squid/allowed_ips.txt</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnOpenAddIpModal">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Add Allowed IP / Subnet</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>IP Address / CIDR</th>
+                  <th>Type</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="allowedIpsTableBody">
+                <tr>
+                  <td colspan="3" class="text-center text-muted">Loading allowed IPs...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: MULTI-PORT ROUTING -->
+      <section id="tab-ports" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Multi-Port Egress & Routing Architecture</h1>
+            <p class="text-muted" id="portsHeaderSubtitle">Active listening ports with dedicated outbound egress IP
+              addresses</p>
+          </div>
+        </div>
+
+        <div class="card p-0">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Port</th>
+                  <th>Listen Interface</th>
+                  <th>Outgoing IP Address</th>
+                  <th>Interface / WAN</th>
+                  <th>Today's Bandwidth</th>
+                  <th>Active Conns</th>
+                  <th>Allowed Groups / ACLs</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody id="fullPortsTableBody">
+                <tr>
+                  <td colspan="8" class="text-center text-muted">Loading port mappings...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: PER-PORT BANDWIDTH USAGE & TRAFFIC TRACKING -->
+      <section id="tab-bandwidth" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Port Bandwidth Usage & Traffic Tracking</h1>
+            <p class="text-muted">Real-time throughput, daily bandwidth consumption, and interface statistics per proxy port</p>
+          </div>
+          <div class="pane-actions">
+            <div class="filter-group">
+              <label for="bandwidthAutoRefresh" class="text-xs text-muted">Auto-Refresh:</label>
+              <select id="bandwidthAutoRefresh" class="form-select form-select-sm" style="width: 110px;">
+                <option value="5000">5s (Live)</option>
+                <option value="10000" selected>10s</option>
+                <option value="30000">30s</option>
+                <option value="0">Off</option>
+              </select>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshBandwidth" title="Refresh bandwidth metrics now">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnCheckAllPortsInternet" title="Test active internet egress and ISP data quota across all ports">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span>Check All ISP / Internet</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards Grid -->
+        <div class="metrics-grid mb-4">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Monitored Proxy Ports</span>
+              <div class="metric-icon cyan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                  <polyline points="21 16 21 21 16 21"></polyline>
+                  <line x1="15" y1="15" x2="21" y2="21"></line>
+                  <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value font-mono" id="bwMetricTotalPorts">0</div>
+            <div class="metric-footer text-muted" id="bwMetricActivePorts">0 listening</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Today's Total Bandwidth</span>
+              <div class="metric-icon emerald">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value font-mono text-emerald" id="bwMetricTodayTotal">0 B</div>
+            <div class="metric-footer text-muted" id="bwMetricTodayBreakdown">RX: 0 B | TX: 0 B</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Top Traffic Port</span>
+              <div class="metric-icon violet">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 20V10"></path>
+                  <path d="M12 20V4"></path>
+                  <path d="M6 20v-6"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value font-mono text-primary" id="bwMetricTopPort">None</div>
+            <div class="metric-footer text-muted" id="bwMetricTopPortDetails">0 B today</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Active Port Connections</span>
+              <div class="metric-icon amber">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value font-mono text-amber" id="bwMetricActiveConns">0</div>
+            <div class="metric-footer text-muted" id="bwMetricUniqueClients">0 unique clients</div>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="table-toolbar mb-3">
+          <div class="search-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="bwSearchInput" placeholder="Filter by port, interface (e.g. kv1), or IP..." class="form-input">
+          </div>
+          <div class="toolbar-stats text-muted text-xs font-mono" id="bwToolbarStats">
+            Showing all ports
+          </div>
+        </div>
+
+        <!-- Detailed Bandwidth Table -->
+        <div class="card p-0 mb-4">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Port</th>
+                  <th>Interface / Outbound WAN</th>
+                  <th>Today's Bandwidth</th>
+                  <th>Usage Share</th>
+                  <th>Yesterday</th>
+                  <th>Month-to-Date</th>
+                  <th>Active Conns</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="portBandwidthTableBody">
+                <tr>
+                  <td colspan="9" class="text-center text-muted py-4">Loading port bandwidth statistics...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: NFTABLES FIREWALL & NAT MANAGEMENT -->
+      <section id="tab-nftables" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Firewall (nftables) & NAT Rules</h1>
+            <p class="text-muted">Direct Kernel Packet Filtering, Egress Routing & Masquerade in <code class="font-mono">/etc/nftables.conf</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary btn-sm" id="btnOpenAddNftRuleModal">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>+ Add Rule</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnOpenNftPresetsModal" title="Use pre-built templates for proxy forwarding & NAT">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span>Quick Presets</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnValidateNftables" title="Test ruleset syntax with nft -c -f">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Validate Syntax</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnApplyNftables" title="Apply ruleset live via nft -f /etc/nftables.conf with zero downtime">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Apply Ruleset</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshNftables" title="Refresh ruleset from system">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Firewall Health & Status Summary Strip -->
+        <div class="hardware-health-strip mb-4">
+          <div class="health-gauge-card">
+            <div class="health-gauge-icon emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">nftables Daemon</span>
+                <span class="status-pill green font-mono" id="nftStatusPill">ACTIVE</span>
+              </div>
+              <div class="health-gauge-val" id="nftServiceName">nftables.service</div>
+              <span class="health-gauge-sub" id="nftConfMtime">Config: /etc/nftables.conf</span>
+            </div>
+          </div>
+
+          <div class="health-gauge-card">
+            <div class="health-gauge-icon cyan">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Active Tables</span>
+                <span class="font-mono text-cyan font-bold" id="nftTableCount">0</span>
+              </div>
+              <div class="health-gauge-val" id="nftTableSummary">inet filter, ip nat</div>
+              <span class="health-gauge-sub">Multi-family kernel tables</span>
+            </div>
+          </div>
+
+          <div class="health-gauge-card">
+            <div class="health-gauge-icon purple">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 3 21 3 21 8"></polyline>
+                <line x1="4" y1="20" x2="21" y2="3"></line>
+                <polyline points="21 16 21 21 16 21"></polyline>
+                <line x1="15" y1="15" x2="21" y2="21"></line>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Chains & Hooks</span>
+                <span class="font-mono text-purple font-bold" id="nftChainCount">0</span>
+              </div>
+              <div class="health-gauge-val" id="nftChainSummary">input, forward, postrouting</div>
+              <span class="health-gauge-sub">Input, Forward & NAT pipelines</span>
+            </div>
+          </div>
+
+          <div class="health-gauge-card">
+            <div class="health-gauge-icon amber">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="21" x2="4" y2="14"></line>
+                <line x1="4" y1="10" x2="4" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12" y2="3"></line>
+                <line x1="20" y1="21" x2="20" y2="16"></line>
+                <line x1="20" y1="12" x2="20" y2="3"></line>
+              </svg>
+            </div>
+            <div class="health-gauge-details">
+              <div class="health-gauge-top">
+                <span class="health-gauge-title">Total Rules</span>
+                <span class="font-mono text-amber font-bold" id="nftRuleTotalCount">0</span>
+              </div>
+              <div class="health-gauge-val" id="nftRulesLiveText">Active Rules</div>
+              <span class="health-gauge-sub">Kernel atomic enforcement</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- View Switcher Tabs: Visual Explorer vs Raw Code Editor -->
+        <div class="card p-0 mb-4">
+          <div class="table-toolbar" style="border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 18px;">
+            <div class="time-range-picker" id="nftViewPicker">
+              <button type="button" class="time-range-btn active" data-view="visual">
+                Visual Rule Explorer
+              </button>
+              <button type="button" class="time-range-btn" data-view="raw">
+                Raw /etc/nftables.conf Editor
+              </button>
+            </div>
+
+            <!-- Visual filter search box -->
+            <div id="nftVisualFilterBox" class="search-input-box" style="width: 280px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="nftRuleSearchInput" placeholder="Filter rules by IP, port, interface...">
+            </div>
+          </div>
+
+          <!-- 1. Visual Rules Container -->
+          <div id="nftVisualView" class="card-body p-4">
+            <div id="nftChainsContainer">
+              <div class="text-center text-muted py-4">Loading active firewall tables & chains...</div>
+            </div>
+          </div>
+
+          <!-- 2. Raw Code Editor Container -->
+          <div id="nftRawView" class="card-body p-4" style="display: none;">
+            <div class="editor-header mb-2" style="display: flex; justify-content: space-between; align-items: center;">
+              <div class="font-mono text-xs text-muted">File: <strong class="text-cyan">/etc/nftables.conf</strong> (Direct Kernel Ruleset)</div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnRawValidateNft">
+                  Validate Syntax
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnRawSaveApplyNft">
+                  Save & Apply Live
+                </button>
+              </div>
+            </div>
+            <textarea id="nftRawEditorTextarea" class="code-editor" style="min-height: 480px; width: 100%; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.5;" placeholder="#!/usr/sbin/nft -f..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: LIVE LOG STREAM -->
+      <section id="tab-logs" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Live Proxy Access Logs</h1>
+            <p class="text-muted">Real-time log stream from <code class="font-mono">/var/log/squid/access.log</code></p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-sm" id="btnToggleLogPause">
+              <span id="logPauseLabel">⏸ Pause Stream</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshLogs">
+              <span>↻ Fetch Now</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-toolbar" style="flex-wrap: wrap; gap: 12px; align-items: center;">
+            <!-- Quick Status Filters -->
+            <div class="filter-pill-group" style="display: inline-flex; background: rgba(15,23,42,0.6); padding: 3px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); gap: 4px;">
+              <button class="btn btn-sm btn-filter-status active" data-status="all" id="btnLogFilterAll" type="button">
+                <span>All Logs</span>
+              </button>
+              <button class="btn btn-sm btn-filter-status btn-filter-denied" data-status="denied" id="btnLogFilterDenied" type="button" style="color: var(--rose);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 2px;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                </svg>
+                <span>Denied Only (403)</span>
+              </button>
+              <button class="btn btn-sm btn-filter-status btn-filter-allowed" data-status="allowed" id="btnLogFilterAllowed" type="button" style="color: var(--emerald);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 2px;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                <span>Allowed Only (200)</span>
+              </button>
+            </div>
+
+            <!-- Dedicated Username Filter -->
+            <div class="search-input-box" style="width: 190px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input type="text" id="logUserFilter" placeholder="User (e.g. sapuser)..." title="Filter logs by username">
+            </div>
+
+            <!-- General Search (IP, Domain, URL) -->
+            <div class="search-input-box" style="flex: 1; min-width: 220px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="logSearchInput"
+                placeholder="Filter by Client IP, URL, or Domain...">
+            </div>
+
+            <div class="toolbar-stats" style="display: flex; align-items: center; gap: 8px;">
+              <label for="logTimeRange" class="text-xs text-muted" style="display: inline-flex; align-items: center; gap: 4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Time:</span>
+              </label>
+              <select id="logTimeRange" class="form-select-sm" title="Select log time window">
+                <option value="1m">1 Min (1M)</option>
+                <option value="5m">5 Mins (5M)</option>
+                <option value="15m" selected>15 Mins (15M)</option>
+                <option value="30m">30 Mins (30M)</option>
+                <option value="1h">1 Hour (1H)</option>
+                <option value="5h">5 Hours (5H)</option>
+                <option value="12h">12 Hours (12H)</option>
+                <option value="18h">18 Hours (18H)</option>
+                <option value="24h">24 Hours (24H)</option>
+                <option value="50l">Last 50 Lines</option>
+                <option value="100l">Last 100 Lines</option>
+                <option value="500l">Last 500 Lines</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="btnExportLogCsv" title="Export filtered logs as CSV spreadsheet" type="button" style="padding: 5px 9px; display: inline-flex; align-items: center; gap: 4px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Export CSV</span>
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btnClearLogFilters" title="Reset all log filters" type="button" style="padding: 5px 9px;">
+                <span>✕ Reset</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Stats Bar -->
+          <div class="log-stats-bar" id="logStatsBar" style="padding: 7px 16px; background: rgba(10,15,28,0.7); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 20px; font-size: 0.8rem;">
+            <span class="text-muted">Filtered Stream: <strong id="logCountTotal" class="text-cyan">0 entries</strong></span>
+            <span style="color: var(--rose); display: inline-flex; align-items: center; gap: 4px;">🚫 Denied Requests: <strong id="logCountDenied">0</strong></span>
+            <span style="color: var(--emerald); display: inline-flex; align-items: center; gap: 4px;">✅ Allowed Requests: <strong id="logCountAllowed">0</strong></span>
+          </div>
+
+          <div class="table-responsive" style="max-height: 550px; overflow-y: auto;">
+            <table class="data-table log-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Client IP</th>
+                  <th>User</th>
+                  <th>Method</th>
+                  <th>Status</th>
+                  <th>URL / Hostname</th>
+                  <th>Size</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody">
+                <tr>
+                  <td colspan="7" class="text-center text-muted">Connecting to log stream...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 8: SARG ANALYTICS -->
+      <section id="tab-sarg" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>SARG Web Analytics</h1>
+            <p class="text-muted">Squid Analysis Report Generator running on {{ server_ip }}</p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnTriggerSarg">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>⚡ Generate SARG Report Now</span>
+            </button>
+            <a href="/sarg/" target="_blank" class="btn btn-secondary">
+              <span>Open in Full Tab ↗</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="card p-0" style="height: 680px; overflow: hidden;">
+          <iframe id="sargIframe" src="/sarg/" class="sarg-frame" title="SARG Analytics Reports"></iframe>
+        </div>
+      </section>
+
+      <!-- TAB 9: DIRECT FILE EDITOR -->
+      <section id="tab-editor" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Direct File Editor & Syntax Tester</h1>
+            <p class="text-muted">Safely edit Squid configuration files with automated backups and pre-flight validation
+            </p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-sm" id="btnOpenCreateFileModal"
+              title="Create a new configuration or ACL file">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
+              <span>+ New File</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnOpenCreateDirModal"
+              title="Create a new directory in /etc/squid">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                <line x1="12" y1="11" x2="12" y2="17"></line>
+                <line x1="9" y1="14" x2="15" y2="14"></line>
+              </svg>
+              <span>+ New Directory</span>
+            </button>
+            <button class="btn btn-danger-outline btn-sm" id="btnEditorDeleteFile"
+              title="Delete current file (pre-deletion backup created)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
+              <span>Delete File</span>
+            </button>
+            <button class="btn btn-danger-outline btn-sm" id="btnOpenDeleteDirModal"
+              title="Delete a subfolder inside /etc/squid">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                <line x1="9" y1="14" x2="15" y2="14"></line>
+              </svg>
+              <span>Delete Directory</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btnEditorTestSyntax">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Test Syntax</span>
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnEditorSave">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save & Reconfigure</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="editor-top-bar">
+            <div class="file-picker-wrapper">
+              <label for="editorFileSelect" class="text-sm font-semibold">Select Configuration File:</label>
+              <select id="editorFileSelect" class="form-select"></select>
+            </div>
+            <div class="file-path-indicator">
+              <span class="badge-tag" id="editorFilePath">/etc/squid/squid.conf</span>
+            </div>
+          </div>
+
+          <div class="editor-container">
+            <textarea id="fileEditorArea" class="code-editor" spellcheck="false"
+              placeholder="Loading file content..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 10: BACKUPS & RESTORE (5 RETAINED) -->
+      <section id="tab-backups" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Backup & Restore Center</h1>
+            <p class="text-muted">Maintains the 5 most recent active snapshots. Older backups are automatically archived
+              to protect disk space.</p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-primary" id="btnCreateManualBackup">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              <span>Take Manual Snapshot</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Active Snapshots (Max 5 Auto-Retained)</h3>
+            <span class="badge-tag cyan">Auto-Rotation Active</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Snapshot Timestamp</th>
+                  <th>Trigger / Description</th>
+                  <th>Files Protected</th>
+                  <th class="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="activeBackupsTableBody">
+                <tr>
+                  <td colspan="4" class="text-center text-muted">Loading snapshots...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>Archived Compressed Snapshots (.tar.gz)</h3>
+            <span class="text-muted text-xs">Rotated archives from older modifications</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Archive File</th>
+                  <th>Size</th>
+                  <th>Created At</th>
+                </tr>
+              </thead>
+              <tbody id="archivedBackupsTableBody">
+                <tr>
+                  <td colspan="3" class="text-center text-muted">No older archives yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 11: SETTINGS -->
+      <section id="tab-settings" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Portal Settings & Security</h1>
+            <p class="text-muted">Manage administrator access credentials and security settings</p>
+          </div>
+        </div>
+
+        <div class="grid-2-col">
+          <div class="card">
+            <div class="card-header">
+              <h3>Change Administrator Password</h3>
+            </div>
+            <div class="card-body">
+              <form id="formChangeAdminPass">
+                <div class="form-group">
+                  <label for="currentAdminPass">Current Admin Password</label>
+                  <input type="password" id="currentAdminPass" class="form-control" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                  <label for="newAdminPass">New Admin Password</label>
+                  <input type="password" id="newAdminPass" class="form-control" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                  <label for="confirmAdminPass">Confirm New Password</label>
+                  <input type="password" id="confirmAdminPass" class="form-control" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                  <span>Update Admin Password</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>System & Safety Specifications</h3>
+            </div>
+            <div class="card-body">
+              <div class="data-row">
+                <span class="data-label">Host Node</span>
+                <span class="data-value font-mono">{{ server_ip }}</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Portal Service</span>
+                <span class="data-value font-mono">innspark-squid-portal.service (Port 5000)</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Squid Reload Method</span>
+                <span class="data-value text-emerald">Non-disruptive (squid -k reconfigure)</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Backup Retention</span>
+                <span class="data-value">5 Active Snapshots + Auto Archive</span>
+              </div>
+              <div class="data-row">
+                <span class="data-label">Webmin Daemon</span>
+                <span class="data-value">Running on port 10443 (Untouched)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: FLEET OVERVIEW (Multi-Server Dashboard) -->
+      <section id="tab-fleet" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Fleet Overview — Multi-Server Dashboard</h1>
+            <p class="text-muted">Real-time health monitoring across all 4 Squid proxy servers</p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-sm" id="btnRefreshFleet">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh Fleet</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="fleet-summary-bar" id="fleetSummaryBar">
+          <div class="fleet-summary-item">
+            <span class="fleet-summary-label">Total Servers</span>
+            <span class="fleet-summary-val text-cyan" id="fleetTotalServers">4</span>
+          </div>
+          <div class="fleet-summary-item">
+            <span class="fleet-summary-label">Online</span>
+            <span class="fleet-summary-val text-emerald" id="fleetOnlineCount">—</span>
+          </div>
+          <div class="fleet-summary-item">
+            <span class="fleet-summary-label">Offline</span>
+            <span class="fleet-summary-val text-rose" id="fleetOfflineCount">—</span>
+          </div>
+          <div class="fleet-summary-item">
+            <span class="fleet-summary-label">Fleet Health</span>
+            <span class="fleet-summary-val text-cyan" id="fleetHealthPct">—%</span>
+          </div>
+        </div>
+
+        <div class="fleet-grid" id="fleetCardsContainer">
+          <div class="analytics-empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <h3>Loading Fleet Status...</h3>
+            <p>Querying all 4 proxy servers</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: BLOCKED REQUESTS -->
+      <section id="tab-blocked" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Blocked Requests Dashboard</h1>
+            <p class="text-muted">Analyze denied requests, blocked domains, and authentication failures</p>
+          </div>
+          <div class="pane-actions">
+            <select id="blockedSampleSize" class="form-select" style="min-width:160px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.9); border-radius:8px; padding:8px 12px; font-size:0.8rem;">
+              <option value="500">Last 500 lines</option>
+              <option value="1000" selected>Last 1000 lines</option>
+              <option value="2000">Last 2000 lines</option>
+              <option value="5000">Last 5000 lines</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btnRefreshBlocked">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="blocked-summary-grid" id="blockedSummaryCards">
+          <div class="blocked-stat-card">
+            <span class="blocked-stat-num" id="blockedTotalCount">0</span>
+            <span class="blocked-stat-label">Total Blocked</span>
+          </div>
+          <div class="blocked-stat-card">
+            <span class="blocked-stat-num" style="color: #ffd93d;" id="blockedAuthFailCount">0</span>
+            <span class="blocked-stat-label">Auth Failures (407)</span>
+          </div>
+          <div class="blocked-stat-card">
+            <span class="blocked-stat-num" style="color: #4facfe;" id="blockedDomainsCount">0</span>
+            <span class="blocked-stat-label">Unique Blocked Domains</span>
+          </div>
+          <div class="blocked-stat-card">
+            <span class="blocked-stat-num" style="color: #c471ed;" id="blockedUsersCount">0</span>
+            <span class="blocked-stat-label">Unique Denied Users</span>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid-2-col">
+          <div class="card">
+            <div class="card-header">
+              <h3>Top Blocked Domains</h3>
+              <span class="badge-tag rose font-mono">Denied Destinations</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartBlockedDomains"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Top Denied Users</h3>
+              <span class="badge-tag amber font-mono">Auth Failures</span>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartDeniedUsers"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Blocked Requests Table -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>Recent Blocked Requests</h3>
+            <span class="badge-tag rose">Live Feed</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>User</th>
+                    <th>Client IP</th>
+                    <th>Domain</th>
+                    <th>Status</th>
+                    <th>Type</th>
+                  </tr>
+                </thead>
+                <tbody id="blockedTableBody">
+                  <tr><td colspan="6" class="text-center text-muted">Loading blocked requests...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: USER ACTIVITY -->
+      <section id="tab-user-activity" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>User Activity Dashboard</h1>
+            <p class="text-muted">Deep-dive into individual proxy user behavior, bandwidth, and access patterns</p>
+          </div>
+        </div>
+
+        <!-- User Selector -->
+        <div class="user-select-bar">
+          <label style="color: rgba(255,255,255,0.6); font-size: 0.85rem; font-weight: 500;">Select User:</label>
+          <select id="userActivitySelector">
+            <option value="">— Choose a proxy user —</option>
+          </select>
+          <button class="btn btn-primary btn-sm" id="btnLoadUserActivity">
+            <span>Analyze</span>
+          </button>
+        </div>
+
+        <!-- User Profile (populated dynamically) -->
+        <div id="userActivityContent">
+          <div class="analytics-empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <h3>Select a user to view their activity profile</h3>
+            <p>Choose from the dropdown above to analyze proxy usage</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: SECURITY AUDIT -->
+      <section id="tab-security" class="tab-pane">
+        <div class="pane-header">
+          <div>
+            <h1>Security & Audit Dashboard</h1>
+            <p class="text-muted">Monitor authentication failures, denied requests, brute-force attempts, and threat indicators</p>
+          </div>
+          <div class="pane-actions">
+            <button class="btn btn-secondary btn-sm" id="btnRefreshSecurity">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Security Score + Summary -->
+        <div class="grid-2-col">
+          <div class="security-score-card">
+            <div class="security-score-ring">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="12"></circle>
+                <circle id="securityScoreArc" cx="70" cy="70" r="60" fill="none" stroke="#38ef7d" stroke-width="12" stroke-linecap="round"
+                  stroke-dasharray="377" stroke-dashoffset="377"></circle>
+              </svg>
+              <span class="security-score-val security-score-good" id="securityScoreVal">—</span>
+            </div>
+            <span class="security-score-label">Security Score</span>
+          </div>
+
+          <div>
+            <div class="security-summary-grid">
+              <div class="blocked-stat-card">
+                <span class="blocked-stat-num" style="color: #4facfe;" id="secTotalRequests">0</span>
+                <span class="blocked-stat-label">Total Requests Analyzed</span>
+              </div>
+              <div class="blocked-stat-card">
+                <span class="blocked-stat-num" id="secTotalDenied">0</span>
+                <span class="blocked-stat-label">Denied Requests</span>
+              </div>
+              <div class="blocked-stat-card">
+                <span class="blocked-stat-num" style="color: #ffd93d;" id="secTotalAuthFail">0</span>
+                <span class="blocked-stat-label">Auth Failures (407)</span>
+              </div>
+              <div class="blocked-stat-card">
+                <span class="blocked-stat-num" style="color: #c471ed;" id="secBruteForceCount">0</span>
+                <span class="blocked-stat-label">Brute-Force Suspects</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Brute Force Candidates -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h3>Brute-Force Candidates</h3>
+            <span class="threat-badge high">IPs with 5+ failed attempts</span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Client IP</th>
+                    <th>Failed Attempts</th>
+                    <th>Threat Level</th>
+                  </tr>
+                </thead>
+                <tbody id="bruteForceTableBody">
+                  <tr><td colspan="3" class="text-center text-muted">Loading security data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Auth Failures & Denied Requests -->
+        <div class="grid-2-col mt-4">
+          <div class="card">
+            <div class="card-header">
+              <h3>Recent Auth Failures (407)</h3>
+              <span class="threat-badge medium">Failed Logins</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Client IP</th>
+                      <th>User</th>
+                      <th>Domain</th>
+                    </tr>
+                  </thead>
+                  <tbody id="authFailTableBody">
+                    <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Recent Denied Requests</h3>
+              <span class="threat-badge high">TCP_DENIED</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>User</th>
+                      <th>Domain</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="deniedEventsTableBody">
+                    <tr><td colspan="4" class="text-center text-muted">Loading...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hourly Traffic Chart -->
+        <div class="card mt-4 hourly-chart-card">
+          <div class="card-header">
+            <div class="card-title-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+              <h3>24-Hour Traffic Timeline</h3>
+            </div>
+            <span class="badge-tag cyan font-mono">Hourly Breakdown</span>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="chartHourlyTraffic"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODALS -->
+
+  <!-- Modal: Create User -->
+  <div class="modal-overlay" id="modalAddUser">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create Proxy User</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddUser">
+          <div class="form-group">
+            <label for="newUsername">Username</label>
+            <input type="text" id="newUsername" class="form-control" required placeholder="e.g. john.doe">
+          </div>
+          <div class="form-group">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label for="newUserPassword" style="margin-bottom:0;font-weight:600;">Password (15 Characters)</label>
+              <button type="button" class="btn-generate-pass" id="btnGenAddUserPass" style="background:none;border:none;cursor:pointer;font-size:12px;color:#00f2fe;font-weight:600;display:flex;align-items:center;gap:4px;padding:2px 6px;">
+                ⚡ Generate 15-Char
+              </button>
+            </div>
+            <div style="position:relative;display:flex;align-items:center;">
+              <input type="text" id="newUserPassword" class="form-control font-mono" required placeholder="15-character secure password" style="padding-right:75px;">
+              <div style="position:absolute;right:8px;display:flex;gap:4px;">
+                <button type="button" class="btn-icon" id="btnCopyAddUserPass" title="Copy Password" style="padding:4px 7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;cursor:pointer;font-size:12px;">
+                  📋
+                </button>
+                <button type="button" class="btn-icon" id="btnToggleAddUserPass" title="Toggle visibility" style="padding:4px 7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;cursor:pointer;font-size:12px;">
+                  👁️
+                </button>
+              </div>
+            </div>
+            <small class="text-muted" style="font-size:11px;display:block;margin-top:4px;color:rgba(255,255,255,0.5);">
+              Auto-generated 15-character password without '@' symbol to prevent proxy URL conflicts.
+            </small>
+          </div>
+          <div class="form-group">
+            <label>Assign to ACL Groups (Optional):</label>
+            <div class="checkbox-group-grid" id="addUserGroupCheckboxes">
+              <!-- Checkboxes dynamically added -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create User</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Reset User Password -->
+  <div class="modal-overlay" id="modalResetPassword">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Reset Password: <span id="resetUserTarget" class="text-cyan"></span></h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formResetPassword">
+          <input type="hidden" id="resetTargetUsername">
+          <div class="form-group">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label for="resetNewPass" style="margin-bottom:0;font-weight:600;">New Password (15 Characters)</label>
+              <button type="button" class="btn-generate-pass" id="btnGenResetPass" style="background:none;border:none;cursor:pointer;font-size:12px;color:#00f2fe;font-weight:600;display:flex;align-items:center;gap:4px;padding:2px 6px;">
+                ⚡ Generate 15-Char
+              </button>
+            </div>
+            <div style="position:relative;display:flex;align-items:center;">
+              <input type="text" id="resetNewPass" class="form-control font-mono" required placeholder="15-character secure password" style="padding-right:75px;">
+              <div style="position:absolute;right:8px;display:flex;gap:4px;">
+                <button type="button" class="btn-icon" id="btnCopyResetPass" title="Copy Password" style="padding:4px 7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;cursor:pointer;font-size:12px;">
+                  📋
+                </button>
+                <button type="button" class="btn-icon" id="btnToggleResetPass" title="Toggle visibility" style="padding:4px 7px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:#fff;cursor:pointer;font-size:12px;">
+                  👁️
+                </button>
+              </div>
+            </div>
+            <small class="text-muted" style="font-size:11px;display:block;margin-top:4px;color:rgba(255,255,255,0.5);">
+              Auto-generated 15-character password without '@' symbol to prevent proxy URL conflicts.
+            </small>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save New Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit User Groups -->
+  <div class="modal-overlay" id="modalEditUserGroups">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Edit ACL Groups: <span id="editGroupsUserTarget" class="text-cyan"></span></h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditUserGroups">
+          <input type="hidden" id="editGroupsUsername">
+          <div class="checkbox-group-grid" id="editGroupsCheckboxes">
+            <!-- Checkboxes dynamically rendered -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Groups</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit ACL Group -->
+  <div class="modal-overlay" id="modalEditGroup">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3>Edit Group: <span id="modalEditGroupName" class="text-cyan"></span></h3>
+          <p class="text-xs text-muted font-mono" id="modalEditGroupFilepath">/etc/squid/acl/...</p>
+        </div>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditGroup">
+          <input type="hidden" id="editGroupTargetName">
+
+          <div class="form-group mb-3">
+            <label class="text-sm font-semibold mb-2" style="display:block;">Select Members (Registered Proxy
+              Users):</label>
+            <div class="checkbox-group-grid" id="modalEditGroupCheckboxes"
+              style="max-height: 140px; overflow-y: auto; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <!-- Rendered user checkboxes -->
+            </div>
+            <small class="text-muted">Tip: Toggling a user synchronizes the text list below.</small>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="modalEditGroupTextarea" class="text-sm font-semibold mb-1"
+              style="display:flex; justify-content:space-between;">
+              <span>Usernames (One per line):</span>
+              <span class="text-muted text-xs" id="modalEditGroupMemberCount">0 users</span>
+            </label>
+            <textarea id="modalEditGroupTextarea" class="code-editor" style="min-height: 110px; font-size: 0.85rem;"
+              placeholder="e.g.&#10;user1&#10;user2"></textarea>
+          </div>
+
+          <div id="modalEditGroupStatus" class="alert-box" style="display:none; margin-bottom: 14px;"></div>
+
+          <div class="modal-footer" style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnModalValidateGroup"
+              title="Validate Squid configuration syntax">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Validate</span>
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnModalReloadGroup"
+              title="Gracefully reload Squid">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              <span>Reload</span>
+            </button>
+            <button type="submit" class="btn btn-primary btn-sm" id="btnModalSaveGroup">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span>Save</span>
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btnModalSaveReloadGroup">
+              <span>Save & Reload</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add New Group -->
+  <div class="modal-overlay" id="modalAddGroup">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New ACL User Group</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddGroup">
+          <div class="form-group mb-3">
+            <label for="newGroupNameInput">Group Name</label>
+            <input type="text" id="newGroupNameInput" class="form-control" required
+              placeholder="e.g. developers_users or vip_clients">
+            <small class="text-muted">Will create <code
+                class="font-mono">/etc/squid/acl/&lt;name&gt;.txt</code></small>
+          </div>
+          <div class="form-group mb-3">
+            <label class="text-sm font-semibold mb-2" style="display:block;">Select Initial Members (Optional):</label>
+            <div class="checkbox-group-grid" id="modalAddGroupCheckboxes"
+              style="max-height: 120px; overflow-y: auto; padding: 8px; background: rgba(0,0,0,0.2); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <!-- Rendered user checkboxes -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Group</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Domain -->
+  <div class="modal-overlay" id="modalAddDomain">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Domain to Policy List</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddDomain">
+          <div class="form-group">
+            <label for="addDomainTargetList">Target Domain List</label>
+            <select id="addDomainTargetList" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label for="addDomainInput">Domain Name</label>
+            <input type="text" id="addDomainInput" class="form-control" required
+              placeholder="e.g. .example.com or sub.example.com">
+            <small class="text-muted">Tip: A leading dot (e.g. <code>.openai.com</code>) matches the domain and all its
+              subdomains.</small>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Domain & Reload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add Allowed IP -->
+  <div class="modal-overlay" id="modalAddIp">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Allowed IP / Subnet</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddIp">
+          <div class="form-group">
+            <label for="newIpInput">IP Address or CIDR</label>
+            <input type="text" id="newIpInput" class="form-control" required
+              placeholder="e.g. 10.31.1.50 or 10.31.0.0/23">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add IP & Reload</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create File -->
+  <div class="modal-overlay" id="modalCreateFile">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New Configuration / ACL File</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formCreateFile">
+          <div class="form-group">
+            <label for="createFileParentDir">Parent Directory</label>
+            <select id="createFileParentDir" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label for="createFileName">File Name</label>
+            <input type="text" id="createFileName" class="form-control" required
+              placeholder="e.g. custom_domains.txt or myrules.conf">
+            <small class="text-muted">Will be saved inside the selected directory.</small>
+          </div>
+          <div class="form-group">
+            <label for="createFileContent">Initial Content (Optional)</label>
+            <textarea id="createFileContent" class="form-control font-mono" style="height: 100px; resize: vertical;"
+              placeholder="# Enter initial configuration lines or domain names..."></textarea>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create & Edit File</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Create Directory -->
+  <div class="modal-overlay" id="modalCreateDir">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Create New Directory in /etc/squid</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formCreateDir">
+          <div class="form-group">
+            <label for="createDirParentDir">Parent Directory</label>
+            <select id="createDirParentDir" class="form-select"></select>
+          </div>
+          <div class="form-group">
+            <label for="createDirName">Directory / Folder Name</label>
+            <input type="text" id="createDirName" class="form-control" required
+              placeholder="e.g. custom_rules or policies">
+            <small class="text-muted">Allowed characters: letters, numbers, hyphens, underscores.</small>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Directory</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm Delete File -->
+  <div class="modal-overlay" id="modalConfirmDeleteFile">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-rose">Confirm File Deletion</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this file?</p>
+        <p class="mt-2 font-mono text-cyan" id="deleteTargetFileName">/etc/squid/...</p>
+        <div class="alert-box alert-danger mt-2" style="font-size: 0.8rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>A pre-deletion snapshot will automatically be captured in your 5-Backup Center before removal.</span>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+          <button type="button" class="btn btn-danger-outline" id="btnConfirmDoDelete">Permanently Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add / Insert nftables Rule -->
+  <div class="modal-overlay" id="modalAddNftRule">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3>Add Firewall (nftables) Rule</h3>
+          <p class="text-xs text-muted font-mono">Appends rule to /etc/nftables.conf and applies live</p>
+        </div>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAddNftRule">
+          <!-- Target Location Grid -->
+          <div class="grid-3-col mb-3">
+            <div class="form-group">
+              <label for="nftRuleFamily">Table Family</label>
+              <select id="nftRuleFamily" class="form-select">
+                <option value="inet" selected>inet (IPv4 + IPv6)</option>
+                <option value="ip">ip (IPv4 only)</option>
+                <option value="ip6">ip6 (IPv6 only)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="nftRuleTable">Table Name</label>
+              <select id="nftRuleTable" class="form-select"></select>
+              <input type="text" id="nftRuleTableCustom" class="form-control mt-1" placeholder="Enter custom table..." style="display: none;">
+            </div>
+            <div class="form-group">
+              <label for="nftRuleChain">Chain Name</label>
+              <select id="nftRuleChain" class="form-select"></select>
+              <input type="text" id="nftRuleChainCustom" class="form-control mt-1" placeholder="Enter custom chain..." style="display: none;">
+            </div>
+          </div>
+
+          <!-- Structured Match Criteria -->
+          <div class="card p-3 mb-3" style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-subtle);">
+            <div class="text-xs font-semibold text-cyan mb-2" style="text-transform: uppercase; letter-spacing: 0.5px;">Match Conditions (Fill relevant fields):</div>
+            
+            <div class="grid-2-col mb-2">
+              <div class="form-group">
+                <label for="nftRuleIif">In Interface (iifname)</label>
+                <input type="text" id="nftRuleIif" class="form-control" placeholder="e.g. ens18, lo, wg0">
+              </div>
+              <div class="form-group">
+                <label for="nftRuleOif">Out Interface (oifname)</label>
+                <input type="text" id="nftRuleOif" class="form-control" placeholder="e.g. ens18, eth0">
+              </div>
+            </div>
+
+            <div class="grid-2-col mb-2">
+              <div class="form-group">
+                <label for="nftRuleSrc">Source IP / CIDR / Set (saddr)</label>
+                <input type="text" id="nftRuleSrc" class="form-control" placeholder="e.g. 10.31.1.124 or { 10.31.1.124, 10.31.1.136 }">
+              </div>
+              <div class="form-group">
+                <label for="nftRuleDst">Destination IP / CIDR / Set (daddr)</label>
+                <input type="text" id="nftRuleDst" class="form-control" placeholder="e.g. 3.21.193.9 or { 3.21.193.9, 18.222.140.241 }">
+              </div>
+            </div>
+
+            <div class="grid-2-col mb-2">
+              <div class="form-group">
+                <label for="nftRuleProto">Protocol</label>
+                <select id="nftRuleProto" class="form-select">
+                  <option value="tcp" selected>TCP</option>
+                  <option value="udp">UDP</option>
+                  <option value="icmp">ICMP</option>
+                  <option value="all">Any / None</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="nftRuleDport">Destination Port(s) (dport)</label>
+                <input type="text" id="nftRuleDport" class="form-control" placeholder="e.g. 80, 443 or { 80, 443 } or 8085">
+              </div>
+            </div>
+
+            <div class="grid-2-col">
+              <div class="form-group">
+                <label for="nftRuleAction">Action / Verdict</label>
+                <select id="nftRuleAction" class="form-select">
+                  <option value="accept" selected>accept (Allow traffic)</option>
+                  <option value="drop">drop (Silently block)</option>
+                  <option value="reject">reject (Refuse connection)</option>
+                  <option value="masquerade">masquerade (Source NAT)</option>
+                  <option value="redirect">redirect (Port redirection)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="nftRuleComment">Comment / Note</label>
+                <input type="text" id="nftRuleComment" class="form-control" placeholder="e.g. Allow KSEB client egress">
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Rule Expression Preview -->
+          <div class="form-group mb-3">
+            <label class="text-xs font-semibold text-muted mb-1" style="display: flex; justify-content: space-between;">
+              <span>Generated Rule Statement (Live Preview):</span>
+              <button type="button" class="text-cyan text-xs" id="btnNftToggleRawEdit" style="background: none; border: none; cursor: pointer; text-decoration: underline;">Edit as Raw Statement</button>
+            </label>
+            <input type="text" id="nftRuleStatementPreview" class="form-control font-mono text-cyan" style="font-size: 0.85rem; background: rgba(0,0,0,0.5);" required>
+          </div>
+
+          <div id="nftAddRuleAlert" class="alert-box alert-danger" style="display: none; margin-bottom: 12px;"></div>
+
+          <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="button" class="btn btn-secondary" id="btnTestAddRuleSyntax">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Test Syntax</span>
+            </button>
+            <button type="submit" class="btn btn-primary" id="btnSubmitAddNftRule">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Add & Apply Rule</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nftables Quick Rule Templates / Presets -->
+  <div class="modal-overlay" id="modalNftPresets">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3>nftables Quick Rule Presets</h3>
+          <p class="text-xs text-muted">Select a template to pre-fill the rule builder with standard proxy configurations</p>
+        </div>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2-col" style="gap: 14px;">
+          <div class="card p-3 preset-card" style="cursor: pointer; border: 1px solid rgba(0,242,254,0.2); transition: all 0.2s;" data-preset="proxy_forward">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span class="badge-tag cyan font-mono">FORWARD CHAIN</span>
+              <strong class="text-sm">Proxy Client Forwarding</strong>
+            </div>
+            <p class="text-xs text-muted mb-2">Permit internal source client IPs to access cloud destination IPs on ports 80 (HTTP) & 443 (HTTPS).</p>
+            <code class="font-mono text-xs text-cyan" style="display: block; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;">ip saddr { client_ips } ip daddr { dst_ips } tcp dport { 80, 443 } accept</code>
+          </div>
+
+          <div class="card p-3 preset-card" style="cursor: pointer; border: 1px solid rgba(56,239,125,0.2); transition: all 0.2s;" data-preset="nat_masquerade">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span class="badge-tag emerald font-mono">POSTROUTING NAT</span>
+              <strong class="text-sm">NAT Masquerade on Egress</strong>
+            </div>
+            <p class="text-xs text-muted mb-2">Masquerade outbound client requests exiting physical interface (e.g. ens18) to external destinations.</p>
+            <code class="font-mono text-xs text-emerald" style="display: block; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;">oifname "ens18" ip saddr { client_ips } ip daddr { dst_ips } tcp dport { 80, 443 } masquerade</code>
+          </div>
+
+          <div class="card p-3 preset-card" style="cursor: pointer; border: 1px solid rgba(196,113,237,0.2); transition: all 0.2s;" data-preset="allow_proxy_port">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span class="badge-tag purple font-mono">INPUT CHAIN</span>
+              <strong class="text-sm">Allow Squid Proxy Port</strong>
+            </div>
+            <p class="text-xs text-muted mb-2">Allow inbound connections to Squid Proxy port (e.g. 8085) or Management Web Portal (port 5000).</p>
+            <code class="font-mono text-xs text-purple" style="display: block; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;">tcp dport 8085 accept comment "Squid Proxy Port 8085"</code>
+          </div>
+
+          <div class="card p-3 preset-card" style="cursor: pointer; border: 1px solid rgba(255,65,108,0.2); transition: all 0.2s;" data-preset="block_ip">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+              <span class="badge-tag rose font-mono">INPUT & FORWARD</span>
+              <strong class="text-sm">Drop / Block Malicious IP</strong>
+            </div>
+            <p class="text-xs text-muted mb-2">Immediately drop all inbound and forwarding packets originating from a hostile IP or subnet.</p>
+            <code class="font-mono text-xs text-rose" style="display: block; background: rgba(0,0,0,0.3); padding: 6px 8px; border-radius: 4px;">ip saddr 1.2.3.4 drop comment "Blocked IP"</code>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Delete Directory -->
+  <div class="modal-overlay" id="modalDeleteDir">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="text-rose">Delete Directory in /etc/squid</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formDeleteDir">
+          <div class="form-group">
+            <label for="deleteDirSelect">Select Directory to Delete</label>
+            <select id="deleteDirSelect" class="form-select"></select>
+            <small class="text-muted">Core directories (/etc/squid, /etc/squid/acl) are protected from deletion.</small>
+          </div>
+          <div class="alert-box alert-danger mt-2" style="font-size: 0.8rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span>An automated backup snapshot will be captured before the directory is removed.</span>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-cancel-modal">Cancel</button>
+            <button type="submit" class="btn btn-danger-outline">Delete Directory</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="/static/js/app.js?v=20261005_audit1"></script>
+</body>
+
+</html>

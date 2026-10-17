@@ -1,0 +1,88 @@
+Since you've already created the API token, you can use it directly in Pulse's API Inventory setup.
+
+Information Required by Pulse
+
+From Proxmox:
+
+Host URL:
+https://YOUR_PROXMOX_IP:8006
+
+Token ID:
+pulse-monitor@pve!pulse
+
+Token Secret:
+xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+
+The Token ID format is:
+
+<user>@<realm>!<token-name>
+
+
+Example:
+
+pulse-monitor@pve!pulse
+
+
+The Token Secret is the value displayed only once when the token is created.
+
+In Pulse
+
+Navigate to:
+
+Settings
+ └─ Infrastructure
+     └─ Add Source
+         └─ Proxmox VE
+             └─ API Inventory
+
+
+Fill in:
+
+Proxmox Host:
+https://10.31.x.x:8006
+
+Token ID:
+pulse-monitor@pve!pulse
+
+Token Secret:
+<your token secret>
+
+Ignore Self-Signed Certificate:
+Enabled (if using Proxmox's default certificate)
+
+
+Pulse will then connect to the Proxmox API using the API token rather than a username/password. API tokens are the recommended authentication method for automation and monitoring integrations.
+
+Test Before Adding to Pulse
+
+From any Linux machine:
+
+curl -k \
+-H "Authorization: PVEAPIToken=pulse-monitor@pve!pulse=YOUR_TOKEN_SECRET" \
+https://YOUR_PROXMOX_IP:8006/api2/json/version
+
+
+Expected output:
+
+{
+  "data": {
+    "version": "..."
+  }
+}
+
+
+If this works, Pulse should also be able to connect successfully using the same token. Proxmox API tokens use the PVEAPIToken authorization header format shown above.
+
+Recommended Permissions for Pulse
+
+For inventory and monitoring only:
+
+Role: PVEAuditor
+Path: /
+Privilege Separation: Enabled
+
+
+This provides read-only access to nodes, VMs, containers, and cluster inventory without granting administrative rights.
+
+If Pulse returns an error after you enter the token (401, 403, certificate error, etc.), send me the exact error message and I'll help troubleshoot it.

@@ -1,0 +1,127 @@
+How to Interpret Squid Port Mappings
+
+In your environment, each Squid listening port is intentionally mapped to a specific ISP/WAN interface using tcp_outgoing_address.
+
+Configuration Example
+tcp_outgoing_address 192.168.14.30 proxy8860
+tcp_outgoing_address 192.168.16.30 proxy8859
+tcp_outgoing_address 192.168.12.30 proxy8878
+tcp_outgoing_address 192.168.18.30 proxy8855
+tcp_outgoing_address 192.168.8.30  proxy8868
+tcp_outgoing_address 192.168.1.30  proxy8888
+tcp_outgoing_address 192.168.4.30  proxy8898
+tcp_outgoing_address 192.168.19.30 proxy8858
+tcp_outgoing_address 192.168.5.30  proxy8848
+tcp_outgoing_address 192.168.1.31  proxy8899
+
+How Traffic Flows
+Port 8860
+Client
+   ↓
+Proxy: 10.31.1.159:8860
+   ↓
+Squid binds source IP 192.168.14.30
+   ↓
+Traffic exits through kv1 ISP
+
+Port 8859
+Client
+   ↓
+Proxy: 10.31.1.159:8859
+   ↓
+Squid binds source IP 192.168.16.30
+   ↓
+Traffic exits through kv2 ISP
+
+Port 8878
+Client
+   ↓
+Proxy: 10.31.1.159:8878
+   ↓
+Squid binds source IP 192.168.12.30
+   ↓
+Traffic exits through kv3 ISP
+
+Your Current Mapping
+Proxy Port	Source IP	Interface	Status8860	192.168.14.30	kv1	✅ Active
+8859	192.168.16.30	kv2	✅ Active
+8878	192.168.12.30	kv3	✅ Active
+8855	192.168.18.30	kv4	❌ ISP Unreachable
+8868	192.168.8.30	kv5	❌ ISP Unreachable
+8888	192.168.1.30	kv6	✅ Active
+8898	192.168.4.30	kv7	✅ Active
+8858	192.168.19.30	kv8	✅ Active
+8848	192.168.5.30	kv9	❌ ISP Unreachable
+8899	192.168.1.31	Airtel	Not in use
+How We Verified It
+Step 1: Verify Mapping Exists
+grep tcp_outgoing_address /etc/squid/squid.conf
+
+Step 2: Verify Clients Use Proxy Ports
+ss -tn | grep :8860
+ss -tn | grep :8859
+ss -tn | grep :8878
+
+Step 3: Verify Outbound Source IP
+lsof -iTCP -nP | grep squid | grep ESTABLISHED
+
+
+Example:
+
+192.168.14.30 -> Internet
+192.168.16.30 -> Internet
+192.168.12.30 -> Internet
+192.168.1.30  -> Internet
+192.168.4.30  -> Internet
+192.168.19.30 -> Internet
+
+
+This proves Squid is using the correct WAN IP.
+
+Step 4: Verify Interface Traffic
+watch -n 2 '
+for i in kv1 kv2 kv3 kv4 kv5 kv6 kv7 kv8 kv9
+do
+  echo "==== $i ===="
+  ip -s link show $i | grep bytes -A1
+done
+'
+
+
+From your screenshot:
+
+kv1 ✅ Traffic
+kv2 ✅ Traffic
+kv3 ✅ Traffic
+kv6 ✅ Traffic
+kv7 ✅ Traffic
+kv8 ✅ Traffic
+
+kv4 ❌ No RX
+kv5 ❌ No RX
+kv9 ❌ No RX
+
+Final Interpretation
+
+When a user configures:
+
+Proxy = 10.31.1.159:8860
+
+
+their Internet traffic must exit through kv1 (192.168.14.30).
+
+When a user configures:
+
+Proxy = 10.31.1.159:8859
+
+
+their Internet traffic must exit through kv2 (192.168.16.30).
+
+This is exactly what your live Squid connections and interface counters confirmed.
+
+Final Result
+
+✅ Squid port mapping is working correctly.
+ ✅ Traffic is separated per ISP/WAN.
+ ✅ Active WANs: kv1, kv2, kv3, kv6, kv7, kv8.
+ ❌ kv4, kv5, kv9 are not working because their ISP services are suspended/unreachable, not because of a Squid issue.

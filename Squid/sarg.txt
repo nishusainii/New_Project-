@@ -1,0 +1,197 @@
+If by SARG you mean Squid Analysis Report Generator (SARG) for analyzing Squid proxy logs, a production-grade installation should include security hardening, log rotation, scheduled report generation, and a web server for report access. Based on publicly available SARG installation documentation and deployment guidance, SARG is typically installed on Linux servers and configured to read Squid access logs and generate HTML reports.
+
+Production Architecture
+Users
+   │
+   ▼
+Squid Proxy
+   │
+   ▼
+/var/log/squid/access.log
+   │
+   ▼
+SARG
+   │
+   ▼
+HTML Reports
+   │
+   ▼
+Nginx/Apache (Authentication Enabled)
+
+1. Prerequisites
+# Ubuntu 22.04/24.04
+sudo apt update
+sudo apt install squid apache2 sarg
+
+
+Or:
+
+sudo apt install squid nginx sarg
+
+
+SARG requires Squid logs to generate reports.
+
+2. Verify Installation
+sarg --version
+
+3. Configure SARG
+
+Edit:
+
+sudo nano /etc/sarg/sarg.conf
+
+
+Important production settings:
+
+access_log /var/log/squid/access.log
+
+output_dir /var/www/html/sarg
+
+date_format e
+
+overwrite_report no
+
+long_url no
+
+show_successful_message no
+
+temporary_dir /tmp
+
+topuser_sort_field BYTES reverse
+
+user_ip yes
+
+graphs yes
+ 
+ charset UTF-8
+ 
+ displayed_values abbreviation
+
+ 
+
+Reference settings are commonly used in SARG deployments.
+
+4. Create Report Directory
+sudo mkdir -p /var/www/html/sarg
+sudo chown -R www-data:www-data /var/www/html/sarg
+
+5. Generate First Report
+sudo sarg
+
+
+Verify:
+
+ls /var/www/html/sarg
+
+
+You should see index.html.
+
+6. Secure Report Access (Production)
+Apache Authentication
+sudo apt install apache2-utils
+sudo htpasswd -c /etc/apache2/.htpasswd admin
+
+
+Apache configuration:
+
+<Directory "/var/www/html/sarg">
+    AuthType Basic
+    AuthName "SARG Reports"
+    AuthUserFile /etc/apache2/.htpasswd
+    Require valid-user
+</Directory>
+
+
+Restart:
+
+sudo systemctl restart apache2
+
+
+Password-protected access is recommended for production environments.
+
+7. Automate Report Generation
+
+Create a cron job:
+
+sudo crontab -e
+
+
+Daily report:
+
+0 1 * * * /usr/bin/sarg
+
+
+Hourly report (large organizations):
+
+0 * * * * /usr/bin/sarg
+
+
+Scheduled report generation is a common deployment practice.
+
+8. Configure Log Rotation
+
+Edit:
+
+sudo nano /etc/logrotate.d/squid
+
+
+Example:
+
+/var/log/squid/*.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+}
+
+
+This prevents excessive disk usage.
+
+9. Production Hardening
+Run SARG on a Dedicated Reporting Server
+
+The official build guidance recommends avoiding full development tools on production proxy servers and suggests building separately when appropriate.
+
+Restrict Report Access
+
+Example firewall:
+
+sudo ufw allow from 10.0.0.0/24 to any port 80
+sudo ufw allow from 10.0.0.0/24 to any port 443
+
+Enable HTTPS
+sudo apt install certbot python3-certbot-apache
+sudo certbot --apache
+
+Backup Reports
+rsync -av /var/www/html/sarg/ backup-server:/backup/sarg/
+
+10. Monitoring
+
+If you're already using Prometheus + Grafana, monitor:
+
+Squid service status
+Squid log growth
+Disk utilization
+Report generation success
+Web server availability
+
+Example alert:
+
+node_filesystem_avail_bytes{mountpoint="/"} < 5e9
+
+Recommended Production Stack
+Ubuntu Server 24.04
+├── Squid Proxy
+├── SARG
+├── Nginx/Apache
+├── HTTPS (Let's Encrypt)
+├── Logrotate
+├── Cron
+├── Prometheus Node Exporter
+└── Grafana Monitoring
+
+
+This setup is suitable for medium to large organizations and aligns well with the Prometheus/Grafana monitoring environment you've been working with.

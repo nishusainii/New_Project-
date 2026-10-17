@@ -1,0 +1,266 @@
+Trigger dependencies are one of the most important Zabbix features for a Proxmox cluster because they prevent alert storms when an underlying node fails.
+
+Why Dependencies Matter
+
+Without dependencies:
+
+PVE Node pve01 Down
+├── Squid VM Down
+├── VPN VM Down
+├── DNS VM Down
+├── File Server VM Down
+└── 20 other VM alerts
+
+
+You may receive dozens of alerts for a single hardware issue.
+
+With dependencies:
+
+PVE Node pve01 Down
+
+
+Only the root-cause alert is generated.
+
+Dependency Design for Proxmox
+
+I recommend a 4-level hierarchy:
+
+Cluster
+ └── Node
+      └── Storage
+           └── VM/LXC
+                └── Application
+
+Level 1: Cluster Dependencies
+Trigger
+Cluster Quorum Lost
+
+
+Severity:
+
+Disaster
+
+
+Parent trigger.
+
+Dependent triggers:
+
+Node Down
+Storage Offline
+HA Failure
+
+Configure
+
+Navigate:
+
+Data Collection
+ └── Hosts
+      └── Proxmox-Cluster
+           └── Triggers
+                └── Node Down
+                     └── Dependencies
+
+
+Add:
+
+Cluster Quorum Lost
+
+
+Now if quorum is lost:
+
+Node Down
+
+
+alerts are suppressed.
+
+Level 2: Node Dependencies
+
+Example:
+
+Parent
+Node pve01 Down
+
+Child
+VM 101 Down
+VM 102 Down
+VM 103 Down
+LXC 201 Down
+
+
+Configure:
+
+VM 101 Down
+     depends on
+Node pve01 Down
+
+VM 102 Down
+     depends on
+Node pve01 Down
+
+
+etc.
+
+Result
+
+If pve01 crashes:
+
+Without dependency:
+
+Node Down
+20 VM Down
+5 LXC Down
+
+
+With dependency:
+
+Node Down
+
+
+only.
+
+Level 3: Storage Dependencies
+
+Example:
+
+Ceph Pool Offline
+
+
+or
+
+ZFS Pool Degraded
+
+
+Parent alert.
+
+Child alerts:
+
+VM Disk Full
+VM Disk IO Errors
+VM Storage Unavailable
+
+
+Dependency:
+
+VM Storage Alert
+     depends on
+Ceph Pool Offline
+
+Level 4: Service Dependencies
+
+This is ideal for your infrastructure services.
+
+Example:
+
+Proxmox Node pve02
+      │
+      └── VM 120 (Squid)
+             │
+             └── squid.service
+
+
+Dependency chain:
+
+squid.service down
+      depends on
+VM120 down
+
+VM120 down
+      depends on
+Node pve02 down
+
+Final Result
+
+If node fails:
+
+Node pve02 Down
+
+
+Only one alert.
+
+No:
+
+VM120 Down
+Squid Service Down
+Proxy Not Responding
+
+Recommended Dependency Tree For Your Environment
+Cluster Quorum Lost
+        │
+        ▼
+
+PVE Node Down
+        │
+        ▼
+
+Storage Offline
+        │
+        ▼
+
+VM Down / LXC Down
+        │
+        ▼
+
+Application Down
+    ├── Squid
+    ├── VPN
+    ├── DNS
+    ├── Web
+    └── Database
+
+Example: Squid Proxy Dependency Chain
+
+Based on your current infrastructure:
+
+Cluster
+ └── pve01
+      └── VM-SQUID
+            └── squid.service
+
+
+Dependencies:
+
+squid.service down
+    depends on
+VM-SQUID down
+
+VM-SQUID down
+    depends on
+pve01 down
+
+pve01 down
+    depends on
+cluster quorum lost
+
+
+Now a failed node generates:
+
+✓ pve01 down
+
+
+instead of:
+
+✗ pve01 down
+✗ VM-SQUID down
+✗ squid.service down
+✗ proxy unavailable
+
+Best Practice Severity Mapping
+Disaster
+├── Cluster Quorum Lost
+├── Node Down
+└── Storage Offline
+
+High
+├── Critical VM Down
+├── Critical LXC Down
+└── Backup Failure
+
+Warning
+├── CPU >80%
+├── Memory >80%
+├── Disk >80%
+└── WAN Latency
+
+
+This creates a clean root-cause analysis flow and is the approach I would use for a Proxmox cluster hosting Squid proxies, 
+VPN servers, and other infrastructure services. It significantly reduces duplicate notifications and makes troubleshooting much faster.

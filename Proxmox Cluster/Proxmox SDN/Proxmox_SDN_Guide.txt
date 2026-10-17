@@ -1,0 +1,312 @@
+================================================================================
+                    PROXMOX VE SDN & SDN ZONES COMPREHENSIVE GUIDE
+                   Concepts, Architecture, CLI Commands & Best Practices
+================================================================================
+
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+ 1. What is Proxmox SDN (Software-Defined Networking)?
+ 2. Traditional Networking vs. Proxmox SDN
+ 3. Detailed Comparison: VLAN vs. VXLAN
+ 4. SDN Hierarchy & Core Architecture
+ 5. The 5 Types of SDN Zones in Proxmox
+ 6. Zone Comparison Matrix
+ 7. Prerequisites & Package Installation
+ 8. Step-by-Step GUI Workflow
+ 9. Complete CLI Commands Reference (pvesdn & pvesh)
+10. Attaching Virtual Machines (VMs) & LXC Containers
+11. Configuration Files in Proxmox Cluster (/etc/pve/sdn/)
+12. Inspection, Verification & Troubleshooting Commands
+13. Server Utility: Removing "No Valid Subscription" GUI Popup
+================================================================================
+
+
+1. WHAT IS PROXMOX SDN (SOFTWARE-DEFINED NETWORKING)?
+--------------------------------------------------------------------------------
+Software-Defined Networking (SDN) in Proxmox VE enables centralized, automated 
+management of complex virtual networks across an entire cluster from the 
+Datacenter level.
+
+Instead of manually editing `/etc/network/interfaces` on each physical node and 
+reconfiguring physical network switches for every VLAN, SDN allows you to manage 
+everything centrally from the Proxmox Web GUI or CLI (`pvesdn`).
+
+Key Benefits:
+* Centralized Provisioning: Define virtual networks (VNets) once; Proxmox 
+  automatically configures and syncs them across all cluster nodes.
+* Multi-Node Overlay Networks (VXLAN / EVPN): Connect VMs on different physical 
+  nodes over Layer 3 boundaries on the same virtual Layer 2 subnet without 
+  requiring physical switch reconfiguration.
+* Multi-Tenancy & Isolation: Create isolated network segments for different 
+  projects, departments, or environments (Production, Staging, DMZ, Lab).
+* Built-in IPAM (IP Address Management): Automate IP allocation (PVE IPAM, 
+  NetBox, phpIPAM).
+* Automatic DHCP & DNS: Built-in DHCP (via dnsmasq) automatically hands out IP 
+  addresses and local DNS records to VMs/LXCs.
+* Seamless Live Migration: VMs migrate between cluster nodes without losing 
+  active connections or requiring IP changes.
+
+
+2. TRADITIONAL NETWORKING VS. PROXMOX SDN
+--------------------------------------------------------------------------------
+Feature                  | Traditional Proxmox             | Proxmox SDN
+-------------------------+---------------------------------+--------------------
+Configuration Scope      | Per-node (/etc/network/interf.) | Datacenter cluster-wide
+Physical Switch Config   | Required for every VLAN tag     | Zero switch config (VXLAN/EVPN)
+IP Tracking (IPAM)       | Manual spreadsheets / external  | Built-in automatic IPAM
+DHCP / DNS Services      | Requires dedicated DHCP VM      | Built-in (dnsmasq) per subnet
+Live VM Migration        | Must match local bridge/VLAN    | Seamless across any node
+Max Network Limit        | 4,094 VLANs                     | 16.7 Million (VXLAN/EVPN)
+
+
+3. DETAILED COMPARISON: VLAN VS. VXLAN
+--------------------------------------------------------------------------------
+Feature                  | VLAN (IEEE 802.1Q)              | VXLAN (RFC 7348)
+-------------------------+---------------------------------+--------------------
+Network Layer            | Layer 2 (Data Link)             | Layer 2 over Layer 3 (MAC-in-UDP)
+Header Identifier        | 12-bit VLAN ID (Max 4,094)      | 24-bit VNI (Max 16.7 Million)
+Physical Switch Config   | Required (VLAN Trunking)        | None (Standard L3 IP routing only)
+Cross-Subnet / Multi-DC  | No (L2 broadcast bounded)       | Yes (Traverses any L3 IP network)
+Header Overhead          | 4 bytes                         | 50 bytes (IP + UDP + VXLAN headers)
+Recommended MTU          | 1500 (Standard)                 | 1550+ on host NICs (or 1450 on guests)
+Multi-Pathing            | STP blocks redundant links      | ECMP uses all links efficiently
+
+Packet Header Structures:
+* VLAN Frame:  [ Ethernet Header | 802.1Q Tag (12-bit) | IP Header | Payload ]
+* VXLAN Frame: [ Outer IP | UDP:4789 | VXLAN VNI (24-bit) | Inner Ethernet Frame ]
+
+
+4. SDN HIERARCHY & CORE ARCHITECTURE
+--------------------------------------------------------------------------------
+Proxmox SDN is structured into 4 logical layers:
+
+Datacenter
+ └── 1. SDN Zone (The transport technology: Simple, VLAN, QinQ, VXLAN, EVPN)
+      └── 2. VNet (Virtual switch/bridge e.g. "vnet10")
+           └── 3. Subnet (IP Range e.g. "10.10.10.0/24", Gateway, SNAT, DHCP)
+                └── 4. Attached Guest Network Interface (VM virtio / LXC eth0)
+
+
+5. THE 5 TYPES OF SDN ZONES IN PROXMOX
+--------------------------------------------------------------------------------
+1. Simple Zone:
+   - Type: Local bridge per node.
+   - Cross-Node L2: NO (traffic is local or routed via host NAT).
+   - Switch Config: None.
+   - Best For: Single-node setups, local isolated test labs.
+
+2. VLAN Zone:
+   - Type: Traditional 802.1q VLAN tagging over physical bridge (e.g., vmbr0).
+   - Cross-Node L2: YES (relies on physical switch trunking).
+   - Switch Config: VLAN trunking required on physical switches.
+   - Limit: 4,094 VLAN IDs.
+   - Best For: Integrating VMs directly into existing physical enterprise VLANs.
+
+3. QinQ Zone (Stacked VLANs / 802.1ad):
+   - Type: VLAN-inside-VLAN (Outer Service VLAN + Inner Customer VLAN).
+   - Cross-Node L2: YES.
+   - Switch Config: Only outer VLAN configured on physical switches.
+   - Limit: Up to 4,094 sub-VLANs per outer VLAN.
+   - Best For: Multi-tenant environments and service provider hosting.
+
+4. VXLAN Zone:
+   - Type: Layer 2 over Layer 3 overlay mesh (encapsulated in UDP port 4789).
+   - Cross-Node L2: YES (works over standard IP networks).
+   - Switch Config: None (no VLAN tags needed on physical switches).
+   - Limit: Up to 16 Million virtual networks (VNIs).
+   - Best For: Multi-node clusters needing isolated networks without physical 
+     switch access.
+
+5. EVPN Zone (BGP EVPN):
+   - Type: Enterprise VXLAN overlay controlled dynamically by BGP routing.
+   - Cross-Node L2: YES.
+   - Features: Distributed Anycast Gateway, dynamic MAC/IP learning, no ARP flooding.
+   - Switch Config: None (or BGP peering with physical ToR switches).
+   - Limit: Up to 16 Million virtual networks.
+   - Best For: Large enterprise clusters, high-performance cloud platforms.
+
+
+6. ZONE COMPARISON MATRIX
+--------------------------------------------------------------------------------
+Zone Type | Cross-Node L2? | Switch Config Needed? | Max Networks | Complexity
+----------+----------------+-----------------------+--------------+------------
+Simple    | No             | None                  | Local only   | Very Easy
+VLAN      | Yes            | VLAN Trunking         | 4,094        | Easy
+QinQ      | Yes            | Outer VLAN only       | 4,094/VLAN   | Moderate
+VXLAN     | Yes            | None (L3 IP only)     | 16 Million   | Moderate
+EVPN      | Yes            | None (or BGP Peering) | 16 Million   | Advanced
+
+
+7. PREREQUISITES & PACKAGE INSTALLATION
+--------------------------------------------------------------------------------
+Run on ALL Proxmox cluster nodes before configuring SDN:
+
+```bash
+# 1. Update package index
+apt update
+
+# 2. Install SDN core, ifupdown2, DHCP (dnsmasq), and Routing (FRR)
+apt install -y libpve-network-perl ifupdown2 dnsmasq frr-pythontools frr
+
+# 3. Disable systemd-resolved to prevent port 53 DNS conflicts with dnsmasq
+systemctl disable --now systemd-resolved
+```
+
+
+8. STEP-BY-STEP GUI WORKFLOW
+--------------------------------------------------------------------------------
+1. Navigate to: Datacenter -> SDN -> Zones -> Click "Add" (e.g., VLAN or VXLAN).
+2. Navigate to: Datacenter -> SDN -> VNets -> Click "Add" (attach to Zone).
+3. Select VNet -> Subnets -> Click "Add":
+   - Subnet CIDR (e.g. 10.100.0.0/24)
+   - Gateway (e.g. 10.100.0.1)
+   - Enable SNAT checkbox (for outbound Internet)
+   - Enable DHCP range (e.g. 10.100.0.50 - 10.100.0.200)
+4. Navigate to: Datacenter -> SDN -> Click "Apply" (deploys cluster-wide).
+5. Attach to VM/LXC:
+   - VM -> Hardware -> Network Device -> Set Bridge to created VNet (e.g., vnet100).
+
+
+9. COMPLETE CLI COMMANDS REFERENCE (pvesdn & pvesh)
+--------------------------------------------------------------------------------
+A. Zone Management:
+```bash
+# Create Simple Zone
+pvesdn zone create localzone --type simple --ipam pve
+
+# Create VLAN Zone (tied to physical bridge vmbr0)
+pvesdn zone create vlan-zone --type vlan --bridge vmbr0 --ipam pve
+
+# Create VXLAN Zone (with cluster node IP peers)
+pvesdn zone create vxlan-zone --type vxlan --peers 192.168.1.10,192.168.1.11,192.168.1.12 --ipam pve
+
+# Create QinQ Zone
+pvesdn zone create qinq-zone --type qinq --bridge vmbr0 --tag 100 --vlan-protocol 802.1q --ipam pve
+
+# List / Delete Zones
+pvesdn zone list
+pvesdn zone delete <zone_name>
+```
+
+B. VNet Management:
+```bash
+# Create VNet on VXLAN Zone
+pvesdn vnet create vnet10 --zone vxlan-zone --tag 10
+
+# Create VNet on VLAN Zone (VLAN tag 100)
+pvesdn vnet create vnet100 --zone vlan-zone --tag 100 --alias "Production-Net"
+
+# List / Delete VNets
+pvesdn vnet list
+pvesdn vnet delete vnet10
+```
+
+C. Subnet, Gateway, SNAT & DHCP Management:
+```bash
+# Create Subnet with Gateway, Outbound Internet NAT (SNAT), and DHCP Range
+pvesdn subnet create vnet100 10.100.0.0/24 \
+  --gateway 10.100.0.1 \
+  --snat 1 \
+  --dhcp-range start-address=10.100.0.50,end-address=10.100.0.200 \
+  --dhcp-dns-server 1.1.1.1
+
+# List subnets
+pvesdn subnet list vnet100
+
+# Delete subnet
+pvesdn subnet delete vnet100 10.100.0.0/24
+```
+
+D. Applying SDN Changes:
+```bash
+# Apply and deploy pending SDN configurations cluster-wide
+pvesdn reload
+
+# Check status
+pvesdn status
+```
+
+E. Proxmox API Shell (pvesh):
+```bash
+# Query zones via API shell
+pvesh get /cluster/sdn/zones --output-format json
+
+# Create VNet via API
+pvesh create /cluster/sdn/vnets --vnet vnet50 --zone vlan-zone --tag 50
+
+# Reload SDN via API
+pvesh put /cluster/sdn/reload
+```
+
+
+10. ATTACHING VIRTUAL MACHINES (VMS) & LXC CONTAINERS
+--------------------------------------------------------------------------------
+```bash
+# Attach VM (ID: 100) network card 0 to SDN VNet bridge
+qm set 100 --net0 virtio,bridge=vnet100,firewall=1
+
+# Attach LXC Container (ID: 200) with automatic DHCP
+pct set 200 --net0 name=eth0,bridge=vnet100,ip=dhcp,firewall=1
+
+# Attach LXC Container with static IP & Gateway
+pct set 200 --net0 name=eth0,bridge=vnet100,ip=10.100.0.25/24,gw=10.100.0.1
+```
+
+
+11. CONFIGURATION FILES IN PROXMOX CLUSTER (/etc/pve/sdn/)
+--------------------------------------------------------------------------------
+File Path                         | Description
+----------------------------------+---------------------------------------------
+/etc/pve/sdn/zones.cfg            | Defined SDN Zones
+/etc/pve/sdn/vnets.cfg            | Defined Virtual Networks (VNets)
+/etc/pve/sdn/subnets.cfg          | Subnet IP prefixes, Gateways, SNAT, DHCP
+/etc/pve/sdn/controllers.cfg      | BGP / EVPN / ISIS routing controllers
+/etc/pve/sdn/ipam.cfg             | IPAM plugins (PVE, NetBox, phpIPAM)
+/etc/pve/sdn/dns.cfg              | PowerDNS / SDN DNS server settings
+/etc/network/interfaces.d/sdn     | Locally generated interface files per node
+
+
+12. INSPECTION, VERIFICATION & TROUBLESHOOTING COMMANDS
+--------------------------------------------------------------------------------
+```bash
+# 1. View locally generated SDN interface definitions
+cat /etc/network/interfaces.d/sdn
+
+# 2. Inspect active Linux network bridge
+ip -details link show vnet100
+bridge link
+bridge vlan show
+
+# 3. Check routing table & NAT firewall rules
+ip route show
+iptables -t nat -L -n -v | grep -i vnet
+
+# 4. Check DHCP leases & logs (dnsmasq)
+cat /var/lib/misc/dnsmasq.leases
+journalctl -u dnsmasq -e
+
+# 5. Check EVPN / BGP routing state (FRR)
+vtysh -c "show ip bgp summary"
+vtysh -c "show evpn vni"
+vtysh -c "show bgp l2vpn evpn route"
+
+# 6. Check cluster status
+pvecm status
+```
+
+
+13. SERVER UTILITY: REMOVING "NO VALID SUBSCRIPTION" GUI POPUP
+--------------------------------------------------------------------------------
+To remove the subscription nag popup dialog upon Web GUI login:
+
+```bash
+# 1-Line Instant Patch
+sed -Ezi.bak "s/(Ext.Msg.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js && systemctl restart pveproxy.service
+
+# Permanent Fix (Persists across apt upgrades via APT Hook)
+cat << 'EOF' > /etc/apt/apt.conf.d/no-nag-script
+DPkg::Post-Invoke { "dpkg -V proxmox-widget-toolkit | grep -q '/proxmoxlib\.js$' && sed -Ezi.bak \"s/(Ext.Msg.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g\" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js && systemctl restart pveproxy.service || true"; };
+EOF
+```
+*Note: Hard refresh your browser (Ctrl + Shift + R) after running the command.*
+================================================================================

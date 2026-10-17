@@ -1,0 +1,49 @@
+Nishu Saini,
+
+Date: 18/08/2026
+Login: 09:07AM
+Logout: 7:00 PM
+
+Work Completed for the Day
+
+
+*09:00 AM - 01:30 PM 
+
+- Validated Squid Proxy Configuration (IP-10.31.88.24)
+
+Checked squid.conf, proxy port (8870), authentication, and connectivity.
+
+- Configured & Verified SquidGuard
+
+Rebuilt SquidGuard Databases
+Reviewed categories (social, malware, gambling, blacklist, whitelist) and rebuilt databases.
+
+- Implemented Social Media Blocking
+
+Added/verified Facebook, Instagram, Messenger, TikTok, Twitter domains in social/domains.
+
+- Tested HTTPS Filtering
+
+Confirmed Facebook is blocked through the proxy:
+HTTP 403 Forbidden
+
+- Reviewed Monitoring & Reporting Setup
+
+Discussed Squid Exporter, Prometheus, Grafana, and SARG for enterprise monitoring and reporting.
+
+-Lunch break.
+
+1:30 PM to 2:45 PM 
+
+2:45 to 7 PM 
+
+Worked on different proxy server 
+Validated Squid Proxy Configuration (IP-10.31.212.14)
+Check the  htpasswd access
+Analyzed Squid Access Logs
+Reviewed and Improved Squid ACL Configuration
+Also check UFW firewall ruless incoming and outgoing traffic 
+
+
+Thank you 
+

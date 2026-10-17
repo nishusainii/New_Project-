@@ -1,0 +1,53 @@
+Name: Nishu Saini
+Date: 25/09/2026
+Login Time: 09:10 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:10 AM to 10:30 AM
+
+Proxmox Cluster VM HA Automation, Storage DD Benchmarking & Master Audit Formulation
+
+- Investigated Virtual Machine operational states across the 3-node cluster (`cisai-pve` on `10.31.6.172` / `prox22`, `prox23`, `prox24`), diagnosing stopped VMs (`9001`, `9004`) whose HA policy was paused during physical disk pull testing.
+- Reconfigured Proxmox HA Manager resource configurations (`/etc/pve/ha/resources.cfg`), setting all HA VMs (`9001`, `9002`, `9003`, `9004`) to `state: started`, confirming that all VMs auto-started across `prox22`, `prox23`, and `prox24` with CRM hardware watchdog fencing active.
+- Developed and executed an automated direct synchronous I/O benchmark suite (`benchmark_dd_iops_ceph_vs_zfs.py`) using `dd` (`oflag=direct`, `iflag=direct`, `conv=fdatasync`) across 10MB to 1000MB payloads:
+  * ZFS RAIDZ2 (`zfs-ha` - 127 TiB): Achieved peak sequential throughput of 4.59 GB/s Write / 6.46 GB/s Read / 109,475 4K IOPS.
+  * Ceph Reef (RBD 3x Replica): Achieved 113.7 MB/s Write / 336.1 MB/s Read / 1,505 4K IOPS with full 3-node synchronous network replication.
+  * Generated dedicated executive PDF benchmark report (`dd_iops_benchmark_report.pdf`).
+- Formulated and generated the Unified Combined Master Audit Report (`PROXMOX_COMBINED_TESTING_AND_RESILIENCE_MASTER_REPORT.pdf`) synthesizing all 22 test cases, 10G blackout tests, live VM stress migrations, ZFS bitrot scrubs, and technical RCA findings into a single executive document.
+- Audited and filtered the desktop deliverables archive (`/home/nishusaini/Desktop/Proxmox_Testing_Reports/`) to retain exclusively publication-ready executive PDF reports, cleaning out intermediate scripts and drafts.
+- Synchronized all updated reports, PDFs, and Markdown notes directly into Obsidian Vault.
+
+10:30 AM to 11:00 AM
+
+Juniper TAC Support Coordination & Account Activation Entitlement (Case #2026-0923-938239)
+
+- Re-engaged with Juniper Customer Care Support (Agent: Jan Rozza M) to follow up on Case Reference ID `2026-0923-938239` for the Juniper EX2300-C compact switch (Serial Number: `HV0217520242`).
+- Addressed portal login restrictions and unblocking pending account activation for Innspark Solutions Pvt. Ltd. (Amrita Vishwa Vidyapeetham Campus).
+- Resolved compliance constraints regarding generic email IDs (`itsupport@innspark.in`) by successfully migrating case communication and portal entitlement to the individual named work profile (`hareesh@innspark.in`).
+- Confirmed that internal case handling team (Angelica & Julia P) is actively processing company registration validation and granting software download privileges under the switch's Enhanced Limited Lifetime Warranty (ELLW).
+- Juniper Support confirmed an estimated review turnaround window of up to 48 hours for profile activation and portal unlock.
+- Prepared local environment and FAT32 USB recovery workflow for immediate deployment of the Junos ARM 32-bit recovery image (`junos-arm-32-*.tgz`) upon receiving download access.
+- Status: In Progress / Actively Monitoring `hareesh@innspark.in` for Activation Confirmation.
+
+11:00 AM to 11:50 AM
+
+Squid Proxy Network Diagnostics, Port Speed Testing & Team Results Review
+
+- Analyzed network traffic flow, listening ports, and throughput on the Squid Proxy server (`10.31.1.159`).
+- Conducted comprehensive speed and bandwidth latency tests through proxy routing channels to assess network caching performance and connection stability.
+- Compiled and presented previous test findings, storage IOPS benchmarks, and Proxmox resilience audit data to team and section members for collaborative review.
+
+12:00 PM to 12:30 PM
+
+Cluster Hardware & Software Health Audit, Live Verification Pass & Management NIC Decommissioning
+
+- Executed an automated cluster-wide hardware health and software configuration audit across all 3 Proxmox nodes (prox22, prox23, prox24):
+  * Compute & Thermals: Audited 576 vCPUs (192 vCPUs/node), load averages (0.35 - 0.72), and thermal sensors (< 45°C).
+  * ECC Memory: Audited 3.0 TiB total ECC RAM (1,007 GiB/node), verifying 0 EDAC/MCE machine check / memory errors.
+  * Storage Hardware: Audited 36x 20TB SAS Enterprise drives (ST20000NM007H), confirming 100% SMART Health PASSED with 0 bad or reallocated sectors.
+  * Network Interfaces: Audited 10G SFP+ full-mesh DAC links and 1G management interfaces with 0% packet loss and 0 RX/TX drop errors.
+  * Cluster Software Stack: Verified Corosync 3-node quorum (Ring ID: 1.10f), Ceph Reef cluster status (HEALTH_OK, 12/12 OSDs UP & IN, 33/33 PGs active+clean), ZFS RAIDZ2 storage pools (100% healthy with 0 bitrot checksum errors), and active HA production VMs (9001, 9002, 9003, 9004).
+- Conducted a live real-time double-check audit pass and generated the updated executive PDF report (HARDWARE_HEALTH_AND_SOFTWARE_CONFIG_AUDIT_REPORT.pdf) with system telemetry and engineering sign-off certification.
+- Decommissioned temporary direct laptop management link on prox22: flushed IP 192.168.99.1/24 from nic0, brought interface DOWN, and updated /etc/network/interfaces to manual unconfigured mode (iface nic0 inet manual) with safety backup.

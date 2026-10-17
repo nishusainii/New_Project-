@@ -1,0 +1,48 @@
+Nishu Saini,
+Date: 25/08/2026
+Login: 9:15 AM
+Logout: 6: 10 PM
+
+Today's Work Summary
+
+9:15 AM  to 11:00 AM
+-Verified all active Squid listening ports and confirmed that the proxy service was accepting connections correctly.
+-Checked active client sessions and confirmed that multiple systems were using the configured Squid proxy ports.
+-Reviewed Squid access logs and verified successful CONNECT requests and normal proxy traffic flow.
+-Captured network traffic on WAN interfaces and confirmed DNS and internet traffic on the active ISP links.
+-Verified Squid outbound connections and confirmed that multiple configured source IP addresses were being used.
+-Reviewed the tcp_outgoing_address configuration and validated the dedicated proxy-port-to-WAN mapping.
+-Monitored interface statistics and identified active traffic on kv1, kv2, kv3, kv6, kv7, and kv8.
+-Investigated inactive interfaces kv4, kv5, and kv9 and confirmed that their configured gateways were unreachable.
+-Identified ISP service suspension due to unpaid bills as the reason for the inactive links, confirming that it was not a Squid or Linux configuration issue.
+-Confirmed that Squid multi-WAN traffic separation was working correctly and marked the proxy routing issue as resolved.
+
+11:PM to 1 PM 
+
+-Created the production proxy_health1.sh Bash script for monitoring Squid ports, clients, gateways, bandwidth, interfaces, and service health.
+-Added SSH-based remote execution support and corrected script issues involving the shebang, file paths, permissions, encoded operators, and connection-count logic.
+
+1PM to 2PM 
+
+- Lunch break.
+
+2 PM to 5:00 PM 
+
+-Modernized the SARG dashboard with consolidated CSS, improved navigation, cleaner report tables, updated metric colors, and responsive graph-page styling.
+-Documented the limitations of CSS-based SARG graph customization and confirmed that internal graph changes require modification of SARG’s image-generation process or replacement charts.
+-Created a dedicated external stylesheet to separate dashboard customization from SARG-generated report data.
+-Verified successful stylesheet delivery through Apache and confirmed an HTTP 200 OK response.
+-Corrected the CSS asset path to /assets/sarg-dashboard.css so all report pages could load the customization properly.
+-Replaced the oversized blue header banner with a compact, centered dashboard card for a cleaner interface.
+-Converted the SARG report navigation into a clean horizontal menu and removed unwanted blank boxes.
+-Improved report readability through larger text, clearer user links, aligned columns, and metric-specific colors.
+
+5:PM To 6:10 PM
+
+-Planned the deployment of Pulse v6.3.1 on a Linux VM as a native systemd service without Docker.
+-Resolved the GitHub download issue by using the installer’s --archive option with a locally downloaded Linux AMD64 package.
+-Successfully completed the Pulse installation and reviewed the service status, port 7655, logs, and bootstrap-token verification steps
+-Identified the remaining tasks: open the Pulse web interface, create the administrator account.
+
+-Pending: configure the infrastructure section, and enroll the first monitored host.
+

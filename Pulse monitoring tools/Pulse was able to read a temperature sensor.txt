@@ -1,0 +1,126 @@
+From your screenshot, Pulse shows:
+
+Node	Tempprox015	—
+prox016	89°C
+prox017	—
+
+This usually means Pulse was able to read a temperature sensor on prox016, but not on prox015 or prox017.
+
+Most common reasons
+1. lm-sensors is missing
+
+Check on each Proxmox node:
+
+sensors
+
+
+If you get:
+
+Command 'sensors' not found
+
+
+install it:
+
+apt update
+apt install lm-sensors
+sensors-detect
+
+
+Then:
+
+sensors
+
+
+You should see temperatures.
+
+2. Different hardware
+
+If:
+
+prox015 = Dell R740
+prox016 = Dell R640
+prox017 = Supermicro
+
+
+or different CPU generations, some nodes may expose sensors while others do not.
+
+Check:
+
+sensors
+
+
+on all three hosts.
+
+3. IPMI/Hardware Monitoring
+
+For enterprise servers:
+
+ipmitool sensor
+
+
+If prox016 returns CPU/System temperatures but prox015/prox017 do not, Pulse can only display the sensors it finds.
+
+Install:
+
+apt install ipmitool
+
+
+and test:
+
+ipmitool sensor | grep -i temp
+
+4. Agent permission/problem
+
+Since your agents are installed:
+
+prox015 ✅ Agent
+prox016 ✅ Agent
+prox017 ✅ Agent
+
+
+verify the agent is running on all nodes:
+
+systemctl status pulse-agent
+
+
+and check logs:
+
+journalctl -u pulse-agent -n 50
+
+
+Look for temperature/sensor-related messages.
+
+Quick checks on each node
+
+Run on all three:
+
+hostname
+sensors
+
+
+and:
+
+ipmitool sensor | grep -i temp
+
+Important observation
+
+89°C is very high for a host temperature reading.
+
+Before assuming it's correct, check prox016:
+
+sensors
+
+
+The output will identify which sensor reports 89°C:
+
+CPU Package
+Core 0
+Core 1
+NVMe
+...
+
+
+Sometimes Pulse picks the hottest sensor (CPU package, SSD controller, etc.) rather than a general chassis temperature.
+
+I recommend checking sensors on prox015, prox016, and prox017 and comparing the outputs. That will immediately show whether the missing temperatures are due 
+to unavailable sensors or a Pulse collection issue.

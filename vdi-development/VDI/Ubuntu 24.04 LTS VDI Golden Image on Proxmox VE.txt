@@ -1,0 +1,919 @@
+   Production Runbook: Ubuntu 24.04 LTS VDI Golden Image on Proxmox VE 
+
+  This runbook provides an end-to-end guide for engineering, securing, validating, sealing, and lifecycle-managing a production-grade Ubuntu 24.04 LTS (Noble Numbat)
+  Virtual Desktop Infrastructure (VDI) Golden Image in Proxmox Virtual Environment (PVE).
+
+  All companion automation and validation scripts have been created and verified in your workspace:
+
+  • Runbook: UBUNTU_VDI_PROXMOX_RUNBOOK.md
+  • Host Build Automation: create-ubuntu-vdi-build-vm.sh
+  • Guest Sealing Script: seal-ubuntu-vdi.sh
+  • Clone Uniqueness Validator: verify-clone-uniqueness.sh
+  ──────
+  ## 1. Intended Architecture
+
+  ### Architectural Principle
+
+  Deploying consumer desktop distributions (such as Ubuntu Desktop) introduces substantial bloat: background daemons, Snap store overhead, media players, games, and
+  GNOME Shell memory footprints exceeding 1.8 GB RAM per idle session.
+
+  In this architecture, Ubuntu Server 24.04 LTS serves as the minimal operating-system base. On top of this clean baseline:
+
+  1. XFCE Desktop Environment is installed: Provides an enterprise, lightweight X11 desktop environment consuming only ~350 MB to 500 MB RAM per session with minimal
+  CPU load and low latency over virtual display protocols.
+  2. xrdp with xorgxrdp is deployed: Enables standards-compliant RDP (Remote Desktop Protocol) client connectivity across Windows, macOS, Linux (Remmina), and thin-
+  client terminals.
+  3. Alternative Access Transports: SPICE (via Proxmox native console or remote-viewer), NoMachine, or VDI connection brokers (e.g., OpenUDS, Apache Guacamole,
+  ThinLinc, Leostream) can be layered on top without re-architecting the base image.
+
+    +-----------------------------------------------------------------------------------+
+    |                            Remote Clients (Thin / PC)                             |
+    |          [ Windows RDP Client / Remmina / Guacamole Web / SPICE Viewer ]          |
+    +-----------------------------------------------------------------------------------+
+                                             │  (RDP Port 3389 / SPICE / TLS)
+                                             ▼
+    +-----------------------------------------------------------------------------------+
+    |                         Proxmox VE Hypervisor Host                                |
+    |                                                                                   |
+    |  +-----------------------------------------------------------------------------+  |
+    |  |                 Ubuntu 24.04 LTS VDI Guest Virtual Machine                  |  |
+    |  |                                                                             |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  |  |  XFCE Graphical Session (xfce4-session, thunar, xfce4-terminal)        |  |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  |  |  Display & Session Manager: xrdp / xorgxrdp (sesman) [Opt: LightDM]   |  |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  |  |  Core OS Services: systemd, Polkit, AppArmor, cloud-init, UFW         |  |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  |  |  QEMU Guest Agent (qemu-ga) & VirtIO Drivers (SCSI, Net, Balloon)     |  |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  |  |  Minimal Kernel: Ubuntu Server 24.04 LTS Kernel 6.8+                  |  |  |
+    |  |  +-----------------------------------------------------------------------+  |  |
+    |  +-----------------------------------------------------------------------------+  |
+    |                                                                                   |
+    |  Hypervisor Layer: q35 Chipset | OVMF (UEFI) | VirtIO-SCSI-Single | Discard/TRIM  |
+    |  Storage Layer: ZFS / Ceph / LVM-Thin / NFS Datastore                             |
+    +-----------------------------------------------------------------------------------+
+
+  ### VM Specifications Summary
+
+  • Firmware & Chipset: OVMF UEFI + q35 PCIe architecture + 4MB EFI Disk
+  • Storage: VirtIO SCSI Single (virtio-scsi-single) with dedicated IOThread, discard=on (TRIM), and SSD emulation (ssd=1)
+  • Networking: VirtIO paravirtualized NIC with optional VLAN tagging
+  • Agent: QEMU Guest Agent (qemu-guest-agent) enabled
+  • Provisioning: cloud-init via attached virtual drive
+  ──────
+  ## 2. State Assumptions and Limitations
+
+  ### Assumptions
+
+  1. Proxmox VE is installed, reachable via network, and managed by an authorized administrator.
+  2. A storage pool supporting VM disk images (images) exists (e.g., local-lvm, local-zfs, ceph, or NFS-Storage).
+  3. An active network bridge (e.g., vmbr0) exists on the host with connectivity to a provisioning DHCP service or routed subnet.
+  4. Target VM IDs and Template IDs are reserved and confirmed unused prior to execution.
+
+  ### Proxmox VM Template vs. Complete VDI Platform
+
+  A Proxmox VM Template is an immutable master virtual machine image and hardware definition.
+
+  • What Proxmox Provides: Rapid linked/full cloning, live snapshotting, VM scheduling, disk resizing, and cluster migration.
+  • What Proxmox Does NOT Provide: User entitlement brokering, dynamic non-persistent pool recycling upon logout, user-session load balancing, or HTML5 clientless
+  browser gateways.
+  • Centralized Brokering Options: If automated pooling and entitlement management are needed, combine Proxmox with:
+      • OpenUDS: Multi-platform open-source VDI connection broker with native Proxmox VE API provider.
+      • Apache Guacamole: Clientless HTML5 browser gateway for RDP/SSH/VNC.
+      • Leostream: Enterprise broker providing dynamic desktop pool assignment and Active Directory integration.
+
+
+  ### Persistent vs. Non-Persistent VDI Models
+
+  • Persistent VDI (Full Clone): Independent disk copy (--full 1). The VM retains all installed user packages, local configurations, and files across reboots. Backed
+  up individually via Proxmox Backup Server or vzdump.
+  • Non-Persistent VDI (Linked Clone): Differencing disk pointing to the base template disk (--full 0). Provisioned in seconds. Highly storage efficient. All guest
+  state is ephemeral and discarded upon VM destroy/reset. Requires user profiles to be redirected to network storage (NFS/SMB/SSSD).
+  ──────
+  ## 3. Read-Only Environment Discovery
+
+  Execute these commands directly on the Proxmox host shell (ssh root@<pve-host>). Every command in this section is strictly READ-ONLY and makes no modifications.
+
+    # [READ-ONLY] 1. Inspect Proxmox VE Version and Kernel Release
+    pveversion -v
+    
+    # [READ-ONLY] 2. Inspect Node Hostname and System Architecture
+    hostname -f
+    uname -a
+    lscpu | grep -E "Model name|Socket|Thread|NUMA|CPU\(s\)"
+    
+    # [READ-ONLY] 3. Inspect Memory Allocation and Free Capacity
+    free -h
+    
+    # [READ-ONLY] 4. Inspect Proxmox Cluster Health & Quorum
+    pvecm status 2>/dev/null || echo "[*] Standalone Node (No cluster configured)"
+    
+    # [READ-ONLY] 5. List All Existing Virtual Machines and Templates
+    qm list
+    
+    # [READ-ONLY] 6. Identify In-Use VM IDs to Avoid Conflicts
+    echo "=== Current VM IDs in Use ==="
+    qm list | awk 'NR>1 {print $1, $2, $3}' | sort -n
+    
+    # [READ-ONLY] 7. Inspect Storage Pools, Types, and Allocated Content Types
+    pvesm status
+    
+    # [READ-ONLY] 8. Inspect Raw Storage Definitions
+    cat /etc/pve/storage.cfg
+    
+    # [READ-ONLY] 9. Inspect Snippets-Enabled Storage (for Cloud-Init Customizations)
+    grep -E "snippets|dir:|nfs:" /etc/pve/storage.cfg
+    
+    # [READ-ONLY] 10. List Available ISO and Template Images
+    pvesm list local --content iso 2>/dev/null || true
+    pvesm list NFS-Storage --content iso 2>/dev/null || true
+    
+    # [READ-ONLY] 11. Inspect Linux Network Bridges and Physical Uplinks
+    ip -brief link show
+    cat /etc/network/interfaces
+    
+    # [READ-ONLY] 12. Check for VLAN-Aware Bridge Configuration
+    grep -E "bridge-vlan-aware|iface vmbr" /etc/network/interfaces
+    
+    # [READ-ONLY] 13. Inspect Storage Available for Backups
+    pvesm status -content backup
+    
+    # [READ-ONLY] 14. Check for Existing Ubuntu Templates
+    qm list | grep -i ubuntu || echo "[*] No existing Ubuntu templates found."
+  ──────
+  ## 4. Configuration Variables
+
+  Define environment variables for your build. Adjust the placeholders below to match your environment:
+
+    # ==============================================================================
+    # CONFIGURATION VARIABLES (Set on Proxmox Host Shell)
+    # ==============================================================================
+    export VM_ID="9000"                              # Unused VM ID for the build VM
+    export VM_NAME="ubuntu-2404-vdi-gold-build"      # Descriptive build VM name
+    export TEMPLATE_NAME="ubuntu-vdi-2404-gold-v2026.1" # Immutable template tag
+    export TEMPLATE_VERSION="2026.1.0"               # Image release version
+    export UBUNTU_RELEASE="noble"                    # Ubuntu 24.04 LTS codename
+    export UBUNTU_IMAGE="noble-server-cloudimg-amd64.img"
+    export IMAGE_DIR="/var/lib/vz/template/iso"      # Image cache directory on host
+    export IMAGE_PATH="${IMAGE_DIR}/${UBUNTU_IMAGE}"
+    export STORAGE="local-lvm"                       # Storage supporting disk images ('images')
+    export SNIPPET_STORAGE="local"                   # Storage supporting 'snippets'
+    export BACKUP_STORAGE="local"                    # Storage supporting 'backup'
+    export BRIDGE="vmbr0"                            # Primary network bridge
+    export VLAN_ID=""                                # Optional 802.1Q VLAN (e.g., 20 or empty)
+    export CORES="4"                                 # Build VM vCPU cores
+    export MEMORY="4096"                             # Build VM RAM in MB (4 GB)
+    export DISK_SIZE="32G"                           # Primary disk capacity
+    export CI_USER="vdiadmin"                        # Administrative cloud-init account
+    export SSH_PUBLIC_KEY_FILE="/root/.ssh/id_ed25519.pub" # Host SSH key for injection
+    export DNS_SERVER="10.31.0.1"                    # Local recursive DNS resolver
+    export DNS_DOMAIN="internal.vdi"                 # Network search domain
+    export IP_CONFIG="ip=dhcp"                       # Network config (or static "ip=X/23,gw=Y")
+    export TIME_ZONE="UTC"                           # Default system timezone
+    export LOCALE="en_US.UTF-8"                      # Default system locale
+    export KEYBOARD_LAYOUT="us"                      # Default keyboard keymap
+    export DESKTOP_ENVIRONMENT="xfce"                # Target desktop environment
+    export REMOTE_DESKTOP_SERVICE="xrdp"             # Target remote desktop protocol daemon
+  ──────
+  ## 5. Image Creation Approaches
+
+  ### Method A: Official Cloud Image (Preferred)
+
+  • Mechanism: Download noble-server-cloudimg-amd64.img directly from Ubuntu's cloud image repository, verify cryptographic SHA256 checksum, import into Proxmox via
+  qm importdisk, and attach a cloud-init drive.
+  • Advantages: 100% deterministic, zero human error during OS installation, fast (provisions in < 2 minutes), clean minimal OS baseline without desktop installer
+  baggage.
+  • Limitations: Requires outgoing HTTPS connectivity from the Proxmox host (or manual copy of the cloud image).
+
+  ### Method B: ISO Installation
+
+  • Mechanism: Mount Ubuntu Server 24.04 ISO, manually or via autoinstall navigate partition wizards, and manually configure packages.
+  • Advantages: Compatible with completely disconnected air-gapped environments.
+  • Limitations: Slower, inconsistent partition layout, requires manual cleanup of installer cache and log residue.
+  ──────
+  ## 6. Create the Proxmox Build VM
+
+  ### 6.1 Proxmox Web GUI Instructions
+
+  1. Log in to Proxmox Web UI (https://<pve-node>:8006).
+  2. Click Create VM:
+      • General: Node: <node>, VM ID: 9000, Name: ubuntu-2404-vdi-gold-build. Check Advanced.
+      • OS: Select Do not use any media. Guest OS Type: Linux, Version: 6.x - 2.6 Kernel.
+      • System: Machine: q35, BIOS: OVMF (UEFI), Check Add EFI Disk (Storage: local-lvm, Pre-Enrolled Keys checked). SCSI Controller: VirtIO SCSI Single. Check QEMU
+      Agent.
+      • Disks: Delete the default SCSI/IDE disk created by the wizard.
+      • CPU: Sockets: 1, Cores: 4, Type: host (provides AVX2/AES hardware acceleration for smooth video rendering).
+      • Memory: 4096 MB. Disable memory ballooning (balloon: 0) to prevent latency spikes during user graphical workloads.
+      • Network: Bridge: vmbr0, Model: VirtIO (paravirtualized).
+  3. Under Hardware:
+      • Click Add -> CloudInit Drive (Bus: IDE 2, Storage: local-lvm).
+      • Click Add -> Serial Port (Port 0).
+      • Edit Display: Set to Serial terminal 0 (or SPICE (qxl) if SPICE testing is desired).
+  4. Under Cloud-Init:
+      • Set User: vdiadmin, inject your public SSH key, DNS: 10.31.0.1, IP: DHCP.
+
+  ──────
+  ### 6.2 Equivalent qm CLI Commands (Scriptable & Idempotent)
+
+    # [CHANGE] 1. Verify VM ID is Unused
+    if qm status "${VM_ID}" &>/dev/null; then
+        echo "[-] ERROR: VM ID ${VM_ID} is already in use!" >&2
+        exit 1
+    fi
+    
+    # [CHANGE] 2. Download and Verify Cloud Image Checksum
+    mkdir -p "${IMAGE_DIR}"
+    cd "${IMAGE_DIR}"
+    
+    if [[ ! -f "${UBUNTU_IMAGE}" ]]; then
+        echo "[*] Downloading Ubuntu 24.04 Cloud Image..."
+        wget -q --show-progress "https://cloud-images.ubuntu.com/noble/current/${UBUNTU_IMAGE}"
+        wget -q "https://cloud-images.ubuntu.com/noble/current/SHA256SUMS"
+    fi
+    
+    echo "[*] Verifying SHA256 checksum..."
+    EXPECTED_HASH=$(grep "${UBUNTU_IMAGE}" SHA256SUMS | awk '{print $1}')
+    ACTUAL_HASH=$(sha256sum "${UBUNTU_IMAGE}" | awk '{print $1}')
+    
+    if [[ "${EXPECTED_HASH}" != "${ACTUAL_HASH}" ]]; then
+        echo "[-] FATAL: Checksum verification failed!" >&2
+        exit 1
+    fi
+    echo "[+] Checksum Verified: ${ACTUAL_HASH}"
+    
+    # [CHANGE] 3. Create Base VM with q35, OVMF, VirtIO-SCSI-Single, and QEMU Guest Agent
+    qm create "${VM_ID}" \
+        --name "${VM_NAME}" \
+        --machine q35 \
+        --bios ovmf \
+        --cpu host \
+        --cores "${CORES}" \
+        --sockets 1 \
+        --memory "${MEMORY}" \
+        --balloon 0 \
+        --scsihw virtio-scsi-single \
+        --net0 "virtio,bridge=${BRIDGE}${VLAN_ID:+,tag=${VLAN_ID}}" \
+        --agent enabled=1,fstrim_cloned_disks=1 \
+        --vga serial0 \
+        --serial0 socket \
+        --ostype l26
+    
+    # [CHANGE] 4. Allocate 4MB OVMF EFI Disk with Pre-Enrolled Keys
+    qm set "${VM_ID}" --efidisk0 "${STORAGE}:0,pre-enrolled-keys=1,efitype=4m"
+    
+    # [CHANGE] 5. Import Cloud Disk Image into Target Storage Pool
+    qm importdisk "${VM_ID}" "${IMAGE_PATH}" "${STORAGE}"
+    
+    # Retrieve imported volume name
+    IMPORTED_VOL=$(qm config "${VM_ID}" | grep -o "unused[0-9]" | head -n1)
+    
+    # [CHANGE] 6. Attach as Primary Boot Disk with Discard (TRIM) and SSD Emulation
+    qm set "${VM_ID}" --scsi0 "${STORAGE}:${IMPORTED_VOL},discard=on,ssd=1,iothread=1"
+    
+    # [CHANGE] 7. Resize Disk to Target Capacity
+    qm disk resize "${VM_ID}" scsi0 "${DISK_SIZE}"
+    
+    # [CHANGE] 8. Attach Cloud-Init Drive
+    qm set "${VM_ID}" --ide2 "${STORAGE}:cloudinit"
+    
+    # [CHANGE] 9. Configure Boot Order & Cloud-Init Parameters
+    qm set "${VM_ID}" --boot order=scsi0
+    qm set "${VM_ID}" --ciuser "${CI_USER}"
+    qm set "${VM_ID}" --sshkeys "${SSH_PUBLIC_KEY_FILE}"
+    qm set "${VM_ID}" --ipconfig0 "${IP_CONFIG}"
+    qm set "${VM_ID}" --nameserver "${DNS_SERVER}"
+    qm set "${VM_ID}" --searchdomain "${DNS_DOMAIN}"
+    
+    # [VALIDATION] Verify Complete VM Configuration
+    qm config "${VM_ID}"
+  ──────
+  ## 7. Base Ubuntu Configuration
+
+  Power on the VM from the Proxmox host and connect via SSH:
+
+    # [CHANGE] Start the VM
+    qm start "${VM_ID}"
+    
+    # Wait for IP address via QEMU Guest Agent
+    BUILD_IP=""
+    while [[ -z "${BUILD_IP}" ]]; do
+        echo "[*] Waiting for QEMU Guest Agent to report IP address..."
+        sleep 3
+        BUILD_IP=$(qm guest cmd "${VM_ID}" network-get-interfaces 2>/dev/null | jq -r '.[].["ip-addresses"][]? | select(.["ip-address-type"]=="ipv4" and .["ip-
+  address"]!="127.0.0.1") | .["ip-address"]' | head -n1 || true)
+    done
+    echo "[+] Build VM active at: ${BUILD_IP}"
+    
+    # Connect to Guest Shell
+    ssh -i "${SSH_PUBLIC_KEY_FILE}" "${CI_USER}@${BUILD_IP}"
+
+  ### Guest OS Baseline (Execute inside Ubuntu Guest as root)
+
+    # [CHANGE] 1. Upgrade System Packages
+    export DEBIAN_FRONTEND=noninteractive
+    sudo apt-get update
+    sudo apt-get dist-upgrade -y
+    
+    # [CHANGE] 2. Install Baseline Utilities and Agent Drivers
+    sudo apt-get install -y --no-install-recommends \
+        qemu-guest-agent \
+        openssh-server \
+        ca-certificates \
+        curl \
+        wget \
+        vim \
+        nano \
+        bash-completion \
+        chrony \
+        unattended-upgrades \
+        policykit-1 \
+        dbus-x11 \
+        net-tools \
+        iproute2 \
+        dnsutils \
+        htop \
+        software-properties-common
+    
+    # [CHANGE] 3. Configure Time Synchronization (Chrony)
+    sudo systemctl enable --now chrony
+    chronyc tracking
+    
+    # [CHANGE] 4. Configure Unattended Security Updates
+    sudo tee /etc/apt/apt.conf.d/50unattended-upgrades <<'EOF'
+    Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+    };
+    Unattended-Upgrade::Package-Blacklist {
+    };
+    Unattended-Upgrade::AutoFixInterruptedDpkg "true";
+    Unattended-Upgrade::MinimalSteps "true";
+    Unattended-Upgrade::InstallOnShutdown "false";
+    Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+    Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+    Unattended-Upgrade::Automatic-Reboot "false";
+    EOF
+    
+    sudo tee /etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+    APT::Periodic::Update-Package-Lists "1";
+    APT::Periodic::Unattended-Upgrade "1";
+    APT::Periodic::AutocleanInterval "7";
+    EOF
+    
+    # [VALIDATION] Verify System Services
+    systemctl is-active qemu-guest-agent
+    systemctl is-active chrony
+    systemctl is-active unattended-upgrades
+  ──────
+  ## 8. Graphical Desktop Installation (XFCE)
+
+  ### Package Comparison
+
+  • xfce4: Core desktop package (panel, window manager, desktop manager). Recommended base.
+  • xfce4-goodies: Adds heavy applets, artwork, games, and plugins. Avoid in lean VDI builds.
+  • xubuntu-desktop: Full desktop distribution metapackage; pulls in LibreOffice, Thunderbird, games, and media players (~3 GB+ footprint).
+
+  ### Recommended Minimal Installation
+
+    # [CHANGE] 1. Install Minimal XFCE and Core Display Components
+    sudo apt-get install -y --no-install-recommends \
+        xorg \
+        x11-xserver-utils \
+        xfce4 \
+        xfce4-session \
+        xfce4-panel \
+        xfce4-terminal \
+        xfce4-appfinder \
+        thunar \
+        thunar-volman \
+        xfwm4 \
+        xfconf \
+        desktop-file-utils \
+        shared-mime-info \
+        fonts-dejavu-core \
+        fonts-liberation \
+        xterm
+    
+    # [CHANGE] 2. Set Default Systemd Target to Graphical
+    sudo systemctl set-default graphical.target
+    
+    # [VALIDATION]
+    systemctl get-default
+    # Expected: graphical.target
+  ──────
+  ## 9. Remote Desktop Configuration (xrdp)
+
+  ### 9.1 Service Setup & Fixes for Common Issues
+
+    # [CHANGE] 1. Install xrdp and the high-performance xorgxrdp backend
+    sudo apt-get install -y --no-install-recommends xrdp xorgxrdp
+    
+    # [CHANGE] 2. Grant xrdp user access to SSL certificates
+    sudo adduser xrdp ssl-cert
+    
+    # [CHANGE] 3. Configure Default System-Wide X Session
+    sudo update-alternatives --set x-session-manager /usr/bin/xfce4-session
+    
+    # Create system-wide fallback template in /etc/skel
+    sudo tee /etc/skel/.xsession <<'EOF'
+    #!/bin/sh
+    export GNOME_SHELL_SESSION_MODE=xfce
+    export XDG_CURRENT_DESKTOP=XFCE
+    export XDG_SESSION_DESKTOP=xfce
+    exec /usr/bin/xfce4-session
+    EOF
+    sudo chmod +x /etc/skel/.xsession
+    
+    # [CHANGE] 4. Configure /etc/xrdp/startwm.sh to Prevent Black Screen on Login
+    sudo tee /etc/xrdp/startwm.sh <<'EOF'
+    #!/bin/sh
+    if [ -r /etc/default/locale ]; then
+        . /etc/default/locale
+        export LANG LANGUAGE
+    fi
+    
+    # Reset bus environment variables to avoid session bus locking
+    unset DBUS_SESSION_BUS_ADDRESS
+    unset XDG_RUNTIME_DIR
+    
+    export XDG_CURRENT_DESKTOP=XFCE
+    export XDG_SESSION_DESKTOP=xfce
+    exec /usr/bin/xfce4-session
+    EOF
+    sudo chmod +x /etc/xrdp/startwm.sh
+    
+    # [CHANGE] 5. Configure Session Parameters in /etc/xrdp/sesman.ini
+    sudo sed -i 's/^KillDisconnected=.*/KillDisconnected=false/' /etc/xrdp/sesman.ini
+    sudo sed -i 's/^DisconnectedTimeLimit=.*/DisconnectedTimeLimit=0/' /etc/xrdp/sesman.ini
+    sudo sed -i 's/^IdleTimeLimit=.*/IdleTimeLimit=0/' /etc/xrdp/sesman.ini
+    sudo sed -i 's/^MaxSessions=.*/MaxSessions=50/' /etc/xrdp/sesman.ini
+    
+    # [CHANGE] 6. Resolve PolicyKit Popups for Color Manager and NetworkManager
+    sudo mkdir -p /etc/polkit-1/localauthority/50-local.d/
+    sudo tee /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla <<'EOF'
+    [Allow Colord for all users]
+    Identity=unix-user:*
+    Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-device;org.freedesktop.color-
+  manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+    ResultAny=no
+    ResultInactive=no
+    ResultActive=yes
+    EOF
+    
+    sudo tee /etc/polkit-1/localauthority/50-local.d/46-allow-networkmanager.pkla <<'EOF'
+    [Allow Network Control for all users]
+    Identity=unix-user:*
+    Action=org.freedesktop.NetworkManager.network-control
+    ResultAny=yes
+    ResultInactive=yes
+    ResultActive=yes
+    EOF
+    
+    # [CHANGE] 7. Enable and Start Remote Desktop Services
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now xrdp
+    sudo systemctl enable --now xrdp-sesman
+    
+    # [VALIDATION] Verify Listening Sockets
+    ss -tlpn | grep -E "3389|xrdp"
+    # Expected: LISTEN on 0.0.0.0:3389 (xrdp) and 127.0.0.1:3350 (sesman)
+  ──────
+  ## 10. VDI User and Profile Strategy
+
+  │ Important
+  │ Golden Image Boundary Rule: Never store production user data or real user accounts inside the template. Use an ephemeral test user for functional validation, and
+  │ ensure it is purged before sealing.
+
+  ### Testing Account Setup
+
+    # [CHANGE] Create isolated test account
+    sudo useradd -m -s /bin/bash -c "VDI Test User" vdi-test
+    echo "vdi-test:TemporaryTestPass123!" | sudo chpasswd
+    sudo usermod -aG ssl-cert vdi-test
+    sudo cp /etc/skel/.xsession /home/vdi-test/.xsession
+    sudo chown vdi-test:vdi-test /home/vdi-test/.xsession
+    
+    # [VALIDATION] Connect via RDP Client from your workstation:
+    #   Host: <BUILD_VM_IP>:3389
+    #   Username: vdi-test
+    #   Password: TemporaryTestPass123!
+    # Verify: XFCE desktop appears, menus operate, terminal opens, clipboard functions.
+  ──────
+  ## 11. Directory Integration (Active Directory / SSSD)
+
+  │ Caution
+  │ Do NOT join Active Directory inside the golden image. If joined inside the template, all clones will share the identical machine account and Kerberos SPN,
+  breaking
+  │ AD domain authentication across the entire pool. Pre-install the binaries in the template, but execute the realm join step post-clone.
+
+    # [CHANGE] Pre-stage SSSD and realmd packages inside the Golden Image
+    sudo apt-get install -y --no-install-recommends \
+        realmd \
+        sssd \
+        sssd-tools \
+        adcli \
+        samba-common-bin \
+        oddjob \
+        oddjob-mkhomedir \
+        packagekit \
+        libpam-sss \
+        libnss-sss
+    
+    # Enable automatic home directory generation
+    sudo pam-auth-update --enable mkhomedir
+  ──────
+  ## 12. VDI Application Baseline
+
+  Install standard enterprise applications without adding unnecessary background daemons:
+
+    # [CHANGE] 1. Install Essential Productivity Tools
+    sudo apt-get install -y --no-install-recommends \
+        evince \
+        file-roller \
+        p7zip-full \
+        curl \
+        traceroute
+    
+    # [CHANGE] 2. Install Native Firefox ESR (PPA deb packages avoid Snap daemon memory overhead)
+    sudo add-apt-repository -y ppa:mozillateam/ppa
+    sudo tee /etc/apt/preferences.d/mozilla-firefox <<'EOF'
+    Package: *
+    Pin: release o=LP-PPA-mozillateam
+    Pin-Priority: 1001
+    
+    Package: firefox*
+    Pin: release o=Ubuntu*
+    Pin-Priority: -1
+    EOF
+    sudo apt-get update
+    sudo apt-get install -y --no-install-recommends firefox-esr
+  ──────
+  ## 13. VDI Optimization
+
+  Apply conservative, reversible optimizations to minimize storage and memory thrashing:
+
+    # [CHANGE] 1. Reduce Swappiness (Virtual desktops perform poorly when memory is aggressively paged)
+    sudo tee /etc/sysctl.d/99-vdi-performance.conf <<'EOF'
+    vm.swappiness=10
+    vm.vfs_cache_pressure=50
+    EOF
+    sudo sysctl --system
+    
+    # [CHANGE] 2. Enable Periodic TRIM for VirtIO Thin Disks
+    sudo systemctl enable fstrim.timer
+    
+    # [CHANGE] 3. Disable Apport Crash Daemon (Eliminates user popups and CPU spikes)
+    sudo systemctl mask apport.service
+    
+    # [CHANGE] 4. Limit Systemd Journal Retention to 100MB
+    sudo mkdir -p /etc/systemd/journald.conf.d/
+    sudo tee /etc/systemd/journald.conf.d/size-limit.conf <<'EOF'
+    [Journal]
+    SystemMaxUse=100M
+    RuntimeMaxUse=50M
+    MaxRetentionSec=1month
+    EOF
+    sudo systemctl restart systemd-journald
+    
+    # [CHANGE] 5. Disable Screen Blanking and DPMS (Handled by client endpoints)
+    sudo tee /etc/xdg/autostart/disable-dpms.desktop <<'EOF'
+    [Desktop Entry]
+    Type=Application
+    Name=Disable DPMS
+    Exec=xset s off -dpms
+    Hidden=false
+    NoDisplay=false
+    X-GNOME-Autostart-enabled=true
+    EOF
+  ──────
+  ## 14. Security Hardening
+
+    # [CHANGE] 1. Harden SSH Configuration
+    sudo tee /etc/ssh/sshd_config.d/99-vdi-hardening.conf <<'EOF'
+    PermitRootLogin prohibit-password
+    PasswordAuthentication no
+    X11Forwarding no
+    MaxAuthTries 3
+    ClientAliveInterval 300
+    ClientAliveCountMax 2
+    EOF
+    sudo systemctl restart ssh
+    
+    # [CHANGE] 2. Configure Host Firewall (UFW)
+    sudo ufw default deny incoming
+    sudo ufw default allow outgoing
+    sudo ufw allow from 10.31.0.0/23 to any port 22 proto tcp comment "Admin SSH"
+    sudo ufw allow from 10.31.0.0/23 to any port 3389 proto tcp comment "VDI RDP Client Access"
+    sudo ufw --force enable
+    
+    # [CHANGE] 3. Restrict Power Actions (Prevent remote users from shutting down or rebooting the VM)
+    sudo tee /etc/polkit-1/localauthority/50-local.d/47-restrict-power.pkla <<'EOF'
+    [Disable Shutdown and Reboot for standard users]
+    Identity=unix-user:*
+    Action=org.freedesktop.login1.power-off;org.freedesktop.login1.power-off-multiple-sessions;org.freedesktop.login1.reboot;org.freedesktop.login1.reboot-multiple-
+  sessions
+    ResultAny=no
+    ResultInactive=no
+    ResultActive=no
+    EOF
+    
+    # [VALIDATION] Verify AppArmor Status
+    sudo aa-status | grep "apparmor module is loaded"
+  ──────
+  ## 15. Clone-Safety Cleanup & Generalization
+
+  Before converting the VM to a template, all machine-specific identifiers must be reset:
+
+  • cloud-init: cloud-init clean --logs --seed resets instance cache so new clones run their own initialization.
+  • machine-id: /etc/machine-id truncated to 0 bytes so systemd regenerates a unique ID on clone boot (prevents DHCP IP collisions).
+  • SSH Host Keys: /etc/ssh/ssh_host_* deleted so each clone generates unique cryptographic fingerprints.
+  • DHCP Leases & Network State: Purged so no MAC or IP bindings persist.
+  • Test Users: vdi-test deleted with home directory removed.
+  ──────
+  ## 16. Golden-Image Sealing Script
+
+  The script seal-ubuntu-vdi.sh has been prepared. Copy it to the VM or execute the commands below inside the guest as root:
+
+    # Inside the Ubuntu VDI Build VM (run as root: sudo -i):
+    curl -sSL "https://raw.githubusercontent.com/.../seal-ubuntu-vdi.sh" -o /root/seal-ubuntu-vdi.sh 2>/dev/null || true
+    # Alternatively, run the local script:
+    bash /home/nishusaini/Desktop/Innspark/vdi-development/scripts/seal-ubuntu-vdi.sh
+
+  ### Script Execution Summary:
+
+  1. Stops xrdp, xrdp-sesman, and display manager daemons.
+  2. Terminates active user sessions (loginctl terminate-user).
+  3. Deletes test user vdi-test and home directory (userdel -r -f vdi-test).
+  4. Cleans APT package caches (apt-get clean, autoremove --purge).
+  5. Executes cloud-init clean --logs --seed.
+  6. Truncates /etc/machine-id to 0 bytes and links /var/lib/dbus/machine-id.
+  7. Purges SSH host keys (rm -f /etc/ssh/ssh_host_*).
+  8. Cleans DHCP lease caches and desktop thumbnail caches.
+  9. Vacuums systemd journal logs.
+  10. Clears shell history and powers off the VM (shutdown -h now).
+  ──────
+  ## 17. Pre-Template Validation
+
+  Execute on the Proxmox host shell:
+
+    # [READ-ONLY] 1. Confirm VM has powered off cleanly
+    qm status 9000
+    # Expected: status: stopped
+    
+    # [READ-ONLY] 2. Confirm Hardware Configuration
+    qm config 9000
+    # Verify: boot order is scsi0, agent is enabled, cloudinit drive attached, efidisk0 present.
+  ──────
+  ## 18. Backup and Rollback
+
+  Create a verified, standalone compressed backup before sealing into a template:
+
+    # [CHANGE] Execute on Proxmox VE Host Shell:
+    echo "[*] Creating verified compressed backup of build VM 9000..."
+    vzdump 9000 \
+        --compress zstd \
+        --mode stop \
+        --storage "${BACKUP_STORAGE}" \
+        --notes-template "Ubuntu 24.04 VDI Golden Image v${TEMPLATE_VERSION} - Pre-Template State"
+    
+    # [VALIDATION] Verify Backup Archive Exists in Storage
+    pvesm list "${BACKUP_STORAGE}" --content backup | grep "9000"
+  ──────
+  ## 19. Convert to a Proxmox Template
+
+    # [CHANGE] Execute on Proxmox VE Host Shell:
+    # 1. Update VM Name to Final Template Convention
+    qm set 9000 --name "${TEMPLATE_NAME}"
+    
+    # 2. Convert VM into Immutable Template
+    qm template 9000
+    
+    # [VALIDATION] Verify Template Status Flag
+    qm config 9000 | grep "template: 1"
+    # Expected: template: 1
+
+  │ Warning
+  │ A Proxmox template is immutable and cannot be powered on directly (qm start 9000 will return an error). Only clones derived from it can be started.
+  ──────
+  ## 20. Create VDI Clones
+
+  ### 20.1 Persistent Ubuntu VDI (Full Clone)
+
+    # [CHANGE] Deploy a Persistent Desktop Clone (VM ID: 201)
+    qm clone 9000 201 \
+        --name "vdi-user-01" \
+        --full 1 \
+        --storage "local-lvm"
+    
+    # Expand disk by 20GB for user workspace
+    qm disk resize 201 scsi0 +20G
+    
+    # Inject individual user cloud-init configuration
+    qm set 201 \
+        --ciuser "vdiuser" \
+        --sshkeys "/root/.ssh/id_ed25519.pub" \
+        --ipconfig0 "ip=dhcp"
+    
+    # Start the clone
+    qm start 201
+
+  ### 20.2 Non-Persistent Ubuntu VDI (Linked Clone)
+
+    # [CHANGE] Deploy an Ephemeral Linked Clone (VM ID: 301)
+    qm clone 9000 301 \
+        --name "vdi-pool-kiosk-01" \
+        --full 0
+    
+    # Set cloud-init parameters
+    qm set 301 \
+        --ciuser "kiosk" \
+        --ipconfig0 "ip=dhcp"
+    
+    # Start the clone
+    qm start 301
+    
+    # Reversion / Reset Process (At end of user session):
+    # qm stop 301
+    # qm destroy 301
+    # qm clone 9000 301 --name "vdi-pool-kiosk-01" --full 0 && qm start 301
+  ──────
+  ## 21. First-Boot Validation
+
+  Inside a newly booted clone (or via qm guest exec <VMID>):
+
+    # 1. Verify Cloud-Init Completion
+    cloud-init status --wait
+    # Expected: status: done
+    
+    # 2. Verify Unique Machine ID Generation
+    cat /etc/machine-id
+    # Expected: 32-character random hex string
+    
+    # 3. Verify QEMU Guest Agent
+    systemctl is-active qemu-guest-agent
+    # Expected: active
+    
+    # 4. Verify xrdp Remote Desktop Daemon
+    systemctl is-active xrdp
+    ss -tlpn | grep 3389
+    # Expected: active / LISTEN on 0.0.0.0:3389
+    
+    # 5. Verify Filesystem Auto-Expansion
+    df -h /
+    # Expected: / partition matches expanded virtual disk size
+  ──────
+  ## 22. Multi-Clone Uniqueness Test
+
+  Deploy two test clones (201 and 202) and run the uniqueness comparison script verify-clone-uniqueness.sh:
+
+    # Run on Proxmox Host:
+    /home/nishusaini/Desktop/Innspark/vdi-development/scripts/verify-clone-uniqueness.sh 10.31.1.201 10.31.1.202 vdiadmin
+
+  Expected Output:
+
+    ======================================================================
+              UBUNTU VDI MULTI-CLONE UNIQUENESS VERIFICATION               
+    ======================================================================
+    [*] Checking Hostname... PASSED (Unique)
+        Clone 1: vdi-user-01
+        Clone 2: vdi-user-02
+    [*] Checking /etc/machine-id... PASSED (Unique)
+        Clone 1: e6a422119c8f498c8c7d81a98075bc01
+        Clone 2: 7f3b890a23dc4efbb92100874135ab88
+    [*] Checking MAC Address... PASSED (Unique)
+        Clone 1: bc:24:11:8a:02:14
+        Clone 2: bc:24:11:8a:02:15
+    [*] Checking IP Address... PASSED (Unique)
+        Clone 1: 10.31.1.201
+        Clone 2: 10.31.1.202
+    [*] Checking SSH Host Key (ed25519)... PASSED (Unique)
+        Clone 1: SHA256:4t7Xw+N...
+        Clone 2: SHA256:8k2Lp-Q...
+    ======================================================================
+     RESULT: ALL UNIQUENESS VERIFICATIONS PASSED.
+  ──────
+  ## 23. Template Maintenance & Versioning
+
+  Never modify an active production template directly. Adopt an Immutable Versioned Lifecycle:
+
+    +-----------------------------------+
+    | Active Template: v2026.1 (ID: 9000)| (DO NOT TOUCH)
+    +-----------------------------------+
+                      │
+                      ▼ (qm clone 9000 9099 --full 1)
+    +-----------------------------------+
+    |  Maintenance VM: ID 9099          |
+    |  - Boot and Apply apt-get upgrade  |
+    |  - Update security agents         |
+    |  - Test xrdp & desktop session    |
+    |  - Execute seal-ubuntu-vdi.sh     |
+    +-----------------------------------+
+                      │
+                      ▼ (qm template 9099)
+    +-----------------------------------+
+    | New Template: v2026.2 (ID: 9001)   |
+    |  - Acceptance testing on 2 clones |
+    |  - Production promotion signoff   |
+    |  - Archive v2026.1 after 30 days  |
+    +-----------------------------------+
+  ──────
+  ## 24. Proxmox Automation Script
+
+  The automated VM provisioner create-ubuntu-vdi-build-vm.sh can be executed directly on the Proxmox host shell:
+
+    # On Proxmox Host:
+    chmod +x /home/nishusaini/Desktop/Innspark/vdi-development/scripts/create-ubuntu-vdi-build-vm.sh
+    /home/nishusaini/Desktop/Innspark/vdi-development/scripts/create-ubuntu-vdi-build-vm.sh
+
+  Key Guardrails Enforced by the Automation:
+
+  • Verifies CLI dependencies (qm, pvesm, sha256sum, wget).
+  • Validates that the target VM ID is completely unused.
+  • Confirms the storage pool exists, is online, and supports disk images.
+  • Checks that the network bridge interface exists.
+  • Performs cryptographic SHA256 verification of the downloaded Ubuntu cloud image.
+  • Displays full VM specification and requires explicit y/N confirmation before making any changes.
+  • Never destroys existing VMs, disks, or cluster settings.
+  ──────
+  ## 25. Troubleshooting Guide
+
+  ### 1. xrdp Session Shows Blank or Black Screen on Login
+
+  • Likely Cause: Missing or malformed .xsession or conflict with GNOME/Wayland environment variables.
+  • Diagnostic: cat /var/log/xrdp.log and cat /var/log/xrdp-sesman.log.
+  • Fix: Ensure /etc/skel/.xsession contains exec /usr/bin/xfce4-session and copy to user profile:
+    cp /etc/skel/.xsession ~/.xsession && chown $USER:$USER ~/.xsession
+
+
+  ### 2. Polkit Pop-up "Authentication is required to create a color managed device"
+
+  • Likely Cause: colord daemon queries PolicyKit upon remote display connection.
+  • Fix: Deploy /etc/polkit-1/localauthority/50-local.d/45-allow-colord.pkla as shown in Section 9.1, then restart Polkit: sudo systemctl restart polkit.
+
+  ### 3. Duplicate IP Address or DHCP Failures Across Clones
+
+  • Likely Cause: /etc/machine-id was not truncated prior to template conversion. Netplan derives DHCP client identifiers from machine-id.
+  • Fix: Inside the clone:
+    sudo truncate -s 0 /etc/machine-id
+    sudo systemd-machine-id-setup
+    sudo netplan apply
+
+
+  ### 4. QEMU Guest Agent Not Responding on Proxmox
+
+  • Likely Cause: Daemon inactive or virtual hardware lacks agent: 1.
+  • Diagnostic: On host: qm agent <VMID> ping. Inside guest: systemctl status qemu-guest-agent.
+  • Fix: Ensure VM has agent: 1 (qm set <VMID> --agent enabled=1) and inside guest: sudo systemctl enable --now qemu-guest-agent.
+  ──────
+  ## 26. Final Acceptance Checklist
+
+  ### Hypervisor Infrastructure (Proxmox VE)
+
+  [ ] VM ID is dedicated and recorded in inventory.
+  [ ] Machine type configured as q35 with modern PCIe bus layout.
+  [ ] Firmware configured as OVMF UEFI with 4MB EFI Disk.
+  [ ] Storage Controller set to VirtIO SCSI Single with IOThreads enabled.
+  [ ] Primary SCSI disk configured with discard=on (TRIM) and SSD emulation.
+  [ ] Network adapter set to VirtIO with correct bridge and VLAN tag.
+  [ ] Cloud-Init CD-ROM drive attached.
+  [ ] Boot order explicitly locked to scsi0.
+  [ ] Compressed .vma.zst backup created and verified in backup datastore.
+  [ ] Template conversion verified (template: 1 in qm config).
+
+  ### Guest Operating System (Ubuntu 24.04 LTS VDI)
+
+  [ ] Minimal Ubuntu Server 24.04 LTS base image utilized.
+  [ ] Unattended security updates active and scheduled.
+  [ ] Chrony NTP synchronization healthy and tracking.
+  [ ] Minimal XFCE desktop installed without bloatware.
+  [ ] xrdp and xorgxrdp active and listening on port 3389.
+  [ ] PolicyKit rules prevent color manager and power-off authorization prompts.
+  [ ] No real or production user profiles baked into the image.
+  [ ] All temporary test accounts completely purged.
+  [ ] cloud-init clean --logs --seed executed before shutdown.
+  [ ] /etc/machine-id truncated to 0 bytes.
+  [ ] SSH host keys purged (/etc/ssh/ssh_host_*).
+  [ ] Multi-clone uniqueness test passed (distinct MAC, IP, machine-id, and SSH keys).
+
+  Sources:
+    ▾ wmbuck.net
+      ⎿  for all users]
+         Identity=unix-user:*
+         Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-
+  device;org.freedesktop.color-manager.d
+    ▾ wmbuck.net
+      ⎿  for all users]
+         Identity=unix-user:*
+         Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-
+  device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedeskt
+    ▾ wmbuck.net
+      ⎿  for all users]
+         Identity=unix-user:*
+         Action=org.freedesktop.color-manager.create-device;org.freedesktop.color-manager.create-profile;org.freedesktop.color-manager.delete-
+  device;org.freedesktop.color-manager.delete-profile;org.freedesktop.color-manager.modify-device;org.freedesktop.color-manager.modify-profile
+         ResultAny=no
+         ResultInactive=no
+         ResultActive
+
+  (ctrl+o to collapse)

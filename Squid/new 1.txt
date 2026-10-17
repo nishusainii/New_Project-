@@ -1,0 +1,522 @@
+Squid Port Removal Summary
+Check which ports are configured in squid.conf:
+grep -n "http_port" /etc/squid/squid.conf
+
+
+Remove or comment out the following ports:
+
+8855
+8848
+8868
+8899
+
+Automatically remove them:
+
+sudo sed -i '/http_port 8855/d;/http_port 8848/d;/http_port 8868/d;/http_port 8899/d' /etc/squid/squid.conf
+
+Validate the configuration:
+sudo squid -k parse
+
+Restart Squid:
+sudo systemctl restart squid
+
+Verify the ports are no longer listening:
+sudo ss -tulpn | grep squid
+
+
+Outcome: Ports 8855, 8848, 8868, and 8899 will be removed from Squid and will no longer accept proxy connections after the service is restarted.
+
+Here is a professional summary of today’s completed work, with tested items separated from research activities.
+
+Today’s Work Summary
+
+Date: 28 August 2026
+
+1. SARG Dashboard Elapsed-Time Formatting
+Investigated SARG elapsed-time values displayed in accumulated Hours:Minutes:Seconds format, such as:
+406:20:52
+
+Confirmed that CSS alone could not perform the required time calculation.
+Implemented JavaScript conversion to display time as:
+16d 22h 20m
+
+Added the conversion directly inside generated SARG index.html reports to avoid external JavaScript path and Apache authentication issues.
+Created a custom SARG wrapper at:
+/usr/local/sbin/sarg
+
+Preserved the original SARG binary at:
+/usr/bin/sarg
+
+Configured the wrapper so that running:
+sudo sarg
+
+generates the Squid report and automatically inserts the elapsed-time conversion.
+Removed unnecessary helper scripts and external custom-time.js files.
+Verified that the inline customization works correctly on newly generated reports.
+2. SARG MILLISEC Value Formatting
+Reviewed the MILLISEC column values shown with dot separators, such as:
+1.705.143.213
+
+Prepared formatting logic to display these values using comma separators:
+1,705,143,213
+
+Kept the logic restricted to the MILLISEC column to avoid changing IP addresses, percentages, traffic values, or other dotted values.
+3. SARG Dashboard Branding and Footer
+Identified the active customized dashboard stylesheet:
+/var/www/html/sarg/assets/sarg-dashboard.css
+
+Investigated duplicate footer rules in the CSS.
+Prepared footer customization for displaying the Squid proxy identity:
+Squid Proxy Server - 10.31.1.159
+
+Retained SARG’s generated report date and time in the footer design.
+Confirmed that changes must be made in the active custom stylesheet or generated HTML rather than only in:
+/etc/sarg/css.tpl
+
+4. Squid Interface and ISP Monitoring
+Reviewed vnStat statistics for the kv6 interface.
+Used live monitoring with:
+vnstat -l -i kv6
+
+Interpreted RX/TX bandwidth, packet rates, averages, maximum values, and total traffic.
+Reviewed interface counters and packet drops using:
+ip -s link show kv6
+
+Confirmed that physical interface errors, carrier errors, and collisions were not observed in the shared output.
+Discussed verification methods for distinguishing internal routing issues from ISP-side problems using:
+ping
+mtr
+iftop
+nload
+ip route
+ip rule
+
+5. Multi-WAN Routing Verification
+Verified the default route using:
+ip route get 8.8.8.8
+
+Confirmed that normal outbound traffic was routed through:
+Interface: kv1
+Gateway: 192.168.14.1
+Source IP: 192.168.14.30
+
+Identified that a normal speed test would follow kv1, not automatically test kv6.
+Noted that interface-specific ISP testing requires source/interface-aware routing and monitoring.
+6. Speedtest CLI Installation and Removal
+Installed speedtest-cli through Snap.
+Reviewed its purpose for measuring:
+Latency
+Download speed
+Upload speed
+Investigated slow response while retrieving and selecting Speedtest servers.
+Confirmed that the test followed the server’s default route through kv1.
+Removed the Snap-installed package using:
+sudo snap remove speedtest-cli
+
+7. SquidTailD Installation and Testing
+Verified that SquidTailD was available from the Ubuntu Jammy Universe repository:
+Version: 2.1a6-6.1
+
+Installed and configured SquidTailD for testing.
+Updated its settings to use:
+Squid log: /var/log/squid/access.log
+Report directory: /var/www/html/sarg/assets/squidtaild/
+Proxy IP: 10.31.1.159
+
+Disabled unnecessary initial features:
+dnslookups no
+mailreport no
+
+Confirmed that the legacy service started through:
+/etc/init.d/squidtaild
+
+Verified the running process:
+/usr/bin/perl /usr/sbin/squidtaild
+
+8. SquidTailD CPU Troubleshooting
+Observed SquidTailD initially using approximately one CPU core while analyzing the large production log.
+Confirmed that the active Squid access log was approximately:
+374,917,332 bytes
+
+Created a controlled test log containing the latest 10,000 Squid records:
+/var/log/squid/squidtaild-test.log
+
+Pointed SquidTailD to the smaller test log.
+Reduced CPU usage substantially after correcting the filters and using the smaller log.
+Observed CPU usage falling from approximately 92% to low or moderate levels after startup processing.
+9. SquidTailD Filter Correction
+Found that all default filter files contained placeholder text such as:
+put
+some
+words
+in
+here
+
+Identified broad placeholder words such as a, in, on, and are as the cause of false matches and excessive processing.
+Cleared the placeholder filters:
+possible
+probable
+definite
+excludes
+
+Added example.com as one controlled test pattern under the possible category.
+Confirmed that the sample log contained exactly 26 matching requests.
+10. SquidTailD Report Validation
+Successfully generated:
+index.html
+violations.html
+possible_violations.html
+probable_violations.html
+definite_violations.html
+
+Generated individual client reports for:
+10.31.1.202
+10.31.4.29
+10.31.6.201
+
+Verified the expected test result:
+Total Hits: 26
+Possible Hits: 26
+Probable Hits: None
+Definite Hits: None
+
+Confirmed that example.com:443 appeared in the test reports.
+Verified that the number of reported matches corresponded with the controlled log test.
+11. Apache Access and Permissions
+Diagnosed an initial 404 Not Found caused by repeating /sarg in the URL while Apache’s DocumentRoot was already:
+/var/www/html/sarg
+
+Identified the correct report URL path as:
+/assets/squidtaild/
+
+Diagnosed a subsequent 403 Forbidden as a filesystem permission problem.
+Confirmed that the report directory was initially:
+root:root 750
+
+Updated ownership and permissions so Apache’s www-data account could read the reports.
+Successfully opened the protected SquidTailD dashboard through Apache Basic Authentication.
+12. Additional Squid Reporting Tools Evaluated
+
+Researched and compared several legacy Squid log-analysis options:
+
+SCALAR
+AWK-based command-line Squid log analyzer.
+Useful for one-time reports covering hourly load, request methods, cache hierarchy, object sizes, and result codes.
+Free-SA
+Historical SARG alternative claiming faster batch processing and standards-compliant HTML/CSS.
+Identified as legacy software requiring isolated testing.
+Internet Access Monitor for Squid
+Commercial Windows-based Squid log-reporting application.
+Not suitable as a direct Ubuntu replacement for the current SARG deployment.
+Logrep
+Multi-source log-analysis framework supporting Squid, Snort, Apache, Postfix, firewall logs, HTML reports, graphs, and SSH collection.
+Identified as an old project that should be evaluated only in an isolated test environment.
+Key Outcome
+The customized SARG dashboard remains the primary and preferred reporting solution.
+SARG report generation is now automated through:
+sudo sarg
+
+Elapsed-time values are displayed in a readable days, hours, and minutes format.
+Multi-WAN routing and interface-level monitoring procedures were verified.
+SquidTailD was successfully tested using controlled filters and a smaller sample log.
+Apache authentication, routing, report permissions, and web access issues were identified and resolved.
+Legacy alternative reporting tools were evaluated without replacing or disrupting the working SARG environment.
+
+Today’s Work Summary, 28 August 2026
+Reviewed the Grafana monitoring traffic dashboard and verified that monitoring payload values are loading correctly.
+Analyzed the following dashboard metrics:
+Current HTTP response payload
+Average current payload
+Largest current payload
+Estimated monitoring download rate
+Estimated monitoring traffic per day
+Verified the PromQL query used to calculate the estimated monitoring download rate:
+sum(
+  probe_http_content_length{
+    job=~"${job:regex}",
+    instance=~"${instance:regex}"
+  }
+) / ${probe_interval_seconds}
+
+Confirmed that this query represents the combined HTTP response payload divided by the probe interval, producing an estimated download rate in bytes per second.
+Modified the traffic calculation from daily usage to different time periods:
+Per minute using 60
+Per hour using 3600
+Per day using 86400
+Prepared the query for estimated monitoring traffic per hour:
+sum(
+  probe_http_content_length{
+    job=~"${job:regex}",
+    instance=~"${instance:regex}"
+  }
+) * 3600 / ${probe_interval_seconds}
+
+Reviewed the average payload query:
+avg(
+  probe_http_content_length{
+    job=~"${job:regex}",
+    instance=~"${instance:regex}"
+  }
+)
+
+Confirmed that the avg() query calculates the average current HTTP response payload across all selected jobs and instances.
+Verified suitable Grafana units:
+Bytes (IEC) for payload and per-period traffic panels
+Bytes per second (B/s) for the monitoring download-rate panel
+Identified that dashboard color differences, such as the red daily-traffic panel, are controlled by Grafana threshold settings and do not necessarily indicate incorrect data.
+
+Overall outcome: Monitoring payload and bandwidth calculations were reviewed, validated, and adjusted to display estimated usage per minute, per hour, and per day.
+
+Here is a professional summary of today’s work, clearly separating completed work from items still under verification.
+
+Option 1: Detailed Daily Work Summary
+Today’s Work Summary: 28 August 2026
+Installed and configured Webmin on the secondary Squid proxy server.
+Changed the Ubuntu ARM64 repository from HTTP to HTTPS to resolve repeated 503 Service Unavailable errors and slow package downloads.
+Troubleshot connectivity issues with the Webmin software repository and reviewed an alternative standalone .deb installation method.
+Configured the main Webmin server at 10.31.1.159 as a centralized management dashboard.
+Added the secondary Webmin/Squid server to Webmin Servers Index for remote administration from one dashboard.
+Reset and reviewed Webmin administrative account access from the command line.
+Worked on creating a separate proxyadmin Webmin account and assigning Webmin permissions.
+Reviewed Webmin bandwidth monitoring, including:
+Interface selection
+IPTables-based traffic collection
+Journald storage
+CPU and disk utilization warnings
+Verification of bandwidth-related firewall and journal records
+Identified that Webmin bandwidth processing was causing high CPU usage through long-running journalctl processes.
+Recommended Squid logs, SARG, and vnStat as more suitable options for long-term proxy bandwidth monitoring.
+Squid Proxy Configuration
+Configured Squid authentication using basic_ncsa_auth.
+Configured authorized client access using:
+/etc/squid/password
+/etc/squid/allowed_ips.txt
+Configured two Squid listening ports:
+Port 8855 for jio1
+Port 8848 for jio2
+Configured outgoing source-address mapping:
+192.168.18.30 through vlan13 for jio1
+192.168.5.30 through vlan18 for jio2
+Added Safe Ports, HTTPS CONNECT restrictions, method restrictions, authentication requirements, local-destination protections, and a final deny-all rule.
+Confirmed that both outgoing IPv4 addresses are assigned and active on their respective VLAN interfaces.
+Verified successful authenticated HTTPS proxy traffic in /var/log/squid/access.log.
+Confirmed successful entries such as:
+TCP_TUNNEL/200
+Authenticated users including ubuntu and sapuser
+Direct destination connections using HIER_DIRECT
+Troubleshooting Completed
+Diagnosed a Squid systemd failure caused by an existing Squid process and PID-file conflict.
+Gracefully stopped the unmanaged Squid instance.
+Removed the stale PID file only after confirming that no Squid process remained.
+Reset the failed systemd state and restarted Squid under systemd control.
+Confirmed Squid running successfully with:
+Systemd parent process
+Squid worker process
+Logfile daemon
+Pinger process
+Identified an incorrect listener IP:
+Incorrect: 10.31.88.24
+Correct: 10.31.1.24
+Corrected the listener address for ports 8855 and 8848.
+Confirmed that Squid configuration parsing works after correcting the listener address and disabling malformed custom logging directives.
+Pending Verification
+Finalize the custom access-cisai.log format.
+Confirm creation of:
+/var/log/squid/access-cisai.log
+
+Verify that custom records display:
+local_port=8855 for Jio-1
+local_port=8848 for Jio-2
+Remove the %Hs deprecation warning by safely applying the supported client-side HTTP status format.
+Confirm public-IP mapping for both connections:
+Port 8855 through Jio-1
+Port 8848 through Jio-2
+Disable Squid port 3128 if it is not operationally required.
+Review whether the Webmin proxyadmin account should retain full access or be restricted to Squid and monitoring modules.
+Option 2: Concise Work Report
+Today’s Work Completed
+Installed Webmin on the secondary Squid proxy server.
+Fixed Ubuntu ARM64 repository download issues by changing Ubuntu Ports repositories from HTTP to HTTPS.
+Integrated the secondary proxy into the main Webmin dashboard at 10.31.1.159.
+Configured Webmin remote-server access and reviewed separate administrative-user creation.
+Reviewed Webmin bandwidth monitoring, Journald storage, IPTables logging, and resource utilization.
+Configured Squid authentication and approved client-IP access.
+Configured two Squid proxy paths:
+8855 → jio1 → 192.168.18.30 → vlan13
+8848 → jio2 → 192.168.5.30 → vlan18
+Added Safe Ports, CONNECT security, method controls, manager protection, and deny-all access control.
+Resolved Squid PID-file and systemd process conflicts.
+Corrected the Squid listener IP from 10.31.88.24 to 10.31.1.24.
+Confirmed successful authenticated HTTPS connections in the Squid access log.
+Confirmed Squid is operating under systemd with parent and worker processes.
+Pending
+Complete and verify the separate CISAI custom access log.
+Confirm both ports return the correct Jio public IPs.
+Disable unused port 3128, if not needed.
+Complete Webmin account-permission verification.
+Option 3: Management-Friendly Status Update
+Work Update: 28 August 2026
+
+Successfully configured centralized Webmin administration for the Squid proxy infrastructure. The secondary proxy was added to the main Webmin dashboard, and repository, installation, authentication, and connectivity issues were investigated and corrected.
+
+Squid was configured with authenticated and IP-restricted access across two listener ports. Port 8855 is mapped to the Jio-1 source address on vlan13, while port 8848 is mapped to the Jio-2 source address on vlan18. Additional security controls were added for permitted destination ports, HTTPS CONNECT requests, HTTP methods, local destinations, and default-deny access.
+
+A process and PID-file conflict that caused systemd to report Squid as failed was resolved. Squid was restarted under proper systemd control, and successful authenticated HTTPS tunnels were confirmed in the access logs. An incorrect local listener address was also identified and corrected from 10.31.88.24 to 10.31.1.24.
+
+The remaining work is to finalize the listener-specific custom log, validate the public IP returned through each Jio path, and disable the default Squid port 3128 if it is not required.
+
+
+Today’s Work Summary, August 28, 2026
+1. Squid ISP Log Enhancement on Proxy Server
+Reviewed the custom Squid log format used for the kv8 ISP mode:
+access_log /var/log/squid/kv8.log ispflow proxy8858
+
+Identified that the existing ispflow format did not record transferred data.
+Added the following field to the log format:
+bytes=%<st
+
+Validated the Squid configuration and reconfigured the service at approximately 16:19.
+Confirmed that new kv8.log entries now contain:
+Client IP
+Client port
+Authenticated username
+Transferred bytes
+Destination
+HTTP status
+Squid result
+Local proxy address
+2. Client Data-Consumption Report for ISP Mode kv8
+Created an AWK-based report to calculate:
+Total data consumed by each client IP
+Number of requests per client
+Usage across current and rotated logs
+Included:
+kv8.log
+kv8.log.1
+kv8.log.2.gz
+
+Identified 10.31.4.226 as the highest measurable consumer in the byte-enabled logs:
+Client IP : 10.31.4.226
+Data      : 8.4 MiB
+Requests  : 638
+
+Confirmed that shared username sapuser is used by multiple devices, so usage must be tracked by client IP, not username alone.
+Confirmed that historical kv8 records created before the new byte field cannot provide accurate per-client data totals.
+3. Investigation of 4 TiB ISP Quota Consumption
+Investigated the report that a 4 TiB recharge completed on August 24 was consumed within four days.
+Calculated total Squid traffic from the available native access.log* files:
+Squid traffic recorded : 2.4 TiB
+Total requests         : 20,983,403
+
+Generated daily Squid usage totals:
+2026-08-24       0 B
+2026-08-25     177 GiB
+2026-08-26     1.2 TiB
+2026-08-27     948 GiB
+2026-08-28     683 GiB
+
+Confirmed that the available logs do not contain coverage for August 24, so the 2.4 TiB Squid figure is incomplete for the full recharge period.
+4. ISP Interface-Level Analysis Using vnStat
+Confirmed that 192.168.19.30 is assigned to Linux interface kv8.
+Reviewed vnStat usage for kv8:
+2026-08-24       1.49 MiB
+2026-08-25      13.24 GiB
+2026-08-26      22.25 GiB
+2026-08-27      21.88 GiB
+2026-08-28      13.61 GiB
+
+Determined that kv8 recorded approximately 70.98 GiB, which does not support 4 TiB consumption on that dedicated NIC.
+Reviewed kv3 usage and calculated approximately 254.5 GiB for the same displayed period.
+Clarified that the environment uses six independent ISP links connected through separate NICs:
+kv1 -> proxy port 8860
+kv2 -> proxy port 8859
+kv3 -> proxy port 8878
+kv6 -> proxy port 8888
+kv7 -> proxy port 8898
+kv8 -> proxy port 8858
+
+Determined that usage from other ISP interfaces must not be added to kv8 unless the ISP confirms that the quota is shared across circuits.
+5. vnStat Installation and Monitoring on CISAI-12345
+Attempted to install vnStat through Snap.
+The Snap installation failed because of a getent error and left an installation operation in progress.
+Switched to the Ubuntu APT package installation method.
+Started vnStat monitoring at approximately 17:13.
+Confirmed monitoring for:
+eth0
+enx207bd26aee32
+vlan13
+vlan18
+
+Verified the network topology:
+enx207bd26aee32
+├── vlan13, 192.168.18.30/24
+└── vlan18
+
+Confirmed initial recorded consumption:
+eth0                15.67 MiB
+enx207bd26aee32     16.09 MiB
+vlan13               8.01 MiB
+vlan18               7.78 MiB
+
+Confirmed that VLAN totals should not be added to their physical parent NIC total because that would double-count the same traffic.
+6. Enhanced Squid Logging on CISAI-12345
+Reviewed the custom log configuration:
+logformat cisai_proxy ...
+access_log daemon:/var/log/squid/access-cisai.log logformat=cisai_proxy
+
+Identified that the original custom log did not include client IP or transferred bytes.
+Updated the cisai_proxy format to include:
+client=%>a
+clientport=%>p
+bytes=%<st
+
+Encountered a missing /run/squid.pid error during reconfiguration.
+Restored the Squid service through systemd and successfully applied the updated logging configuration at approximately 17:38.
+Verified that new records now capture:
+Client IP
+Client source port
+Username
+Proxy listening port
+Transferred bytes
+Destination
+Connection duration
+Squid status
+7. Active Proxy User Identification
+Confirmed active proxy traffic from multiple clients, including:
+10.31.1.120   user=ubuntu
+10.31.4.220   user=sapuser
+10.31.7.252   user=sapuser
+
+Confirmed traffic through both proxy ports:
+Port 8855 -> Jio1 -> source IP 192.168.18.30
+Port 8848 -> Jio2 -> source IP 192.168.5.30
+
+Verified destinations including:
+amritaserve.org
+pdr.earlywarning.in
+stp.cisai.in
+www.google.com
+static.cdninstagram.com
+Mozilla service endpoints
+
+Prepared commands to report:
+Unique usernames used today
+Unique client IPs used today
+Unique username and client-IP combinations
+Requests and data consumption per client
+Usage separated by proxy port and ISP link
+Key Findings
+Historical custom kv logs did not contain transferred-byte information.
+New Squid records now support accurate client-level consumption analysis.
+The available native Squid logs recorded 2.4 TiB, but August 24 data was missing.
+The dedicated kv8 interface recorded only approximately 71 GiB, not 4 TiB.
+Separate ISP NIC totals must be investigated independently unless the ISP confirms shared quota accounting.
+Shared proxy credentials such as sapuser require tracking by client IP.
+vnStat on CISAI-12345 will provide accurate hourly and daily VLAN consumption from August 28 at 17:13 onward.
+The enhanced access-cisai.log now provides a complete mapping of client IP, username, proxy port, destination, and transferred data.
+Pending Actions
+Continue monitoring vlan13 and vlan18 separately using vnStat.
+Generate a complete daily data-consumption report after the first full monitoring day.
+Request the ISP’s hourly or daily quota-debit report for the affected circuit.
+Confirm the circuit ID, public IP, recharge activation time, and whether quota is shared.
+Monitor the top clients on proxy ports 8848 and 8855 using the enhanced Squid log.

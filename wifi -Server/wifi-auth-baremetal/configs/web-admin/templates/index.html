@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Innspark Technologies | Enterprise Wi-Fi & LDAP Identity Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="top-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">INNSPARK TECHNOLOGIES</div>
+          <div class="brand-subtitle">802.1X Enterprise Wi-Fi &amp; Directory Management Console</div>
+        </div>
+      </div>
+
+      <!-- Real-Time Server Badges -->
+      <div class="status-cluster">
+        <div class="status-pill" id="ldap-status-pill">
+          <span class="indicator-dot online"></span>
+          <span>OpenLDAP: <strong id="ldap-host-badge">127.0.0.1:389</strong></span>
+        </div>
+        <div class="status-pill">
+          <span class="indicator-dot online"></span>
+          <span>Base DN: <strong id="base-dn-badge">dc=innspark,dc=in</strong></span>
+        </div>
+        <div class="status-pill">
+          <span class="indicator-dot online"></span>
+          <span>RADIUS 802.1X: <strong>UDP 1812</strong></span>
+        </div>
+      </div>
+
+      <!-- User Session & Logout Action -->
+      <div class="user-session-cluster">
+        <div class="user-badge-pill">
+          <div class="user-avatar-circle">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <div class="user-meta">
+            <span class="user-name">{{ current_user or 'Administrator' }}</span>
+            <span class="user-role">{% if is_admin %}Directory Admin{% else %}Authorized User{% endif %}</span>
+          </div>
+        </div>
+        <a href="/logout" class="btn-header-logout" id="header-logout-btn" title="Sign out of console">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Sign Out</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Dashboard -->
+  <main class="dashboard-wrapper">
+
+    <!-- KPI Summary Grid -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">TOTAL EMPLOYEES</span>
+          <span class="kpi-icon">👥</span>
+        </div>
+        <div class="kpi-value" id="kpi-total-users">-</div>
+        <div class="kpi-subtext">Directory user accounts</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">WI-FI AUTHORIZED</span>
+          <span class="kpi-icon">📶</span>
+        </div>
+        <div class="kpi-value highlight-cyan" id="kpi-wifi-users">-</div>
+        <div class="kpi-subtext">Members of <code>cn=wifi-users</code></div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">AAA POLICY</span>
+          <span class="kpi-icon">🛡️</span>
+        </div>
+        <div class="kpi-value" style="font-size: 1.35rem; padding-top: 0.3rem;">WPA3 / WPA2-Ent</div>
+        <div class="kpi-subtext">PEAP / MSCHAPv2 &amp; TTLS</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-header">
+          <span class="kpi-title">SECURITY STATUS</span>
+          <span class="kpi-icon">🔒</span>
+        </div>
+        <div class="kpi-value highlight-emerald" style="font-size: 1.35rem; padding-top: 0.3rem;">BlastRADIUS Immune</div>
+        <div class="kpi-subtext">RFC 3579 Message-Authenticator</div>
+      </div>
+    </section>
+
+    <!-- Table Management Card -->
+    <section class="content-card">
+      <div class="card-toolbar">
+        <div>
+          <h2 class="section-heading">Employee Directory &amp; Wi-Fi Credentials</h2>
+          <p class="section-caption">Manage enterprise accounts, reset 802.1X passwords, and control air-interface access privileges.</p>
+        </div>
+
+        <div class="toolbar-actions">
+          <div class="search-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="user-search-input" placeholder="Search employee, username, email...">
+          </div>
+
+          <button class="btn btn-secondary" onclick="openTestAuthModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Test Wi-Fi Auth
+          </button>
+
+          <button class="btn btn-primary" onclick="openAddUserModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add New Employee
+          </button>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee Name</th>
+              <th>Username (UID)</th>
+              <th>Corporate Email</th>
+              <th>UID #</th>
+              <th>Wi-Fi 802.1X Access</th>
+              <th style="text-align: right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <tr>
+              <td colspan="6" class="loading-cell">Loading employee directory from OpenLDAP...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: ADD NEW EMPLOYEE -->
+  <div class="modal-overlay" id="add-user-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Add New Wi-Fi Employee</h3>
+        <button class="modal-close-btn" onclick="closeModal('add-user-modal')">&times;</button>
+      </div>
+      <form id="add-user-form" onsubmit="handleCreateUser(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" id="add-givenName" placeholder="e.g. Rahul" oninput="suggestUsername()">
+          </div>
+          <div class="form-group">
+            <label>Last Name *</label>
+            <input type="text" id="add-sn" placeholder="e.g. Sharma" required oninput="suggestUsername()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Username (UID) *</label>
+          <input type="text" id="add-uid" placeholder="e.g. rahul.sharma" required>
+          <small class="field-hint">Used by employee to log into Wi-Fi SSID <code>Innspark-Secure</code></small>
+        </div>
+
+        <div class="form-group">
+          <label>Corporate Email</label>
+          <input type="email" id="add-mail" placeholder="rahul.sharma@innspark.in">
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label style="margin-bottom: 0;">Wi-Fi Password *</label>
+            <button type="button" class="link-btn" onclick="generateRandomPassword('add-password')">Generate Random Key</button>
+          </div>
+          <div class="input-icon-group">
+            <input type="password" id="add-password" placeholder="Enter Wi-Fi password" value="WifiPassword2026!" required>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('add-password', this)" title="Toggle password visibility">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="7" r="3"></circle></svg>
+              <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+          <small class="field-hint">Standard enterprise default: <code>WifiPassword2026!</code> (you can edit to any custom password)</small>
+        </div>
+
+        <div class="form-checkbox-group">
+          <input type="checkbox" id="add-wifi-auth" checked>
+          <label for="add-wifi-auth">Authorize Wi-Fi Access immediately (assign to <code>cn=wifi-users</code>)</label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('add-user-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="add-user-submit-btn">Create Employee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: RESET PASSWORD -->
+  <div class="modal-overlay" id="password-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Wi-Fi Password</h3>
+        <button class="modal-close-btn" onclick="closeModal('password-modal')">&times;</button>
+      </div>
+      <form id="reset-password-form" onsubmit="handleResetPassword(event)">
+        <input type="hidden" id="reset-uid">
+        <p style="margin-bottom: 1.25rem; font-size: 0.9rem; color: #cbd5e1;">
+          Resetting 802.1X login password for employee: <strong id="reset-user-display" class="highlight-cyan">-</strong>
+        </p>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label style="margin-bottom: 0;">New Password *</label>
+            <button type="button" class="link-btn" onclick="generateRandomPassword('reset-password')">Generate Random Key</button>
+          </div>
+          <div class="input-icon-group">
+            <input type="password" id="reset-password" placeholder="Enter new password" value="WifiPassword2026!" required>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('reset-password', this)" title="Toggle password visibility">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path><circle cx="12" cy="7" r="3"></circle></svg>
+              <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+            </button>
+          </div>
+          <small class="field-hint">Standard default: <code>WifiPassword2026!</code> (or type any custom password)</small>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('password-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="reset-submit-btn">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: TEST AUTHENTICATION -->
+  <div class="modal-overlay" id="test-auth-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Live 802.1X &amp; LDAP Authentication Test</h3>
+        <button class="modal-close-btn" onclick="closeModal('test-auth-modal')">&times;</button>
+      </div>
+      <form id="test-auth-form" onsubmit="handleTestAuth(event)">
+        <p style="margin-bottom: 1rem; font-size: 0.85rem; color: #94a3b8;">
+          Simulates a real-time Wi-Fi authentication handshake against OpenLDAP and group membership validation.
+        </p>
+
+        <div class="form-group">
+          <label>Username (UID)</label>
+          <input type="text" id="test-username" placeholder="e.g. john.doe" required>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <div class="input-icon-group">
+            <input type="password" id="test-password" placeholder="Enter user's password" required>
+            <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('test-password', this)" title="Toggle password visibility">
+              <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="7" r="3"></circle>
+              </svg>
+              <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div id="test-result-box" style="display: none; padding: 1rem; border-radius: 6px; margin: 1rem 0; font-size: 0.85rem; font-family: 'Fira Code', monospace;"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('test-auth-modal')">Close</button>
+          <button type="submit" class="btn btn-primary" id="test-auth-btn">Execute Test</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: USER CREATION CONFIRMATION -->
+  <div class="modal-overlay" id="user-created-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #6ee7b7;">✔ Account Created in Directory</h3>
+        <button class="modal-close-btn" onclick="closeModal('user-created-modal')">&times;</button>
+      </div>
+      <div style="padding: 1rem 0;">
+        <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #cbd5e1;">
+          The employee account has been created in OpenLDAP and is ready for Wi-Fi access:
+        </p>
+        <div style="background: rgba(19, 27, 46, 0.85); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.1rem; margin-bottom: 1.25rem;">
+          <div style="margin-bottom: 0.65rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: var(--text-dim); font-size: 0.82rem;">Directory Username (UID):</span>
+            <strong id="created-uid-val" style="color: #38bdf8; font-family: 'Fira Code', monospace; font-size: 0.95rem;">-</strong>
+          </div>
+          <div style="margin-bottom: 0.65rem; display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: var(--text-dim); font-size: 0.82rem;">Saved Wi-Fi Password:</span>
+            <strong id="created-pwd-val" style="color: #6ee7b7; font-family: 'Fira Code', monospace; font-size: 0.95rem;">-</strong>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: var(--text-dim); font-size: 0.82rem;">Wi-Fi Authorization:</span>
+            <span id="created-wifi-val" class="badge-pill authorized">Active (cn=wifi-users)</span>
+          </div>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">
+          Employee can now connect their mobile/laptop to the enterprise Wi-Fi SSID using this username and password.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('user-created-modal')">Close</button>
+        <button type="button" class="btn btn-primary" onclick="testCreatedUserImmediately()">⚡ Test Wi-Fi Auth Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

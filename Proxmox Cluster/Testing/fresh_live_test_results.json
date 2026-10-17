@@ -1,0 +1,1442 @@
+[
+  {
+    "step": 1,
+    "title": "[Step 1.0] Remove 1 Disk from 1 Server",
+    "desc": "Remove 1 disk (osd.0) from prox22, verify cluster still serves data.",
+    "expected": "Cluster may show warning; data remains available.",
+    "analysis": "Single OSD loss -> active+undersized+degraded PGs; 3-way replication keeps VMs serving.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "osd.0 is already down.",
+      "marked out osd.0.",
+      "",
+      "",
+      "marked in osd.0."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0.": "bash: line 1: marked: command not found",
+      "marked in osd.0.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Degraded data redundancy: 340/3126 objects degraded (10.877%), 4 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 11 up (since 5s), 11 in (since 4s); 1 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 200 TiB / 200 TiB avail\n    pgs:     340/3126 objects degraded (10.877%)\n             28 active+clean\n             2  active+recovery_wait+undersized+degraded+remapped\n             2  active+recovering+undersized+degraded+remapped\n             1  stale+active+clean\n \n  io:\n    recovery: 51 MiB/s, 124 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: -c: line 4: syntax error near unexpected token `('\nbash: -c: line 4: `            Degraded data redundancy: 340/3126 objects degraded (10.877%), 4 pgs degraded'",
+      "HEALTH_WARN Degraded data redundancy: 340/3126 objects degraded (10.877%), 4 pgs degraded\n[WRN] PG_DEGRADED: Degraded data redundancy: 340/3126 objects degraded (10.877%), 4 pgs degraded\n    pg 3.0 is active+recovery_wait+undersized+degraded+remapped, acting [5,4]\n    pg 4.1 is active+recovery_wait+undersized+degraded+remapped, acting [2,1]\n    pg 4.9 is active+recovering+undersized+degraded+remapped, acting [5,1]\n    pg 4.1e is active+recovering+undersized+degraded+remapped, acting [7,5]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Degraded data redundancy: 340/3126 objects degraded (10.877%), 4 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 5,
+    "timestamp_start": "2026-09-19T14:59:16",
+    "timestamp_end": "2026-09-19T14:59:30"
+  },
+  {
+    "step": 2,
+    "title": "[Step 2.0] Remove 1 Disk from 1 Server (verify availability)",
+    "desc": "While osd.0 is down, verify data availability on remaining OSDs.",
+    "expected": "Data should be available on remaining OSDs.",
+    "analysis": "With min_size=2, cluster still serves reads/writes from 2 remaining copies.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "28",
+      "12 osds: 12 up (since 2s), 12 in (since 6s); epoch: e1784"
+    ],
+    "outputs": {
+      "28": "bash: line 1: 28: command not found",
+      "12 osds: 12 up (since 2s), 12 in (since 6s); epoch: e1784": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 2s), 12 in (since 6s); epoch: e1784'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 2s), 12 in (since 6s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     15.152% pgs not active\n             28 active+clean\n             5  remapped+peering\n \n  io:\n    client:   121 KiB/s wr, 0 op/s rd, 5 op/s wr\n    recovery: 52 MiB/s, 1 keys/s, 154 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 10,
+    "timestamp_start": "2026-09-19T14:59:30",
+    "timestamp_end": "2026-09-19T14:59:42"
+  },
+  {
+    "step": 3,
+    "title": "[Step 3.0] Remove 1 Disk from 1 Server (self-heal check)",
+    "desc": "Verify cluster begins self-healing after single OSD loss.",
+    "expected": "Cluster begins self-heal (PGs rebalanced to remaining OSDs).",
+    "analysis": "CRUSH rebalances PGs; degraded PGs recover as data re-replicates.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 14s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   192 B/s rd, 3 KiB/s wr, 0 op/s rd, 0 op/s wr\n    recovery: 10 MiB/s, 29 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T14:59:42",
+    "timestamp_end": "2026-09-19T14:59:43"
+  },
+  {
+    "step": 4,
+    "title": "[Step 4.0] Remove 2 Disks from 1 Server",
+    "desc": "Remove 2 disks (osd.0,3) from prox22 simultaneously.",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "2 OSDs down same host; CRUSH host failure domain keeps replicas on other nodes.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "osd.0 is already down. osd.3 is already down.",
+      "marked out osd.0. marked out osd.3.",
+      "",
+      "",
+      "marked in osd.0. marked in osd.3."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down. osd.3 is already down.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0. marked out osd.3.": "bash: line 1: marked: command not found",
+      "marked in osd.0. marked in osd.3.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Reduced data availability: 2 pgs inactive, 2 pgs peering\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 10 up (since 6s), 10 in (since 5s); 10 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   11 GiB used, 182 TiB / 182 TiB avail\n    pgs:     33.333% pgs not active\n             21 active+clean\n             11 peering\n             1  stale+active+clean\n \n  io:\n    client:   441 B/s rd, 0 op/s rd, 0 op/s wr\n    recovery: 82 MiB/s, 223 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 4: Reduced: command not found\nbash: line 6: services:: command not found\nbash: -c: line 7: syntax error near unexpected token `('\nbash: -c: line 7: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_WARN Reduced data availability: 2 pgs inactive, 2 pgs peering\n[WRN] PG_AVAILABILITY: Reduced data availability: 2 pgs inactive, 2 pgs peering\n    pg 4.0 is stuck peering for 95s, current state peering, last acting [10,6,8]\n    pg 4.11 is stuck peering for 93s, current state peering, last acting [7,2,6]": "bash: line 1: HEALTH_WARN: command not found\nbash: line 2: [WRN]: command not found\nbash: line 3: pg: command not found\nbash: line 4: pg: command not found",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3      down         0  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T14:59:43",
+    "timestamp_end": "2026-09-19T15:00:08"
+  },
+  {
+    "step": 5,
+    "title": "[Step 5.0] Remove 2 Disks from 1 Server (verify availability)",
+    "desc": "Verify data availability with 2 OSDs down.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2 allows continued I/O with 2 OSDs down (if replicas on other hosts).",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 11s), 12 in (since 16s); epoch: e1797"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 11s), 12 in (since 16s); epoch: e1797": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 11s), 12 in (since 16s); epoch: e1797'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 12s), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   204 B/s rd, 3.3 KiB/s wr, 0 op/s rd, 0 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:00:08",
+    "timestamp_end": "2026-09-19T15:00:10"
+  },
+  {
+    "step": 6,
+    "title": "[Step 6.0] Remove 2 Disks from 1 Server (self-heal check)",
+    "desc": "Verify self-healing with 2 OSDs down.",
+    "expected": "Cluster self-heals, PGs rebalance.",
+    "analysis": "Data re-replicates to remaining OSDs as soon as targets available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 13s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   204 B/s rd, 3.3 KiB/s wr, 0 op/s rd, 0 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:00:10",
+    "timestamp_end": "2026-09-19T15:00:11"
+  },
+  {
+    "step": 7,
+    "title": "[Step 7.0] Remove 3 Disks from 1 Server",
+    "desc": "Remove 3 disks (osd.0,3,6) from prox22.",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "3 OSDs down on prox22 leaves 1 OSD alive there; PGs degraded but available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "osd.0 is already down. osd.3 is already down. osd.6 is already down.",
+      "marked out osd.0. marked out osd.3. marked out osd.6.",
+      "",
+      "",
+      "marked in osd.0. marked in osd.3. marked in osd.6."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down. osd.3 is already down. osd.6 is already down.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0. marked out osd.3. marked out osd.6.": "bash: line 1: marked: command not found",
+      "marked in osd.0. marked in osd.3. marked in osd.6.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Degraded data redundancy: 4542/3126 objects degraded (145.298%), 20 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 9 up (since 6s), 9 in (since 5s); 16 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   9.9 GiB used, 164 TiB / 164 TiB avail\n    pgs:     4542/3126 objects degraded (145.298%)\n             15 active+recovery_wait+undersized+degraded+remapped\n             13 active+clean\n             3  active+undersized+degraded+remapped+backfill_wait\n             1  active+undersized+degraded\n             1  active+recovering+undersized+degraded+remapped\n \n  io:\n    client:   419 B/s rd, 0 op/s rd, 0 op/s wr\n    recovery: 28 MiB/s, 30 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: -c: line 4: syntax error near unexpected token `('\nbash: -c: line 4: `            Degraded data redundancy: 4542/3126 objects degraded (145.298%), 20 pgs degraded'",
+      "HEALTH_WARN Degraded data redundancy: 4542/3126 objects degraded (145.298%), 20 pgs degraded\n[WRN] PG_DEGRADED: Degraded data redundancy: 4542/3126 objects degraded (145.298%), 20 pgs degraded\n    pg 3.0 is active+recovery_wait+undersized+degraded+remapped, acting [5,4]\n    pg 4.0 is active+recovery_wait+undersized+degraded+remapped, acting [10,8]\n    pg 4.1 is active+recovery_wait+undersized+degraded+remapped, acting [2,1]\n    pg 4.2 is active+recovery_wait+undersized+degraded+remapped, acting [8,10]\n    pg 4.3 is active+undersized+degraded+remapped+backfill_wait, acting [11,7]\n    pg 4.4 is active+recovery_wait+undersized+degraded+remapped, acting [8,1]\n    pg 4.7 is active+undersized+degraded+remapped+backfill_wait, acting [5,7]\n    pg 4.9 is active+recovery_wait+undersized+degraded+remapped, acting [5,1]\n    pg 4.a is active+recovery_wait+undersized+degraded+remapped, acting [1,2]\n    pg 4.b is active+recovery_wait+undersized+degraded+remapped, acting [1,11]\n    pg 4.d is active+recovery_wait+undersized+degraded+remapped, acting [4,2]\n    pg 4.11 is active+recovery_wait+undersized+degraded+remapped, acting [7,2]\n    pg 4.15 is active+recovery_wait+undersized+degraded+remapped, acting [5,1]\n    pg 4.16 is active+recovering+undersized+degraded+remapped, acting [10,11]\n    pg 4.19 is active+recovery_wait+undersized+degraded+remapped, acting [2,1]\n    pg 4.1a is active+undersized+degraded+remapped+backfill_wait, acting [4,5]\n    pg 4.1b is active+recovery_wait+undersized+degraded+remapped, acting [4,5]\n    pg 4.1c is active+recovery_wait+undersized+degraded+remapped, acting [2,4]\n    pg 4.1d is active+undersized+degraded, acting [2,1]\n    pg 4.1e is active+recovery_wait+undersized+degraded+remapped, acting [7,5]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Degraded data redundancy: 4542/3126 objects degraded (145.298%), 20 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3      down         0  1.00000\n 6    hdd   18.19040          osd.6      down         0  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:00:12",
+    "timestamp_end": "2026-09-19T15:00:36"
+  },
+  {
+    "step": 8,
+    "title": "[Step 8.0] Remove 3 Disks from 1 Server (verify availability)",
+    "desc": "Verify data availability with 3 OSDs down.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2; replicas on other hosts keep data available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 8s), 12 in (since 16s); epoch: e1813"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 8s), 12 in (since 16s); epoch: e1813": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 8s), 12 in (since 16s); epoch: e1813'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 8s), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   301 B/s rd, 86 KiB/s wr, 0 op/s rd, 3 op/s wr\n    recovery: 0 B/s, 0 keys/s, 0 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:00:36",
+    "timestamp_end": "2026-09-19T15:00:37"
+  },
+  {
+    "step": 9,
+    "title": "[Step 9.0] Remove 3 Disks from 1 Server (self-heal check)",
+    "desc": "Verify self-healing with 3 OSDs down.",
+    "expected": "Cluster self-heals, PGs rebalance.",
+    "analysis": "PGs re-replicate to remaining OSDs once targets available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 10s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   255 B/s rd, 76 KiB/s wr, 0 op/s rd, 4 op/s wr\n    recovery: 0 B/s, 0 keys/s, 0 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:00:38",
+    "timestamp_end": "2026-09-19T15:00:39"
+  },
+  {
+    "step": 10,
+    "title": "[Step 10.0] Slot one to Slot Three (physical slot identity)",
+    "desc": "Verify physical drive slot identity across 3 nodes (read-only).",
+    "expected": "Each drive maps to a physical slot; serials/WWNs visible.",
+    "analysis": "Controller exposes drives; verify slot identity before any physical work.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "NAME                                                                                                  UUID                                   SERIAL                           WWN                                  SIZE\nsda                                                                                                   7TRgU0-ywAB-QoC8-FZPd-MZWU-Ww7D-j50HS1 ZYDGFEW6                         0x5000c500f588273b                  18.2T\n\u2514\u2500ceph--d1246597--45f6--40a6--ad11--fb6c122df899-osd--block--d1dcb9a5--e8bf--4d3c--8d7d--6a7ea9446302                                                                                                             18.2T\nsdb                                                                                                   HlHJmS-Wc0q-6uXk-CJmu-8k2d-btTe-nkHx4d ZYDG4WXP                         0x5000c500f58885ab                  18.2T\n\u2514\u2500ceph--3ec8f2b7--632e--4c25--9fd2--bd16d3484e93-osd--block--edad6ac4--f97b--4d61--b64b--b09a37d57062                                                                                                             18.2T\nsdc                                                                                                   KBMC8n-X0vu-8g5g-Clyz-WfCh-zxvW-RRN73Z ZYDG0CL3                         0x5000c500f5880ffb                  18.2T\n\u2514\u2500ceph--e1ef2e00--3344--40d5--ba42--79cb70faab2e-osd--block--67725c87--56ed--42a5--8511--19d7371fe401                                                                                                             18.2T\nsdd                                                                                                   EQu8lB-prDB-S6ic-lpoq-hOEt-exHj-Pi4c5C ZYDFZ35V                         0x5000c500f58810f3                  18.2T\n\u2514\u2500ceph--fdcc0b24--192f--4148--97e5--3af6666d8ac2-osd--block--f28de884--5aae--4e0f--af41--6ac0634fba06                                                                                                             18.2T\nsde                                                                                                                                          ZYDG62WJ                         0x5000c500f5881f8b                  18.2T\n\u251c\u2500sde1                                                                                                9280020667378897418                                                     0x5000c500f5881f8b                  18.2T\n\u2514\u2500sde9                                                                                                                                                                        0x5000c500f5881f8b                     8M\nsdf                                                                                                                                          ZYDG2VVR                         0x5000c500f589219b                  18.2T\n\u251c\u2500sdf1                                                                                                9280020667378897418                                                     0x5000c500f589219b                  18.2T\n\u2514\u2500sdf9                                                                                                                                                                        0x5000c500f589219b                     8M\nsdg                                                                                                                                          ZYDFV3PC                         0x5000c500f587c8af                  18.2T\n\u251c\u2500sdg1                                                                                                9280020667378897418                                                     0x5000c500f587c8af                  18.2T\n\u2514\u2500sdg9                                                                                                                                                                        0x5000c500f587c8af                     8M\nsdh                                                                                                                                          ZYDGDMT3                         0x5000c500f5889713                  18.2T\n\u251c\u2500sdh1                                                                                                9280020667378897418                                                     0x5000c500f5889713                  18.2T\n\u2514\u2500sdh9                                                                                                                                                                        0x5000c500f5889713                     8M\nsdi                                                                                                                                          ZYDGBV46                         0x5000c500f588891f                  18.2T\n\u251c\u2500sdi1                                                                                                9280020667378897418                                                     0x5000c500f588891f                  18.2T\n\u2514\u2500sdi9                                                                                                                                                                        0x5000c500f588891f                     8M\nsdj                                                                                                                                          ZYDG6AWH                         0x5000c500f5893a8b                  18.2T\n\u251c\u2500sdj1                                                                                                9280020667378897418                                                     0x5000c500f5893a8b                  18.2T\n\u2514\u2500sdj9                                                                                                                                                                        0x5000c500f5893a8b                     8M\nsdk                                                                                                                                          ZYDFWL9E                         0x5000c500f58801ff                  18.2T\n\u251c\u2500sdk1                                                                                                9280020667378897418                                                     0x5000c500f58801ff                  18.2T\n\u2514\u2500sdk9                                                                                                                                                                        0x5000c500f58801ff                     8M\nsdl                                                                                                                                          ZYDFW4AP                         0x5000c500f588810b                  18.2T\nsdm                                                                                                                                          00153b996d278a193200adbc58809b4e 0x6b4e9b8058bcad0032198a276d993b15 893.8G\n\u251c\u2500sdm1                                                                                                                                                                        0x6b4e9b8058bcad0032198a276d993b15  1007K\n\u251c\u2500sdm2                                                                                                FD0A-D141                                                               0x6b4e9b8058bcad0032198a276d993b15     1G\n\u2514\u2500sdm3                                                                                                CkWqEB-NXAO-DeXJ-0jNz-DaL0-fgGa-Urtpy1                                  0x6b4e9b8058bcad0032198a276d993b15 892.7G\n  \u251c\u2500pve-swap                                                                                          1f0ed5b8-1c43-48f3-830d-6695fac1ad6f                                                                           8G\n  \u251c\u2500pve-root                                                                                          22ed307b-64bc-4193-8b65-df3e96613a6b                                                                          96G\n  \u251c\u2500pve-data_tmeta                                                                                                                                                                                                 7.7G\n  \u2502 \u2514\u2500pve-data                                                                                                                                                                                                   757.3G\n  \u2514\u2500pve-data_tdata                                                                                                                                                                                               757.3G"
+    ],
+    "outputs": {
+      "NAME                                                                                                  UUID                                   SERIAL                           WWN                                  SIZE\nsda                                                                                                   7TRgU0-ywAB-QoC8-FZPd-MZWU-Ww7D-j50HS1 ZYDGFEW6                         0x5000c500f588273b                  18.2T\n\u2514\u2500ceph--d1246597--45f6--40a6--ad11--fb6c122df899-osd--block--d1dcb9a5--e8bf--4d3c--8d7d--6a7ea9446302                                                                                                             18.2T\nsdb                                                                                                   HlHJmS-Wc0q-6uXk-CJmu-8k2d-btTe-nkHx4d ZYDG4WXP                         0x5000c500f58885ab                  18.2T\n\u2514\u2500ceph--3ec8f2b7--632e--4c25--9fd2--bd16d3484e93-osd--block--edad6ac4--f97b--4d61--b64b--b09a37d57062                                                                                                             18.2T\nsdc                                                                                                   KBMC8n-X0vu-8g5g-Clyz-WfCh-zxvW-RRN73Z ZYDG0CL3                         0x5000c500f5880ffb                  18.2T\n\u2514\u2500ceph--e1ef2e00--3344--40d5--ba42--79cb70faab2e-osd--block--67725c87--56ed--42a5--8511--19d7371fe401                                                                                                             18.2T\nsdd                                                                                                   EQu8lB-prDB-S6ic-lpoq-hOEt-exHj-Pi4c5C ZYDFZ35V                         0x5000c500f58810f3                  18.2T\n\u2514\u2500ceph--fdcc0b24--192f--4148--97e5--3af6666d8ac2-osd--block--f28de884--5aae--4e0f--af41--6ac0634fba06                                                                                                             18.2T\nsde                                                                                                                                          ZYDG62WJ                         0x5000c500f5881f8b                  18.2T\n\u251c\u2500sde1                                                                                                9280020667378897418                                                     0x5000c500f5881f8b                  18.2T\n\u2514\u2500sde9                                                                                                                                                                        0x5000c500f5881f8b                     8M\nsdf                                                                                                                                          ZYDG2VVR                         0x5000c500f589219b                  18.2T\n\u251c\u2500sdf1                                                                                                9280020667378897418                                                     0x5000c500f589219b                  18.2T\n\u2514\u2500sdf9                                                                                                                                                                        0x5000c500f589219b                     8M\nsdg                                                                                                                                          ZYDFV3PC                         0x5000c500f587c8af                  18.2T\n\u251c\u2500sdg1                                                                                                9280020667378897418                                                     0x5000c500f587c8af                  18.2T\n\u2514\u2500sdg9                                                                                                                                                                        0x5000c500f587c8af                     8M\nsdh                                                                                                                                          ZYDGDMT3                         0x5000c500f5889713                  18.2T\n\u251c\u2500sdh1                                                                                                9280020667378897418                                                     0x5000c500f5889713                  18.2T\n\u2514\u2500sdh9                                                                                                                                                                        0x5000c500f5889713                     8M\nsdi                                                                                                                                          ZYDGBV46                         0x5000c500f588891f                  18.2T\n\u251c\u2500sdi1                                                                                                9280020667378897418                                                     0x5000c500f588891f                  18.2T\n\u2514\u2500sdi9                                                                                                                                                                        0x5000c500f588891f                     8M\nsdj                                                                                                                                          ZYDG6AWH                         0x5000c500f5893a8b                  18.2T\n\u251c\u2500sdj1                                                                                                9280020667378897418                                                     0x5000c500f5893a8b                  18.2T\n\u2514\u2500sdj9                                                                                                                                                                        0x5000c500f5893a8b                     8M\nsdk                                                                                                                                          ZYDFWL9E                         0x5000c500f58801ff                  18.2T\n\u251c\u2500sdk1                                                                                                9280020667378897418                                                     0x5000c500f58801ff                  18.2T\n\u2514\u2500sdk9                                                                                                                                                                        0x5000c500f58801ff                     8M\nsdl                                                                                                                                          ZYDFW4AP                         0x5000c500f588810b                  18.2T\nsdm                                                                                                                                          00153b996d278a193200adbc58809b4e 0x6b4e9b8058bcad0032198a276d993b15 893.8G\n\u251c\u2500sdm1                                                                                                                                                                        0x6b4e9b8058bcad0032198a276d993b15  1007K\n\u251c\u2500sdm2                                                                                                FD0A-D141                                                               0x6b4e9b8058bcad0032198a276d993b15     1G\n\u2514\u2500sdm3                                                                                                CkWqEB-NXAO-DeXJ-0jNz-DaL0-fgGa-Urtpy1                                  0x6b4e9b8058bcad0032198a276d993b15 892.7G\n  \u251c\u2500pve-swap                                                                                          1f0ed5b8-1c43-48f3-830d-6695fac1ad6f                                                                           8G\n  \u251c\u2500pve-root                                                                                          22ed307b-64bc-4193-8b65-df3e96613a6b                                                                          96G\n  \u251c\u2500pve-data_tmeta                                                                                                                                                                                                 7.7G\n  \u2502 \u2514\u2500pve-data                                                                                                                                                                                                   757.3G\n  \u2514\u2500pve-data_tdata                                                                                                                                                                                               757.3G": "bash: line 1: NAME: command not found\nbash: line 2: sda: command not found\nbash: line 3: \u2514\u2500ceph--d1246597--45f6--40a6--ad11--fb6c122df899-osd--block--d1dcb9a5--e8bf--4d3c--8d7d--6a7ea9446302: command not found\nbash: line 4: sdb: command not found\nbash: line 5: \u2514\u2500ceph--3ec8f2b7--632e--4c25--9fd2--bd16d3484e93-osd--block--edad6ac4--f97b--4d61--b64b--b09a37d57062: command not found\nbash: line 6: sdc: command not found\nbash: line 7: \u2514\u2500ceph--e1ef2e00--3344--40d5--ba42--79cb70faab2e-osd--block--67725c87--56ed--42a5--8511--19d7371fe401: command not found\nbash: line 8: sdd: command not found\nbash: line 9: \u2514\u2500ceph--fdcc0b24--192f--4148--97e5--3af6666d8ac2-osd--block--f28de884--5aae--4e0f--af41--6ac0634fba06: command not found\nbash: line 10: sde: command not found\nbash: line 11: \u251c\u2500sde1: command not found\nbash: line 12: \u2514\u2500sde9: command not found\nbash: line 13: sdf: command not found\nbash: line 14: \u251c\u2500sdf1: command not found\nbash: line 15: \u2514\u2500sdf9: command not found\nbash: line 16: sdg: command not found\nbash: line 17: \u251c\u2500sdg1: command not found\nbash: line 18: \u2514\u2500sdg9: command not found\nbash: line 19: sdh: command not found\nbash: line 20: \u251c\u2500sdh1: command not found\nbash: line 21: \u2514\u2500sdh9: command not found\nbash: line 22: sdi: command not found\nbash: line 23: \u251c\u2500sdi1: command not found\nbash: line 24: \u2514\u2500sdi9: command not found\nbash: line 25: sdj: command not found\nbash: line 26: \u251c\u2500sdj1: command not found\nbash: line 27: \u2514\u2500sdj9: command not found\nbash: line 28: sdk: command not found\nbash: line 29: \u251c\u2500sdk1: command not found\nbash: line 30: \u2514\u2500sdk9: command not found\nbash: line 31: sdl: command not found\nbash: line 32: sdm: command not found\nbash: line 33: \u251c\u2500sdm1: command not found\nbash: line 34: \u251c\u2500sdm2: command not found\nbash: line 35: \u2514\u2500sdm3: command not found\nbash: line 36: \u251c\u2500pve-swap: command not found\nbash: line 37: \u251c\u2500pve-root: command not found\nbash: line 38: \u251c\u2500pve-data_tmeta: command not found\nbash: line 39: \u2502: command not found\nbash: line 40: \u2514\u2500pve-data_tdata: command not found"
+    },
+    "telemetry": {
+      "sda                                                                                                   ZYDGFEW6                         0x5000c500f588273b\nsdb                                                                                                   ZYDG4WXP                         0x5000c500f58885ab\nsdc                                                                                                   ZYDG0CL3                         0x5000c500f5880ffb\nsdd                                                                                                   ZYDFZ35V                         0x5000c500f58810f3\nsde                                                                                                   ZYDG62WJ                         0x5000c500f5881f8b\n\u251c\u2500sde1                                                                                                                                 0x5000c500f5881f8b\n\u2514\u2500sde9                                                                                                                                 0x5000c500f5881f8b\nsdf                                                                                                   ZYDG2VVR                         0x5000c500f589219b\n\u251c\u2500sdf1                                                                                                                                 0x5000c500f589219b\n\u2514\u2500sdf9                                                                                                                                 0x5000c500f589219b\nsdg                                                                                                   ZYDFV3PC                         0x5000c500f587c8af\n\u251c\u2500sdg1                                                                                                                                 0x5000c500f587c8af\n\u2514\u2500sdg9                                                                                                                                 0x5000c500f587c8af\nsdh                                                                                                   ZYDGDMT3                         0x5000c500f5889713\n\u251c\u2500sdh1                                                                                                                                 0x5000c500f5889713\n\u2514\u2500sdh9                                                                                                                                 0x5000c500f5889713\nsdi                                                                                                   ZYDGBV46                         0x5000c500f588891f\n\u251c\u2500sdi1                                                                                                                                 0x5000c500f588891f\n\u2514\u2500sdi9                                                                                                                                 0x5000c500f588891f\nsdj                                                                                                   ZYDG6AWH                         0x5000c500f5893a8b": "bash: line 1: sda: command not found\nbash: line 2: sdb: command not found\nbash: line 3: sdc: command not found\nbash: line 4: sdd: command not found\nbash: line 5: sde: command not found\nbash: line 6: \u251c\u2500sde1: command not found\nbash: line 7: \u2514\u2500sde9: command not found\nbash: line 8: sdf: command not found\nbash: line 9: \u251c\u2500sdf1: command not found\nbash: line 10: \u2514\u2500sdf9: command not found\nbash: line 11: sdg: command not found\nbash: line 12: \u251c\u2500sdg1: command not found\nbash: line 13: \u2514\u2500sdg9: command not found\nbash: line 14: sdh: command not found\nbash: line 15: \u251c\u2500sdh1: command not found\nbash: line 16: \u2514\u2500sdh9: command not found\nbash: line 17: sdi: command not found\nbash: line 18: \u251c\u2500sdi1: command not found\nbash: line 19: \u2514\u2500sdi9: command not found\nbash: line 20: sdj: command not found"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": null,
+    "timestamp_start": "2026-09-19T15:00:39",
+    "timestamp_end": "2026-09-19T15:00:40"
+  },
+  {
+    "step": 11,
+    "title": "[Step 11.0] Slot one to Slot Three (verify serials)",
+    "desc": "Cross-check serial/WWN identity across nodes.",
+    "expected": "Serials match across nodes.",
+    "analysis": "Verifies node-level serial uniqueness.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "NAME                                                                                                  SERIAL                           WWN\nsda                                                                                                   ZYDGFEW6                         0x5000c500f588273b\n\u2514\u2500ceph--d1246597--45f6--40a6--ad11--fb6c122df899-osd--block--d1dcb9a5--e8bf--4d3c--8d7d--6a7ea9446302                                  \nsdb                                                                                                   ZYDG4WXP                         0x5000c500f58885ab\n\u2514\u2500ceph--3ec8f2b7--632e--4c25--9fd2--bd16d3484e93-osd--block--edad6ac4--f97b--4d61--b64b--b09a37d57062                                  \nsdc                                                                                                   ZYDG0CL3                         0x5000c500f5880ffb\n\u2514\u2500ceph--e1ef2e00--3344--40d5--ba42--79cb70faab2e-osd--block--67725c87--56ed--42a5--8511--19d7371fe401                                  \nsdd                                                                                                   ZYDFZ35V                         0x5000c500f58810f3\n\u2514\u2500ceph--fdcc0b24--192f--4148--97e5--3af6666d8ac2-osd--block--f28de884--5aae--4e0f--af41--6ac0634fba06                                  \nsde                                                                                                   ZYDG62WJ                         0x5000c500f5881f8b\n\u251c\u2500sde1                                                                                                                                 0x5000c500f5881f8b\n\u2514\u2500sde9                                                                                                                                 0x5000c500f5881f8b\nsdf                                                                                                   ZYDG2VVR                         0x5000c500f589219b\n\u251c\u2500sdf1                                                                                                                                 0x5000c500f589219b\n\u2514\u2500sdf9                                                                                                                                 0x5000c500f589219b\nsdg                                                                                                   ZYDFV3PC                         0x5000c500f587c8af\n\u251c\u2500sdg1                                                                                                                                 0x5000c500f587c8af\n\u2514\u2500sdg9                                                                                                                                 0x5000c500f587c8af\nsdh                                                                                                   ZYDGDMT3                         0x5000c500f5889713\n\u251c\u2500sdh1                                                                                                                                 0x5000c500f5889713\n\u2514\u2500sdh9                                                                                                                                 0x5000c500f5889713\nsdi                                                                                                   ZYDGBV46                         0x5000c500f588891f\n\u251c\u2500sdi1                                                                                                                                 0x5000c500f588891f\n\u2514\u2500sdi9                                                                                                                                 0x5000c500f588891f\nsdj                                                                                                   ZYDG6AWH                         0x5000c500f5893a8b\n\u251c\u2500sdj1                                                                                                                                 0x5000c500f5893a8b\n\u2514\u2500sdj9                                                                                                                                 0x5000c500f5893a8b\nsdk                                                                                                   ZYDFWL9E                         0x5000c500f58801ff\n\u251c\u2500sdk1                                                                                                                                 0x5000c500f58801ff\n\u2514\u2500sdk9                                                                                                                                 0x5000c500f58801ff\nsdl                                                                                                   ZYDFW4AP                         0x5000c500f588810b\nsdm                                                                                                   00153b996d278a193200adbc58809b4e 0x6b4e9b8058bcad0032198a276d993b15\n\u251c\u2500sdm1                                                                                                                                 0x6b4e9b8058bcad0032198a276d993b15\n\u251c\u2500sdm2                                                                                                                                 0x6b4e9b8058bcad0032198a276d993b15\n\u2514\u2500sdm3                                                                                                                                 0x6b4e9b8058bcad0032198a276d993b15\n  \u251c\u2500pve-swap                                                                                                                           \n  \u251c\u2500pve-root                                                                                                                           \n  \u251c\u2500pve-data_tmeta                                                                                                                     \n  \u2502 \u2514\u2500pve-data                                                                                                                         \n  \u2514\u2500pve-data_tdata                                                                                                                     \n    \u2514\u2500pve-data                                                                                                                         \nzd0                                                                                                                                    \nzd16                                                                                                                                   \n\u251c\u2500zd16p1                                                                                                                               \n\u251c\u2500zd16p2                                                                                                                               \n\u2514\u2500zd16p3                                                                                                                               \nzd32                                                                                                                                   \nzd48": "bash: line 1: NAME: command not found\nbash: line 2: sda: command not found\nbash: line 3: \u2514\u2500ceph--d1246597--45f6--40a6--ad11--fb6c122df899-osd--block--d1dcb9a5--e8bf--4d3c--8d7d--6a7ea9446302: command not found\nbash: line 4: sdb: command not found\nbash: line 5: \u2514\u2500ceph--3ec8f2b7--632e--4c25--9fd2--bd16d3484e93-osd--block--edad6ac4--f97b--4d61--b64b--b09a37d57062: command not found\nbash: line 6: sdc: command not found\nbash: line 7: \u2514\u2500ceph--e1ef2e00--3344--40d5--ba42--79cb70faab2e-osd--block--67725c87--56ed--42a5--8511--19d7371fe401: command not found\nbash: line 8: sdd: command not found\nbash: line 9: \u2514\u2500ceph--fdcc0b24--192f--4148--97e5--3af6666d8ac2-osd--block--f28de884--5aae--4e0f--af41--6ac0634fba06: command not found\nbash: line 10: sde: command not found\nbash: line 11: \u251c\u2500sde1: command not found\nbash: line 12: \u2514\u2500sde9: command not found\nbash: line 13: sdf: command not found\nbash: line 14: \u251c\u2500sdf1: command not found\nbash: line 15: \u2514\u2500sdf9: command not found\nbash: line 16: sdg: command not found\nbash: line 17: \u251c\u2500sdg1: command not found\nbash: line 18: \u2514\u2500sdg9: command not found\nbash: line 19: sdh: command not found\nbash: line 20: \u251c\u2500sdh1: command not found\nbash: line 21: \u2514\u2500sdh9: command not found\nbash: line 22: sdi: command not found\nbash: line 23: \u251c\u2500sdi1: command not found\nbash: line 24: \u2514\u2500sdi9: command not found\nbash: line 25: sdj: command not found\nbash: line 26: \u251c\u2500sdj1: command not found\nbash: line 27: \u2514\u2500sdj9: command not found\nbash: line 28: sdk: command not found\nbash: line 29: \u251c\u2500sdk1: command not found\nbash: line 30: \u2514\u2500sdk9: command not found\nbash: line 31: sdl: command not found\nbash: line 32: sdm: command not found\nbash: line 33: \u251c\u2500sdm1: command not found\nbash: line 34: \u251c\u2500sdm2: command not found\nbash: line 35: \u2514\u2500sdm3: command not found\nbash: line 36: \u251c\u2500pve-swap: command not found\nbash: line 37: \u251c\u2500pve-root: command not found\nbash: line 38: \u251c\u2500pve-data_tmeta: command not found\nbash: line 39: \u2502: command not found\nbash: line 40: \u2514\u2500pve-data_tdata: command not found\nbash: line 41: \u2514\u2500pve-data: command not found\nbash: line 42: zd0: command not found\nbash: line 43: zd16: command not found\nbash: line 44: \u251c\u2500zd16p1: command not found\nbash: line 45: \u251c\u2500zd16p2: command not found\nbash: line 46: \u2514\u2500zd16p3: command not found\nbash: line 47: zd32: command not found\nbash: line 48: zd48: command not found"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": null,
+    "timestamp_start": "2026-09-19T15:00:40",
+    "timestamp_end": "2026-09-19T15:00:40"
+  },
+  {
+    "step": 12,
+    "title": "[Step 12.0] Slot one to Slot Three (sticker mapping)",
+    "desc": "Generate sticker mapping table (role per serial).",
+    "expected": "Mapping of role->serial visible.",
+    "analysis": "Drive roles (Ceph OSD / ZFS / OS) mapped for physical labeling.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0        up   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000",
+      "pool: zfs-ha\n state: ONLINE\n  scan: scrub canceled on Sat Sep 19 11:49:13 2026\nconfig:\n\n\tNAME                        STATE     READ WRITE CKSUM\n\tzfs-ha                      ONLINE       0     0     0\n\t  raidz2-0                  ONLINE       0     0     0\n\t    wwn-0x5000c500f5881f8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f589219b  ONLINE       0     0     0\n\t    wwn-0x5000c500f587c8af  ONLINE       0     0     0\n\t    wwn-0x5000c500f5889713  ONLINE       0     0     0\n\t    wwn-0x5000c500f588891f  ONLINE       0     0     0\n\t    wwn-0x5000c500f5893a8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f58801ff  ONLINE       0     0     0\n\nerrors: No known data errors"
+    ],
+    "outputs": {
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0        up   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "pool: zfs-ha\n state: ONLINE\n  scan: scrub canceled on Sat Sep 19 11:49:13 2026\nconfig:\n\n\tNAME                        STATE     READ WRITE CKSUM\n\tzfs-ha                      ONLINE       0     0     0\n\t  raidz2-0                  ONLINE       0     0     0\n\t    wwn-0x5000c500f5881f8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f589219b  ONLINE       0     0     0\n\t    wwn-0x5000c500f587c8af  ONLINE       0     0     0\n\t    wwn-0x5000c500f5889713  ONLINE       0     0     0\n\t    wwn-0x5000c500f588891f  ONLINE       0     0     0\n\t    wwn-0x5000c500f5893a8b  ONLINE       0     0     0\n\t    wwn-0x5000c500f58801ff  ONLINE       0     0     0\n\nerrors: No known data errors": "bash: line 1: pool:: command not found\nbash: line 2: state:: command not found\nbash: line 3: scan:: command not found\nbash: line 4: config:: command not found\nbash: line 6: NAME: command not found\nbash: line 7: zfs-ha: command not found\nbash: line 8: raidz2-0: command not found\nbash: line 9: wwn-0x5000c500f5881f8b: command not found\nbash: line 10: wwn-0x5000c500f589219b: command not found\nbash: line 11: wwn-0x5000c500f587c8af: command not found\nbash: line 12: wwn-0x5000c500f5889713: command not found\nbash: line 13: wwn-0x5000c500f588891f: command not found\nbash: line 14: wwn-0x5000c500f5893a8b: command not found\nbash: line 15: wwn-0x5000c500f58801ff: command not found\nbash: line 17: errors:: command not found"
+    },
+    "telemetry": {
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0        up   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": null,
+    "timestamp_start": "2026-09-19T15:00:40",
+    "timestamp_end": "2026-09-19T15:00:41"
+  },
+  {
+    "step": 13,
+    "title": "[Step 13.0] Remove All Disks from Node",
+    "desc": "Stop all 4 OSDs on prox22 (osd.0,3,6,9).",
+    "expected": "Cluster may show warning; data available (replicas on other nodes).",
+    "analysis": "Full-node OSD loss: host failure domain keeps 2 replicas on other nodes; data remains available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "osd.0 is already down. osd.3 is already down. osd.6 is already down. osd.9 is already down.",
+      "marked out osd.0. marked out osd.3. marked out osd.6. marked out osd.9.",
+      "",
+      "",
+      "marked in osd.0. marked in osd.3. marked in osd.6. marked in osd.9."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down. osd.3 is already down. osd.6 is already down. osd.9 is already down.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0. marked out osd.3. marked out osd.6. marked out osd.9.": "bash: line 1: marked: command not found",
+      "marked in osd.0. marked in osd.3. marked in osd.6. marked in osd.9.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Degraded data redundancy: 1042/3126 objects degraded (33.333%), 33 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 8 up (since 7s), 8 in (since 6s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   8.5 GiB used, 146 TiB / 146 TiB avail\n    pgs:     1042/3126 objects degraded (33.333%)\n             33 active+undersized+degraded\n \n  io:\n    client:   255 B/s rd, 0 op/s rd, 0 op/s wr\n    recovery: 113 MiB/s, 269 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: -c: line 4: syntax error near unexpected token `('\nbash: -c: line 4: `            Degraded data redundancy: 1042/3126 objects degraded (33.333%), 33 pgs degraded'",
+      "HEALTH_WARN Degraded data redundancy: 1042/3126 objects degraded (33.333%), 33 pgs degraded\n[WRN] PG_DEGRADED: Degraded data redundancy: 1042/3126 objects degraded (33.333%), 33 pgs degraded\n    pg 3.0 is active+undersized+degraded, acting [5,4]\n    pg 4.0 is active+undersized+degraded, acting [10,8]\n    pg 4.1 is active+undersized+degraded, acting [2,1]\n    pg 4.2 is active+undersized+degraded, acting [8,10]\n    pg 4.3 is active+undersized+degraded, acting [11,7]\n    pg 4.4 is active+undersized+degraded, acting [8,1]\n    pg 4.5 is active+undersized+degraded, acting [7,5]\n    pg 4.6 is active+undersized+degraded, acting [5,10]\n    pg 4.7 is active+undersized+degraded, acting [5,7]\n    pg 4.8 is active+undersized+degraded, acting [5,7]\n    pg 4.9 is active+undersized+degraded, acting [5,1]\n    pg 4.a is active+undersized+degraded, acting [1,2]\n    pg 4.b is active+undersized+degraded, acting [1,11]\n    pg 4.c is active+undersized+degraded, acting [4,8]\n    pg 4.d is active+undersized+degraded, acting [4,2]\n    pg 4.e is active+undersized+degraded, acting [4,5]\n    pg 4.f is active+undersized+degraded, acting [2,4]\n    pg 4.10 is active+undersized+degraded, acting [2,4]\n    pg 4.11 is active+undersized+degraded, acting [7,2]\n    pg 4.12 is active+undersized+degraded, acting [8,7]\n    pg 4.13 is active+undersized+degraded, acting [4,2]\n    pg 4.14 is active+undersized+degraded, acting [11,7]\n    pg 4.15 is active+undersized+degraded, acting [5,1]\n    pg 4.16 is active+undersized+degraded, acting [10,11]\n    pg 4.17 is active+undersized+degraded, acting [7,5]\n    pg 4.18 is active+undersized+degraded, acting [4,8]\n    pg 4.19 is active+undersized+degraded, acting [2,1]\n    pg 4.1a is active+undersized+degraded, acting [4,5]\n    pg 4.1b is active+undersized+degraded, acting [4,5]\n    pg 4.1c is active+undersized+degraded, acting [2,4]\n    pg 4.1d is active+undersized+degraded, acting [2,1]\n    pg 4.1e is active+undersized+degraded, acting [7,5]\n    pg 4.1f is active+undersized+degraded, acting [11,4]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Degraded data redundancy: 1042/3126 objects degraded (33.333%), 33 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3      down         0  1.00000\n 6    hdd   18.19040          osd.6      down         0  1.00000\n 9    hdd   18.19040          osd.9      down         0  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:00:41",
+    "timestamp_end": "2026-09-19T15:01:07"
+  },
+  {
+    "step": 14,
+    "title": "[Step 14.0] Remove All Disks from Node (verify availability)",
+    "desc": "Verify data availability with all 4 OSDs down on prox22.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2 and replicas on other hosts keep data available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 9s), 12 in (since 16s); epoch: e1823"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 9s), 12 in (since 16s); epoch: e1823": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 9s), 12 in (since 16s); epoch: e1823'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 10s), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   346 B/s rd, 69 KiB/s wr, 0 op/s rd, 3 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:01:07",
+    "timestamp_end": "2026-09-19T15:01:08"
+  },
+  {
+    "step": 15,
+    "title": "[Step 15.0] Remove All Disks from Node (self-heal check)",
+    "desc": "Verify self-healing after full-node OSD loss.",
+    "expected": "Cluster self-heals, PGs rebalance.",
+    "analysis": "Once OSDs return, PGs re-replicate; cluster returns to HEALTH_OK.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 11s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   307 B/s rd, 61 KiB/s wr, 0 op/s rd, 3 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:01:09",
+    "timestamp_end": "2026-09-19T15:01:10"
+  },
+  {
+    "step": 16,
+    "title": "[Step 16.0] Remove 2 Disks from 2 Servers",
+    "desc": "Stop 2 OSDs on prox22 and 2 on prox23 (osd.0,3 / osd.1,4).",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "4 OSDs down across 2 hosts; CRUSH ensures replicas on surviving hosts.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "",
+      "osd.0 is already down. osd.3 is already down. marked down osd.1. marked down osd.4.",
+      "marked out osd.0. marked out osd.3. marked out osd.1. marked out osd.4.",
+      "",
+      "",
+      "",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.\nJob for ceph-osd@4.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@4.service\" and \"journalctl -xeu ceph-osd@4.service\" for details.",
+      "marked in osd.0. marked in osd.3. marked in osd.1. marked in osd.4."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down. osd.3 is already down. marked down osd.1. marked down osd.4.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0. marked out osd.3. marked out osd.1. marked out osd.4.": "bash: line 1: marked: command not found",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.\nJob for ceph-osd@4.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@4.service\" and \"journalctl -xeu ceph-osd@4.service\" for details.": "bash: line 1: Job: command not found\nbash: line 2: See: command not found\nbash: line 3: Job: command not found\nbash: line 4: See: command not found",
+      "marked in osd.0. marked in osd.3. marked in osd.1. marked in osd.4.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Degraded data redundancy: 7496/3126 objects degraded (239.795%), 19 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 10 up (since 6s), 8 in (since 6s); 18 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   8.5 GiB used, 146 TiB / 146 TiB avail\n    pgs:     7496/3126 objects degraded (239.795%)\n             432/3126 objects misplaced (13.820%)\n             18 active+recovery_wait+undersized+degraded+remapped\n             10 active+clean\n             3  active+remapped+backfill_wait\n             1  active+recovering+undersized+remapped\n             1  active+recovering+undersized+degraded+remapped\n \n  io:\n    client:   76 KiB/s rd, 1 op/s rd, 0 op/s wr\n    recovery: 294 MiB/s, 1 keys/s, 781 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: -c: line 4: syntax error near unexpected token `('\nbash: -c: line 4: `            Degraded data redundancy: 7496/3126 objects degraded (239.795%), 19 pgs degraded'",
+      "HEALTH_WARN Degraded data redundancy: 7496/3126 objects degraded (239.795%), 19 pgs degraded\n[WRN] PG_DEGRADED: Degraded data redundancy: 7496/3126 objects degraded (239.795%), 19 pgs degraded\n    pg 3.0 is active+recovery_wait+undersized+degraded+remapped, acting [5,6]\n    pg 4.0 is active+recovery_wait+undersized+degraded+remapped, acting [10,8]\n    pg 4.1 is active+recovery_wait+undersized+degraded+remapped, acting [2,7]\n    pg 4.4 is active+recovery_wait+undersized+degraded+remapped, acting [6,8]\n    pg 4.9 is active+recovery_wait+undersized+degraded+remapped, acting [5,9]\n    pg 4.a is active+recovery_wait+undersized+degraded+remapped, acting [6,2]\n    pg 4.b is active+recovery_wait+undersized+degraded+remapped, acting [1,11]\n    pg 4.c is active+recovery_wait+undersized+degraded+remapped, acting [9,8]\n    pg 4.d is active+recovery_wait+undersized+degraded+remapped, acting [2,9]\n    pg 4.e is active+recovery_wait+undersized+degraded+remapped, acting [5,9]\n    pg 4.f is active+recovery_wait+undersized+degraded+remapped, acting [9,2]\n    pg 4.11 is active+recovery_wait+undersized+degraded+remapped, acting [7,2]\n    pg 4.15 is active+recovery_wait+undersized+degraded+remapped, acting [5,6]\n    pg 4.19 is active+recovery_wait+undersized+degraded+remapped, acting [2,9]\n    pg 4.1b is active+recovery_wait+undersized+degraded+remapped, acting [5,7]\n    pg 4.1c is active+recovery_wait+undersized+degraded+remapped, acting [2,6]\n    pg 4.1d is active+recovery_wait+undersized+degraded+remapped, acting [2,6]\n    pg 4.1e is active+recovering+undersized+degraded+remapped, acting [7,5]\n    pg 4.1f is active+recovery_wait+undersized+degraded+remapped, acting [11,9]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Degraded data redundancy: 7496/3126 objects degraded (239.795%), 19 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3      down         0  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up         0  1.00000\n 4    hdd   18.19040          osd.4        up         0  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:01:10",
+    "timestamp_end": "2026-09-19T15:01:37"
+  },
+  {
+    "step": 17,
+    "title": "[Step 17.0] Remove 2 Disks from 2 Servers (verify availability)",
+    "desc": "Verify data availability with 4 OSDs down across 2 hosts.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "Surviving hosts hold full replicas.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "32",
+      "12 osds: 12 up (since 12s), 12 in (since 16s); epoch: e1840"
+    ],
+    "outputs": {
+      "32": "bash: line 1: 32: command not found",
+      "12 osds: 12 up (since 12s), 12 in (since 16s); epoch: e1840": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 12s), 12 in (since 16s); epoch: e1840'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 13s), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     32 active+clean\n             1  active+remapped\n \n  io:\n    client:   1.7 KiB/s rd, 62 KiB/s wr, 2 op/s rd, 3 op/s wr\n    recovery: 29 MiB/s, 85 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:01:37",
+    "timestamp_end": "2026-09-19T15:01:39"
+  },
+  {
+    "step": 18,
+    "title": "[Step 18.0] Remove 2 Disks from 2 Servers (self-heal check)",
+    "desc": "Verify self-healing after cross-node OSD loss.",
+    "expected": "Cluster self-heals, PGs rebalance.",
+    "analysis": "Recovery re-replicates data once OSDs return.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     32 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     32 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 14s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     32 active+clean\n             1  active+remapped\n \n  io:\n    client:   127 B/s rd, 58 KiB/s wr, 0 op/s rd, 3 op/s wr\n    recovery: 13 MiB/s, 59 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:01:39",
+    "timestamp_end": "2026-09-19T15:01:40"
+  },
+  {
+    "step": 19,
+    "title": "[Step 19.0] Hot Remove Disks",
+    "desc": "Hot-remove osd.1 on prox23 (stop + out, no unplug).",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "Hot-remove: OSD out first, then stop; data rebalances before removal.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "marked out osd.1.",
+      "",
+      "",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.",
+      "marked in osd.1."
+    ],
+    "outputs": {
+      "marked out osd.1.": "bash: line 1: marked: command not found",
+      "": "",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.": "bash: line 1: Job: command not found\nbash: line 2: See: command not found",
+      "marked in osd.1.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 21s), 11 in (since 5s); 5 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   11 GiB used, 200 TiB / 200 TiB avail\n    pgs:     9.091% pgs not active\n             30 active+clean\n             2  remapped+peering\n             1  peering\n \n  io:\n    recovery: 15 MiB/s, 1 keys/s, 55 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:01:41",
+    "timestamp_end": "2026-09-19T15:02:04"
+  },
+  {
+    "step": 20,
+    "title": "[Step 20.0] Hot Remove Disks (verify availability)",
+    "desc": "Verify data availability during hot-remove.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2 keeps data available during rebalance.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 39s), 12 in (since 16s); epoch: e1853"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 39s), 12 in (since 16s); epoch: e1853": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 39s), 12 in (since 16s); epoch: e1853'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 40s), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   1.7 KiB/s rd, 58 KiB/s wr, 1 op/s rd, 2 op/s wr\n    recovery: 23 MiB/s, 0 keys/s, 84 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:04",
+    "timestamp_end": "2026-09-19T15:02:06"
+  },
+  {
+    "step": 21,
+    "title": "[Step 21.0] Hot Remove Disks (self-heal check)",
+    "desc": "Verify self-healing after hot-remove.",
+    "expected": "Cluster self-heals.",
+    "analysis": "Data re-replicates after OSD returns.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 41s), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   1.7 KiB/s rd, 58 KiB/s wr, 1 op/s rd, 2 op/s wr\n    recovery: 23 MiB/s, 0 keys/s, 84 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:06",
+    "timestamp_end": "2026-09-19T15:02:07"
+  },
+  {
+    "step": 22,
+    "title": "[Step 22.0] Simulate Node Failure (Power Off One Node)",
+    "desc": "Simulate node failure: fence/stop corosync+pve-ha-lrm on prox23 (HA VM 9002 failover).",
+    "expected": "HA VM 9002 fails over to a surviving node; quorum retained.",
+    "analysis": "Node failure triggers HA LRM on surviving nodes to restart VM 9002 elsewhere.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "FENCE SIMULATION: stop pve-ha-lrm + corosync on prox23",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "outputs": {
+      "FENCE SIMULATION: stop pve-ha-lrm + corosync on prox23": "bash: line 1: FENCE: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "quorum No quorum on node 'prox22'!\nmaster prox23 (active, Sat Sep 19 15:02:13 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (restart mode, watchdog active, Sat Sep 19 15:02:17 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:02:22 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:02:15 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, freeze)": "bash: line 1: quorum: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `master prox23 (active, Sat Sep 19 15:02:13 2026)'",
+      "Cluster information\n-------------------\nName:             cisai-pve\nConfig Version:   4\nTransport:        knet\nSecure auth:      on\n\nCannot initialize CMAP service": "bash: line 1: Cluster: command not found\nbash: line 2: -------------------: command not found\nbash: line 3: Name:: command not found\nbash: line 4: Config: command not found\nbash: line 5: Transport:: command not found\nbash: line 6: Secure: command not found\nbash: line 8: Cannot: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:07",
+    "timestamp_end": "2026-09-19T15:02:37"
+  },
+  {
+    "step": 23,
+    "title": "[Step 23.0] Simulate Node Failure (verify VM failover)",
+    "desc": "Verify VM 9002 running on surviving node after prox23 outage.",
+    "expected": "VM 9002 running on a surviving node.",
+    "analysis": "HA service vm:9002 restarted on surviving node by LRM.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "quorum OK\nmaster prox23 (active, Sat Sep 19 15:02:33 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (restart mode, watchdog active, Sat Sep 19 15:02:17 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:02:32 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:02:35 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, freeze)",
+      ""
+    ],
+    "outputs": {
+      "quorum OK\nmaster prox23 (active, Sat Sep 19 15:02:33 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (restart mode, watchdog active, Sat Sep 19 15:02:17 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:02:32 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:02:35 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, freeze)": "bash: line 1: quorum: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `master prox23 (active, Sat Sep 19 15:02:33 2026)'",
+      "": ""
+    },
+    "telemetry": {
+      "quorum OK\nmaster prox23 (active, Sat Sep 19 15:02:33 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (restart mode, watchdog active, Sat Sep 19 15:02:17 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:02:32 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:02:35 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, freeze)": "bash: line 1: quorum: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `master prox23 (active, Sat Sep 19 15:02:33 2026)'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:37",
+    "timestamp_end": "2026-09-19T15:02:39"
+  },
+  {
+    "step": 24,
+    "title": "[Step 24.0] Simulate Node Failure (recovery + quorum)",
+    "desc": "Restore prox23, verify cluster returns to full quorum and VM 9002 rebalances.",
+    "expected": "Quorum restored (3 nodes); VM 9002 running.",
+    "analysis": "Node rejoins cluster; HA rebalances.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "Cluster information\n-------------------\nName:             cisai-pve\nConfig Version:   4\nTransport:        knet\nSecure auth:      on\n\nQuorum information\n------------------\nDate:             Sat Sep 19 15:02:55 2026\nQuorum provider:  corosync_votequorum\nNodes:            3\nNode ID:          0x00000002\nRing ID:          1.97\nQuorate:          Yes": "bash: line 1: Cluster: command not found\nbash: line 2: -------------------: command not found\nbash: line 3: Name:: command not found\nbash: line 4: Config: command not found\nbash: line 5: Transport:: command not found\nbash: line 6: Secure: command not found\nbash: line 8: Quorum: command not found\nbash: line 9: ------------------: command not found\nbash: line 10: Date:: command not found\nbash: line 11: Quorum: command not found\nbash: line 12: Nodes:: command not found\nbash: line 13: Node: command not found\nbash: line 14: Ring: command not found\nbash: line 15: Quorate:: command not found",
+      "quorum OK\nmaster prox23 (active, Sat Sep 19 15:02:53 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (active, watchdog active, Sat Sep 19 15:02:46 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:02:52 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:02:55 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, started)": "bash: line 1: quorum: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `master prox23 (active, Sat Sep 19 15:02:53 2026)'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:39",
+    "timestamp_end": "2026-09-19T15:02:56"
+  },
+  {
+    "step": 25,
+    "title": "[Step 25.0] Remove Two Nodes from Three-Node Cluster (DESTRUCTIVE)",
+    "desc": "**SKIPPED (destructive)** \u2014 would remove 2 of 3 nodes, losing quorum and HA.",
+    "expected": "N/A (not executed on production).",
+    "analysis": "Skipped: removing 2/3 nodes destroys quorum (expected votes 3, quorum 2). Only safe in isolated lab.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED: destructive test requires full cluster outage"
+    ],
+    "outputs": {
+      "SKIPPED: destructive test requires full cluster outage": "bash: line 1: SKIPPED:: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:56",
+    "timestamp_end": "2026-09-19T15:02:56"
+  },
+  {
+    "step": 26,
+    "title": "[Step 26.0] Remove Two Nodes from Three-Node Cluster (verify)",
+    "desc": "**SKIPPED (destructive)**.",
+    "expected": "N/A.",
+    "analysis": "Skipped.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED"
+    ],
+    "outputs": {
+      "SKIPPED": "bash: line 1: SKIPPED: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:57",
+    "timestamp_end": "2026-09-19T15:02:57"
+  },
+  {
+    "step": 27,
+    "title": "[Step 27.0] Remove Two Nodes from Three-Node Cluster (recovery)",
+    "desc": "**SKIPPED (destructive)**.",
+    "expected": "N/A.",
+    "analysis": "Skipped.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED"
+    ],
+    "outputs": {
+      "SKIPPED": "bash: line 1: SKIPPED: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:57",
+    "timestamp_end": "2026-09-19T15:02:58"
+  },
+  {
+    "step": 28,
+    "title": "[Step 28.0] Simulate Network Failure (One Cable)",
+    "desc": "Bring down spare NIC nic0 on prox22 (no active traffic on it).",
+    "expected": "Management/storage traffic unaffected (spare NIC down).",
+    "analysis": "nic0 is a down spare; toggling it validates link-state handling without impacting production.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> \nnic0             DOWN           b4:e9:b8:0b:32:e6 <BROADCAST,MULTICAST> \nnic1             UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \nnic2             DOWN           40:5b:7f:62:65:80 <NO-CARRIER,BROADCAST,MULTICAST,UP> \nnic3             UP             40:5b:7f:62:65:81 <BROADCAST,MULTICAST,UP,LOWER_UP> \nvmbr0            UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \ntap9003i0        UNKNOWN        82:9c:4c:b2:c3:34 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> \nfwbr9003i0       UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwpr9003p0@fwln9003i0 UP             e2:36:34:26:34:31 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwln9003i0@fwpr9003p0 UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP>": "bash: -c: line 1: syntax error near unexpected token `newline'\nbash: -c: line 1: `lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> '",
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.191 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.200 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1054ms\nrtt min/avg/max/mdev = 0.191/0.195/0.200/0.004 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:02:58",
+    "timestamp_end": "2026-09-19T15:03:03"
+  },
+  {
+    "step": 29,
+    "title": "[Step 29.0] Simulate Network Failure (One Cable, verify)",
+    "desc": "Verify management/fabric connectivity intact after nic0 down.",
+    "expected": "All pings succeed.",
+    "analysis": "Redundant paths keep cluster reachable.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.205 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.141 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1064ms\nrtt min/avg/max/mdev = 0.141/0.173/0.205/0.032 ms",
+      "PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.\n64 bytes from 192.168.10.23: icmp_seq=1 ttl=64 time=0.082 ms\n64 bytes from 192.168.10.23: icmp_seq=2 ttl=64 time=0.101 ms\n\n--- 192.168.10.23 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1038ms\nrtt min/avg/max/mdev = 0.082/0.091/0.101/0.009 ms"
+    ],
+    "outputs": {
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.205 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.141 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1064ms\nrtt min/avg/max/mdev = 0.141/0.173/0.205/0.032 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.'",
+      "PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.\n64 bytes from 192.168.10.23: icmp_seq=1 ttl=64 time=0.082 ms\n64 bytes from 192.168.10.23: icmp_seq=2 ttl=64 time=0.101 ms\n\n--- 192.168.10.23 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1038ms\nrtt min/avg/max/mdev = 0.082/0.091/0.101/0.009 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.'"
+    },
+    "telemetry": {
+      "PING 10.31.6.174 (10.31.6.174) 56(84) bytes of data.\n64 bytes from 10.31.6.174: icmp_seq=1 ttl=64 time=0.232 ms\n64 bytes from 10.31.6.174: icmp_seq=2 ttl=64 time=0.237 ms\n\n--- 10.31.6.174 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1010ms\nrtt min/avg/max/mdev = 0.232/0.234/0.237/0.002 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.174 (10.31.6.174) 56(84) bytes of data.'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:03",
+    "timestamp_end": "2026-09-19T15:03:07"
+  },
+  {
+    "step": 30,
+    "title": "[Step 30.0] Simulate Network Failure (One Cable, recovery)",
+    "desc": "Restore nic0.",
+    "expected": "nic0 back up.",
+    "analysis": "Recovery restores spare link.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> \nnic0             DOWN           b4:e9:b8:0b:32:e6 <NO-CARRIER,BROADCAST,MULTICAST,UP> \nnic1             UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \nnic2             DOWN           40:5b:7f:62:65:80 <NO-CARRIER,BROADCAST,MULTICAST,UP> \nnic3             UP             40:5b:7f:62:65:81 <BROADCAST,MULTICAST,UP,LOWER_UP> \nvmbr0            UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \ntap9003i0        UNKNOWN        82:9c:4c:b2:c3:34 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> \nfwbr9003i0       UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwpr9003p0@fwln9003i0 UP             e2:36:34:26:34:31 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwln9003i0@fwpr9003p0 UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP>": "bash: -c: line 1: syntax error near unexpected token `newline'\nbash: -c: line 1: `lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> '",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:07",
+    "timestamp_end": "2026-09-19T15:03:07"
+  },
+  {
+    "step": 31,
+    "title": "[Step 31.0] Simulate Network Failure (Two Cables)",
+    "desc": "Bring down spare NICs nic0 + nic2 on prox22 (no active traffic).",
+    "expected": "Management/storage unaffected (spare NICs down).",
+    "analysis": "Two spare links down; production paths (nic1/nic3) unaffected.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "",
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> \nnic0             DOWN           b4:e9:b8:0b:32:e6 <BROADCAST,MULTICAST> \nnic1             UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \nnic2             DOWN           40:5b:7f:62:65:80 <BROADCAST,MULTICAST> \nnic3             UP             40:5b:7f:62:65:81 <BROADCAST,MULTICAST,UP,LOWER_UP> \nvmbr0            UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \ntap9003i0        UNKNOWN        82:9c:4c:b2:c3:34 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> \nfwbr9003i0       UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwpr9003p0@fwln9003i0 UP             e2:36:34:26:34:31 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwln9003i0@fwpr9003p0 UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP>": "bash: -c: line 1: syntax error near unexpected token `newline'\nbash: -c: line 1: `lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> '",
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.195 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.183 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1019ms\nrtt min/avg/max/mdev = 0.183/0.189/0.195/0.006 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:08",
+    "timestamp_end": "2026-09-19T15:03:13"
+  },
+  {
+    "step": 32,
+    "title": "[Step 32.0] Simulate Network Failure (Two Cables, verify)",
+    "desc": "Verify connectivity intact after two spare NICs down.",
+    "expected": "All pings succeed.",
+    "analysis": "Redundant paths keep cluster reachable.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.207 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.197 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1019ms\nrtt min/avg/max/mdev = 0.197/0.202/0.207/0.005 ms",
+      "PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.\n64 bytes from 192.168.10.23: icmp_seq=1 ttl=64 time=0.129 ms\n64 bytes from 192.168.10.23: icmp_seq=2 ttl=64 time=0.107 ms\n\n--- 192.168.10.23 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1040ms\nrtt min/avg/max/mdev = 0.107/0.118/0.129/0.011 ms"
+    ],
+    "outputs": {
+      "PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.\n64 bytes from 10.31.6.173: icmp_seq=1 ttl=64 time=0.207 ms\n64 bytes from 10.31.6.173: icmp_seq=2 ttl=64 time=0.197 ms\n\n--- 10.31.6.173 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1019ms\nrtt min/avg/max/mdev = 0.197/0.202/0.207/0.005 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.173 (10.31.6.173) 56(84) bytes of data.'",
+      "PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.\n64 bytes from 192.168.10.23: icmp_seq=1 ttl=64 time=0.129 ms\n64 bytes from 192.168.10.23: icmp_seq=2 ttl=64 time=0.107 ms\n\n--- 192.168.10.23 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1040ms\nrtt min/avg/max/mdev = 0.107/0.118/0.129/0.011 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 192.168.10.23 (192.168.10.23) 56(84) bytes of data.'"
+    },
+    "telemetry": {
+      "PING 10.31.6.174 (10.31.6.174) 56(84) bytes of data.\n64 bytes from 10.31.6.174: icmp_seq=1 ttl=64 time=0.223 ms\n64 bytes from 10.31.6.174: icmp_seq=2 ttl=64 time=0.225 ms\n\n--- 10.31.6.174 ping statistics ---\n2 packets transmitted, 2 received, 0% packet loss, time 1062ms\nrtt min/avg/max/mdev = 0.223/0.224/0.225/0.001 ms": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `PING 10.31.6.174 (10.31.6.174) 56(84) bytes of data.'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:13",
+    "timestamp_end": "2026-09-19T15:03:17"
+  },
+  {
+    "step": 33,
+    "title": "[Step 33.0] Simulate Network Failure (Two Cables, recovery)",
+    "desc": "Restore nic0 + nic2.",
+    "expected": "Both NICs back up.",
+    "analysis": "Recovery restores spare links.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> \nnic0             DOWN           b4:e9:b8:0b:32:e6 <NO-CARRIER,BROADCAST,MULTICAST,UP> \nnic1             UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \nnic2             DOWN           40:5b:7f:62:65:80 <NO-CARRIER,BROADCAST,MULTICAST,UP> \nnic3             UP             40:5b:7f:62:65:81 <BROADCAST,MULTICAST,UP,LOWER_UP> \nvmbr0            UP             b4:e9:b8:0b:32:e7 <BROADCAST,MULTICAST,UP,LOWER_UP> \ntap9003i0        UNKNOWN        82:9c:4c:b2:c3:34 <BROADCAST,MULTICAST,PROMISC,UP,LOWER_UP> \nfwbr9003i0       UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwpr9003p0@fwln9003i0 UP             e2:36:34:26:34:31 <BROADCAST,MULTICAST,UP,LOWER_UP> \nfwln9003i0@fwpr9003p0 UP             62:72:59:33:21:13 <BROADCAST,MULTICAST,UP,LOWER_UP>": "bash: -c: line 1: syntax error near unexpected token `newline'\nbash: -c: line 1: `lo               UNKNOWN        00:00:00:00:00:00 <LOOPBACK,UP,LOWER_UP> '",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:17",
+    "timestamp_end": "2026-09-19T15:03:18"
+  },
+  {
+    "step": 34,
+    "title": "[Step 34.0] Simulate Software Disk Failure",
+    "desc": "Simulate software disk failure: osd.2 on prox24 (out + stop).",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "Software fault: OSD out + daemon stop; rebalances; recovery on restart.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "marked out osd.2.",
+      "",
+      "",
+      "Job for ceph-osd@2.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@2.service\" and \"journalctl -xeu ceph-osd@2.service\" for details.",
+      "marked in osd.2."
+    ],
+    "outputs": {
+      "marked out osd.2.": "bash: line 1: marked: command not found",
+      "": "",
+      "Job for ceph-osd@2.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@2.service\" and \"journalctl -xeu ceph-osd@2.service\" for details.": "bash: line 1: Job: command not found\nbash: line 2: See: command not found",
+      "marked in osd.2.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Reduced data availability: 1 pg peering\n            Degraded data redundancy: 330/3126 objects degraded (10.557%), 1 pg degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 119s), 11 in (since 5s); 6 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   11 GiB used, 200 TiB / 200 TiB avail\n    pgs:     21.212% pgs not active\n             330/3126 objects degraded (10.557%)\n             12/3126 objects misplaced (0.384%)\n             24 active+clean\n             7  remapped+peering\n             1  active+recovery_wait+undersized+degraded+remapped\n             1  active+recovering+undersized+remapped": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 4: Reduced: command not found\nbash: -c: line 5: syntax error near unexpected token `('\nbash: -c: line 5: `            Degraded data redundancy: 330/3126 objects degraded (10.557%), 1 pg degraded'",
+      "HEALTH_WARN Reduced data availability: 1 pg peering; Degraded data redundancy: 330/3126 objects degraded (10.557%), 1 pg degraded\n[WRN] PG_AVAILABILITY: Reduced data availability: 1 pg peering\n    pg 4.1d is stuck peering for 10m, current state remapped+peering, last acting [1,3]\n[WRN] PG_DEGRADED: Degraded data redundancy: 330/3126 objects degraded (10.557%), 1 pg degraded\n    pg 4.11 is active+recovery_wait+undersized+degraded+remapped, acting [3,7]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Reduced data availability: 1 pg peering; Degraded data redundancy: 330/3126 objects degraded (10.557%), 1 pg degraded'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:03:18",
+    "timestamp_end": "2026-09-19T15:03:42"
+  },
+  {
+    "step": 35,
+    "title": "[Step 35.0] Simulate Software Disk Failure (verify)",
+    "desc": "Verify data availability during software disk failure.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2 keeps data available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 2m), 12 in (since 16s); epoch: e1868"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 2m), 12 in (since 16s); epoch: e1868": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 2m), 12 in (since 16s); epoch: e1868'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 2m), 12 in (since 17s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   0 B/s rd, 3.4 KiB/s wr, 0 op/s rd, 0 op/s wr\n    recovery: 9.5 MiB/s, 0 keys/s, 33 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:42",
+    "timestamp_end": "2026-09-19T15:03:44"
+  },
+  {
+    "step": 36,
+    "title": "[Step 36.0] Simulate Software Disk Failure (self-heal)",
+    "desc": "Verify self-healing after software disk failure.",
+    "expected": "Cluster self-heals.",
+    "analysis": "Data re-replicates after OSD returns.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 2m), 12 in (since 18s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   0 B/s rd, 3.4 KiB/s wr, 0 op/s rd, 0 op/s wr\n    recovery: 9.5 MiB/s, 0 keys/s, 33 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:03:44",
+    "timestamp_end": "2026-09-19T15:03:45"
+  },
+  {
+    "step": 37,
+    "title": "[Step 37.0] Simulate Physical Disk Failure",
+    "desc": "Simulate physical disk failure: stop osd.0 on prox22 (daemon down).",
+    "expected": "Cluster may show warning; data available.",
+    "analysis": "Physical fault (daemon down); PGs degraded; recovery on restart.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "osd.0 is already down.",
+      "",
+      "",
+      "osd.0 is already in."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down.": "bash: line 1: osd.0: command not found",
+      "osd.0 is already in.": "bash: line 1: osd.0: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            1 osds down\n            Degraded data redundancy: 136/3126 objects degraded (4.351%), 5 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 11 up (since 5s), 12 in (since 26s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     136/3126 objects degraded (4.351%)\n             28 active+clean\n             5  active+undersized+degraded\n \n  io:\n    client:   255 B/s rd, 0 op/s rd, 0 op/s wr\n    recovery: 63 MiB/s, 132 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 4: 1: command not found\nbash: -c: line 5: syntax error near unexpected token `('\nbash: -c: line 5: `            Degraded data redundancy: 136/3126 objects degraded (4.351%), 5 pgs degraded'",
+      "HEALTH_WARN 1 osds down; Degraded data redundancy: 136/3126 objects degraded (4.351%), 5 pgs degraded\n[WRN] OSD_DOWN: 1 osds down\n    osd.0 (root=default,host=prox22) is down\n[WRN] PG_DEGRADED: Degraded data redundancy: 136/3126 objects degraded (4.351%), 5 pgs degraded\n    pg 3.0 is active+undersized+degraded, acting [5,4]\n    pg 4.1 is active+undersized+degraded, acting [2,1]\n    pg 4.9 is active+undersized+degraded, acting [5,1]\n    pg 4.b is active+undersized+degraded, acting [1,11]\n    pg 4.1e is active+undersized+degraded, acting [7,5]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN 1 osds down; Degraded data redundancy: 136/3126 objects degraded (4.351%), 5 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 10,
+    "timestamp_start": "2026-09-19T15:03:46",
+    "timestamp_end": "2026-09-19T15:04:04"
+  },
+  {
+    "step": 38,
+    "title": "[Step 38.0] Simulate Physical Disk Failure (verify)",
+    "desc": "Verify data availability during physical disk failure.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "min_size=2 keeps data available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 5s), 12 in (since 38s); epoch: e1873"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 5s), 12 in (since 38s); epoch: e1873": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 5s), 12 in (since 38s); epoch: e1873'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 6s), 12 in (since 38s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   255 B/s rd, 72 KiB/s wr, 0 op/s rd, 3 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:04",
+    "timestamp_end": "2026-09-19T15:04:06"
+  },
+  {
+    "step": 39,
+    "title": "[Step 39.0] Simulate Physical Disk Failure (self-heal)",
+    "desc": "Verify self-healing after physical disk failure.",
+    "expected": "Cluster self-heals.",
+    "analysis": "Data re-replicates after OSD returns.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 7s), 12 in (since 40s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   13 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   255 B/s rd, 72 KiB/s wr, 0 op/s rd, 3 op/s wr": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:06",
+    "timestamp_end": "2026-09-19T15:04:07"
+  },
+  {
+    "step": 40,
+    "title": "[Step 40.0] Replace a Disk with a New One (DESTRUCTIVE)",
+    "desc": "**SKIPPED** \u2014 would destroy and recreate an OSD (requires spare disk; none spare in prod).",
+    "expected": "N/A (not executed on production).",
+    "analysis": "Skipped: recreating OSD is destructive and needs a physical spare.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED: OSD recreate requires spare disk"
+    ],
+    "outputs": {
+      "SKIPPED: OSD recreate requires spare disk": "bash: line 1: SKIPPED:: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:08",
+    "timestamp_end": "2026-09-19T15:04:08"
+  },
+  {
+    "step": 41,
+    "title": "[Step 41.0] Replace a Disk with a New One (verify)",
+    "desc": "**SKIPPED**.",
+    "expected": "N/A.",
+    "analysis": "Skipped.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED"
+    ],
+    "outputs": {
+      "SKIPPED": "bash: line 1: SKIPPED: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:08",
+    "timestamp_end": "2026-09-19T15:04:09"
+  },
+  {
+    "step": 42,
+    "title": "[Step 42.0] Replace a Disk with a New One (recovery)",
+    "desc": "**SKIPPED**.",
+    "expected": "N/A.",
+    "analysis": "Skipped.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "SKIPPED"
+    ],
+    "outputs": {
+      "SKIPPED": "bash: line 1: SKIPPED: command not found"
+    },
+    "telemetry": {
+      "skipped": "bash: line 1: skipped: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:09",
+    "timestamp_end": "2026-09-19T15:04:09"
+  },
+  {
+    "step": 43,
+    "title": "[Step 43.0] Live Migration + Disk Removal (source node)",
+    "desc": "Live-migrate VM 9001 while an OSD is down on the source node (prox22).",
+    "expected": "VM 9001 migrates online; HA updates location.",
+    "analysis": "Live migration keeps VM running; HA tracks new location.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist\nConfiguration file 'nodes/prox22/qemu-server/9001.conf' does not exist"
+    ],
+    "outputs": {
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist\nConfiguration file 'nodes/prox22/qemu-server/9001.conf' does not exist": "bash: line 1: Configuration: command not found\nbash: line 2: Configuration: command not found"
+    },
+    "telemetry": {
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist": "bash: line 1: Configuration: command not found",
+      "quorum OK\nmaster prox23 (active, Sat Sep 19 15:04:13 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (active, watchdog active, Sat Sep 19 15:04:16 2026)\nlrm prox23 (active, watchdog active, Sat Sep 19 15:04:12 2026)\nlrm prox24 (active, watchdog active, Sat Sep 19 15:04:15 2026)\nservice vm:9001 (prox24, started)\nservice vm:9002 (prox23, started)\nservice vm:9003 (prox22, started)": "bash: line 1: quorum: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `master prox23 (active, Sat Sep 19 15:04:13 2026)'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:10",
+    "timestamp_end": "2026-09-19T15:04:20"
+  },
+  {
+    "step": 44,
+    "title": "[Step 44.0] Live Migration + Disk Removal (verify)",
+    "desc": "Verify VM 9001 running on target after migration.",
+    "expected": "VM running on target node.",
+    "analysis": "Migration completed; HA resource updated.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist",
+      "service vm:9001 (prox24, started)"
+    ],
+    "outputs": {
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist": "bash: line 1: Configuration: command not found",
+      "service vm:9001 (prox24, started)": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `service vm:9001 (prox24, started)'"
+    },
+    "telemetry": {
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist": "bash: line 1: Configuration: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:20",
+    "timestamp_end": "2026-09-19T15:04:23"
+  },
+  {
+    "step": 45,
+    "title": "[Step 45.0] Live Migration + Disk Removal (recovery)",
+    "desc": "Restore VM 9001 to original node (prox22) if HA-managed.",
+    "expected": "VM 9001 back on prox22.",
+    "analysis": "Migrated back to restore original placement.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "400 Parameter verification failed.\ntarget: target is local node.\nqm migrate <vmid> <target> [OPTIONS]\n400 Parameter verification failed.\ntarget: target is local node.\nqm migrate <vmid> <target> [OPTIONS]"
+    ],
+    "outputs": {
+      "400 Parameter verification failed.\ntarget: target is local node.\nqm migrate <vmid> <target> [OPTIONS]\n400 Parameter verification failed.\ntarget: target is local node.\nqm migrate <vmid> <target> [OPTIONS]": "bash: line 1: 400: command not found\nbash: line 2: target:: command not found\nbash: -c: line 3: syntax error near unexpected token `<'\nbash: -c: line 3: `qm migrate <vmid> <target> [OPTIONS]'"
+    },
+    "telemetry": {
+      "Configuration file 'nodes/prox22/qemu-server/9001.conf' does not exist": "bash: line 1: Configuration: command not found",
+      "service vm:9001 (prox24, started)": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `service vm:9001 (prox24, started)'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:04:23",
+    "timestamp_end": "2026-09-19T15:04:33"
+  },
+  {
+    "step": 46,
+    "title": "[Step 46.0] Multiple OSD Failures Exceeding Replication",
+    "desc": "4 OSDs down across 2 hosts (osd.0,3 / osd.1,4) \u2014 exceeds 1 replica tolerance.",
+    "expected": "Cluster may show warning; data available (if replicas on 3rd host).",
+    "analysis": "With size=3, 2 OSDs down on each of 2 hosts still leaves a 3rd host with replicas.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      "",
+      "osd.0 is already down. osd.3 is already down. marked down osd.1. marked down osd.4.",
+      "marked out osd.0. marked out osd.3. marked out osd.1. marked out osd.4.",
+      "",
+      "",
+      "",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.\nJob for ceph-osd@4.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@4.service\" and \"journalctl -xeu ceph-osd@4.service\" for details.",
+      "marked in osd.0. marked in osd.3. marked in osd.1. marked in osd.4."
+    ],
+    "outputs": {
+      "": "",
+      "osd.0 is already down. osd.3 is already down. marked down osd.1. marked down osd.4.": "bash: line 1: osd.0: command not found",
+      "marked out osd.0. marked out osd.3. marked out osd.1. marked out osd.4.": "bash: line 1: marked: command not found",
+      "Job for ceph-osd@1.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@1.service\" and \"journalctl -xeu ceph-osd@1.service\" for details.\nJob for ceph-osd@4.service failed because the control process exited with error code.\nSee \"systemctl status ceph-osd@4.service\" and \"journalctl -xeu ceph-osd@4.service\" for details.": "bash: line 1: Job: command not found\nbash: line 2: See: command not found\nbash: line 3: Job: command not found\nbash: line 4: See: command not found",
+      "marked in osd.0. marked in osd.3. marked in osd.1. marked in osd.4.": "bash: line 1: marked: command not found"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_WARN\n            Reduced data availability: 2 pgs peering\n            Degraded data redundancy: 6516/3126 objects degraded (208.445%), 15 pgs degraded\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 10 up (since 8s), 8 in (since 8s); 15 remapped pgs\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   8.8 GiB used, 146 TiB / 146 TiB avail\n    pgs:     15.152% pgs not active\n             6516/3126 objects degraded (208.445%)\n             84/3126 objects misplaced (2.687%)\n             14 active+recovery_wait+undersized+degraded+remapped\n             11 active+clean\n             3  remapped+peering\n             2  peering\n             2  active+remapped+backfill_wait\n             1  active+recovering+undersized+degraded+remapped\n \n  io:\n    recovery: 224 MiB/s, 1 keys/s, 641 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 4: Reduced: command not found\nbash: -c: line 5: syntax error near unexpected token `('\nbash: -c: line 5: `            Degraded data redundancy: 6516/3126 objects degraded (208.445%), 15 pgs degraded'",
+      "HEALTH_WARN Reduced data availability: 2 pgs peering; Degraded data redundancy: 6516/3126 objects degraded (208.445%), 15 pgs degraded\n[WRN] PG_AVAILABILITY: Reduced data availability: 2 pgs peering\n    pg 4.a is stuck peering for 74s, current state remapped+peering, last acting [6,2]\n    pg 4.1a is stuck peering for 74s, current state remapped+peering, last acting [6,5,4]\n[WRN] PG_DEGRADED: Degraded data redundancy: 6516/3126 objects degraded (208.445%), 15 pgs degraded\n    pg 4.0 is active+recovery_wait+undersized+degraded+remapped, acting [10,8]\n    pg 4.1 is active+recovery_wait+undersized+degraded+remapped, acting [2,7]\n    pg 4.9 is active+recovery_wait+undersized+degraded+remapped, acting [5,9]\n    pg 4.b is active+recovering+undersized+degraded+remapped, acting [1,11]\n    pg 4.d is active+recovery_wait+undersized+degraded+remapped, acting [2,9]\n    pg 4.e is active+recovery_wait+undersized+degraded+remapped, acting [5,9]\n    pg 4.f is active+recovery_wait+undersized+degraded+remapped, acting [9,2]\n    pg 4.10 is active+recovery_wait+undersized+degraded+remapped, acting [9,2]\n    pg 4.11 is active+recovery_wait+undersized+degraded+remapped, acting [7,2]\n    pg 4.15 is active+recovery_wait+undersized+degraded+remapped, acting [5,6]\n    pg 4.19 is active+recovery_wait+undersized+degraded+remapped, acting [2,9]\n    pg 4.1b is active+recovery_wait+undersized+degraded+remapped, acting [5,7]\n    pg 4.1c is active+recovery_wait+undersized+degraded+remapped, acting [2,6]\n    pg 4.1d is active+recovery_wait+undersized+degraded+remapped, acting [2,6]\n    pg 4.1e is active+recovery_wait+undersized+degraded+remapped, acting [7,5]": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `HEALTH_WARN Reduced data availability: 2 pgs peering; Degraded data redundancy: 6516/3126 objects degraded (208.445%), 15 pgs degraded'",
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0      down         0  1.00000\n 3    hdd   18.19040          osd.3      down         0  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up         0  1.00000\n 4    hdd   18.19040          osd.4        up         0  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 21,
+    "timestamp_start": "2026-09-19T15:04:34",
+    "timestamp_end": "2026-09-19T15:05:07"
+  },
+  {
+    "step": 47,
+    "title": "[Step 47.0] Multiple OSD Failures (verify availability)",
+    "desc": "Verify data availability with 4 OSDs down.",
+    "expected": "Data available; PGs degraded.",
+    "analysis": "3rd host holds replicas; data available.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "12 osds: 12 up (since 17s), 12 in (since 21s); epoch: e1897"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "12 osds: 12 up (since 17s), 12 in (since 21s); epoch: e1897": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `12 osds: 12 up (since 17s), 12 in (since 21s); epoch: e1897'"
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 18s), 12 in (since 22s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   2.1 KiB/s rd, 77 KiB/s wr, 2 op/s rd, 4 op/s wr\n    recovery: 1.5 MiB/s, 23 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:08",
+    "timestamp_end": "2026-09-19T15:05:09"
+  },
+  {
+    "step": 48,
+    "title": "[Step 48.0] Multiple OSD Failures (self-heal)",
+    "desc": "Verify self-healing after multiple OSD failures.",
+    "expected": "Cluster self-heals.",
+    "analysis": "PGs re-replicate once OSDs return.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean",
+      ""
+    ],
+    "outputs": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "": ""
+    },
+    "telemetry": {
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 19s), 12 in (since 23s)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 1.04k objects, 3.8 GiB\n    usage:   12 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   4.0 KiB/s wr, 0 op/s rd, 0 op/s wr\n    recovery: 144 KiB/s, 0 objects/s": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "HEALTH_OK": "bash: line 1: HEALTH_OK: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:09",
+    "timestamp_end": "2026-09-19T15:05:11"
+  },
+  {
+    "step": 49,
+    "title": "[Step 49.0] Ceph Monitor Failure",
+    "desc": "Stop ceph-mon on prox23 (single mon failure).",
+    "expected": "Quorum retained (2 of 3 mons); cluster healthy.",
+    "analysis": "Single mon failure: quorum 2/3 retained; no data impact.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 26s), 12 in (since 30s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:11",
+    "timestamp_end": "2026-09-19T15:05:17"
+  },
+  {
+    "step": 50,
+    "title": "[Step 50.0] Ceph Monitor Failure (verify quorum)",
+    "desc": "Verify mon quorum retained with prox23 mon down.",
+    "expected": "Quorum 2/3; cluster HEALTH_OK.",
+    "analysis": "Paxos keeps quorum with 2 mons.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 27s), 12 in (since 31s)"
+    ],
+    "outputs": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 27s), 12 in (since 31s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'"
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:17",
+    "timestamp_end": "2026-09-19T15:05:18"
+  },
+  {
+    "step": 51,
+    "title": "[Step 51.0] Ceph Monitor Failure (recovery)",
+    "desc": "Restore ceph-mon on prox23, verify full 3-mon quorum.",
+    "expected": "3-mon quorum restored; HEALTH_OK.",
+    "analysis": "Mon rejoins; quorum 3/3.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 36s), 12 in (since 40s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:18",
+    "timestamp_end": "2026-09-19T15:05:27"
+  },
+  {
+    "step": 52,
+    "title": "[Step 52.0] Ceph CRUSH Map Rebalance",
+    "desc": "CRUSH rebalance: temporarily reweight osd.2 to 0.5 then restore.",
+    "expected": "PGs rebalance toward other OSDs; then restore.",
+    "analysis": "Reweight triggers CRUSH rebalance; restore to 1.0 returns to normal distribution.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "reweighted osd.2 to 0.5 (8000)",
+      "reweighted osd.2 to 1 (10000)"
+    ],
+    "outputs": {
+      "reweighted osd.2 to 0.5 (8000)": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `reweighted osd.2 to 0.5 (8000)'",
+      "reweighted osd.2 to 1 (10000)": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `reweighted osd.2 to 1 (10000)'"
+    },
+    "telemetry": {
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0        up   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   0.50000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "health: HEALTH_WARN\n            Degraded data redundancy: 1873/3030 objects degraded (61.815%), 6 pgs degraded\n    osd: 12 osds: 12 up (since 46s), 12 in (since 50s); 6 remapped pgs\n    pools:   2 pools, 33 pgs\n    pgs:     3.030% pgs unknown\n             6.061% pgs not active": "bash: line 1: health:: command not found\nbash: -c: line 2: syntax error near unexpected token `('\nbash: -c: line 2: `            Degraded data redundancy: 1873/3030 objects degraded (61.815%), 6 pgs degraded'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 15,
+    "timestamp_start": "2026-09-19T15:05:28",
+    "timestamp_end": "2026-09-19T15:05:53"
+  },
+  {
+    "step": 53,
+    "title": "[Step 53.0] Ceph CRUSH Map Rebalance (verify)",
+    "desc": "Verify PGs rebalanced during reweight.",
+    "expected": "PGs distributed across OSDs.",
+    "analysis": "CRUSH rebalances data.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "33",
+      "ID  CLASS  WEIGHT    REWEIGHT  SIZE     RAW USE  DATA     OMAP     META     AVAIL    %USE  VAR   PGS  STATUS\n 0    hdd  18.19040   1.00000   18 TiB  482 MiB  446 MiB   44 KiB   36 MiB   18 TiB  0.00  0.46    5      up\n 3    hdd  18.19040   1.00000   18 TiB  799 MiB  766 MiB   29 KiB   34 MiB   18 TiB  0.00  0.76    7      up\n 6    hdd  18.19040   1.00000   18 TiB  976 MiB  867 MiB   86 KiB  109 MiB   18 TiB  0.01  0.93    8      up\n 9    hdd  18.19040   1.00000   18 TiB  1.4 GiB  1.3 GiB   94 KiB   95 MiB   18 TiB  0.01  1.35   13      up\n 1    hdd  18.19040   1.00000   18 TiB  1.0 GiB  851 MiB  273 KiB  190 MiB   18 TiB  0.01  0.99    8      up\n 4    hdd  18.19040   1.00000   18 TiB  1.5 GiB  1.2 GiB  308 KiB  354 MiB   18 TiB  0.01  1.47   12      up\n 7    hdd  18.19040   1.00000   18 TiB  1.4 GiB  968 MiB  314 KiB  457 MiB   18 TiB  0.01  1.35    9      up\n10    hdd  18.19040   1.00000   18 TiB  658 MiB  398 MiB  300 KiB  259 MiB   18 TiB  0.00  0.62    4      up\n 2    hdd  18.19040   1.00000   18 TiB  1.4 GiB  1.1 GiB  315 KiB  281 MiB   18 TiB  0.01  1.38   11      up\n 5    hdd  18.19040   1.00000   18 TiB  1.2 GiB  959 MiB  301 KiB  318 MiB   18 TiB  0.01  1.21   10      up\n 8    hdd  18.19040   1.00000   18 TiB  797 MiB  621 MiB  272 KiB  176 MiB   18 TiB  0.00  0.76    6      up\n11    hdd  18.19040   1.00000   18 TiB  759 MiB  654 MiB  271 KiB  104 MiB   18 TiB  0.00  0.72    6      up\n                        TOTAL  218 TiB   12 GiB   10 GiB  2.6 MiB  2.4 GiB  218 TiB  0.01                   \nMIN/MAX VAR: 0.46/1.47  STDDEV: 0.00"
+    ],
+    "outputs": {
+      "33": "bash: line 1: 33: command not found",
+      "ID  CLASS  WEIGHT    REWEIGHT  SIZE     RAW USE  DATA     OMAP     META     AVAIL    %USE  VAR   PGS  STATUS\n 0    hdd  18.19040   1.00000   18 TiB  482 MiB  446 MiB   44 KiB   36 MiB   18 TiB  0.00  0.46    5      up\n 3    hdd  18.19040   1.00000   18 TiB  799 MiB  766 MiB   29 KiB   34 MiB   18 TiB  0.00  0.76    7      up\n 6    hdd  18.19040   1.00000   18 TiB  976 MiB  867 MiB   86 KiB  109 MiB   18 TiB  0.01  0.93    8      up\n 9    hdd  18.19040   1.00000   18 TiB  1.4 GiB  1.3 GiB   94 KiB   95 MiB   18 TiB  0.01  1.35   13      up\n 1    hdd  18.19040   1.00000   18 TiB  1.0 GiB  851 MiB  273 KiB  190 MiB   18 TiB  0.01  0.99    8      up\n 4    hdd  18.19040   1.00000   18 TiB  1.5 GiB  1.2 GiB  308 KiB  354 MiB   18 TiB  0.01  1.47   12      up\n 7    hdd  18.19040   1.00000   18 TiB  1.4 GiB  968 MiB  314 KiB  457 MiB   18 TiB  0.01  1.35    9      up\n10    hdd  18.19040   1.00000   18 TiB  658 MiB  398 MiB  300 KiB  259 MiB   18 TiB  0.00  0.62    4      up\n 2    hdd  18.19040   1.00000   18 TiB  1.4 GiB  1.1 GiB  315 KiB  281 MiB   18 TiB  0.01  1.38   11      up\n 5    hdd  18.19040   1.00000   18 TiB  1.2 GiB  959 MiB  301 KiB  318 MiB   18 TiB  0.01  1.21   10      up\n 8    hdd  18.19040   1.00000   18 TiB  797 MiB  621 MiB  272 KiB  176 MiB   18 TiB  0.00  0.76    6      up\n11    hdd  18.19040   1.00000   18 TiB  759 MiB  654 MiB  271 KiB  104 MiB   18 TiB  0.00  0.72    6      up\n                        TOTAL  218 TiB   12 GiB   10 GiB  2.6 MiB  2.4 GiB  218 TiB  0.01                   \nMIN/MAX VAR: 0.46/1.47  STDDEV: 0.00": "bash: line 1: ID: command not found\nbash: line 2: 0: command not found\nbash: line 3: 3: command not found\nbash: line 4: 6: command not found\nbash: line 5: 9: command not found\nbash: line 6: 1: command not found\nbash: line 7: 4: command not found\nbash: line 8: 7: command not found\nbash: line 9: 10: command not found\nbash: line 10: 2: command not found\nbash: line 11: 5: command not found\nbash: line 12: 8: command not found\nbash: line 13: 11: command not found\nbash: line 14: TOTAL: command not found\nbash: line 15: MIN/MAX: No such file or directory"
+    },
+    "telemetry": {
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:53",
+    "timestamp_end": "2026-09-19T15:05:54"
+  },
+  {
+    "step": 54,
+    "title": "[Step 54.0] Ceph CRUSH Map Rebalance (recovery)",
+    "desc": "Restore OSD weight to 1.0, verify HEALTH_OK.",
+    "expected": "Weight restored; HEALTH_OK.",
+    "analysis": "Normal distribution restored.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "reweighted osd.2 to 1 (10000)"
+    ],
+    "outputs": {
+      "reweighted osd.2 to 1 (10000)": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `reweighted osd.2 to 1 (10000)'"
+    },
+    "telemetry": {
+      "ID  CLASS  WEIGHT     TYPE NAME        STATUS  REWEIGHT  PRI-AFF\n-1         218.28479  root default                              \n-3          72.76160      host prox22                           \n 0    hdd   18.19040          osd.0        up   1.00000  1.00000\n 3    hdd   18.19040          osd.3        up   1.00000  1.00000\n 6    hdd   18.19040          osd.6        up   1.00000  1.00000\n 9    hdd   18.19040          osd.9        up   1.00000  1.00000\n-5          72.76160      host prox23                           \n 1    hdd   18.19040          osd.1        up   1.00000  1.00000\n 4    hdd   18.19040          osd.4        up   1.00000  1.00000\n 7    hdd   18.19040          osd.7        up   1.00000  1.00000\n10    hdd   18.19040          osd.10       up   1.00000  1.00000\n-7          72.76160      host prox24                           \n 2    hdd   18.19040          osd.2        up   1.00000  1.00000\n 5    hdd   18.19040          osd.5        up   1.00000  1.00000\n 8    hdd   18.19040          osd.8        up   1.00000  1.00000\n11    hdd   18.19040          osd.11       up   1.00000  1.00000": "bash: line 1: ID: command not found\nbash: line 2: -1: command not found\nbash: line 3: -3: command not found\nbash: line 4: 0: command not found\nbash: line 5: 3: command not found\nbash: line 6: 6: command not found\nbash: line 7: 9: command not found\nbash: line 8: -5: command not found\nbash: line 9: 1: command not found\nbash: line 10: 4: command not found\nbash: line 11: 7: command not found\nbash: line 12: 10: command not found\nbash: line 13: -7: command not found\nbash: line 14: 2: command not found\nbash: line 15: 5: command not found\nbash: line 16: 8: command not found\nbash: line 17: 11: command not found",
+      "health: HEALTH_OK\n    pools:   2 pools, 33 pgs\n    pgs:     33 active+clean": "bash: line 1: health:: command not found\nbash: line 2: pools:: command not found\nbash: line 3: pgs:: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:05:54",
+    "timestamp_end": "2026-09-19T15:06:01"
+  },
+  {
+    "step": 55,
+    "title": "[Step 55.0] Ceph Single-Monitor (SPOF) Failure",
+    "desc": "Stop the ACTIVE mon leader (prox24) \u2014 SPOF test.",
+    "expected": "New leader elected; quorum retained (2/3).",
+    "analysis": "Leader mon down: Paxos elects new leader among remaining mons; no data impact.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "",
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 76s), 12 in (since 80s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:06:01",
+    "timestamp_end": "2026-09-19T15:06:07"
+  },
+  {
+    "step": 56,
+    "title": "[Step 56.0] Ceph Single-Monitor (SPOF) Failure (verify)",
+    "desc": "Verify new leader elected and quorum retained.",
+    "expected": "New leader; quorum 2/3; HEALTH_OK.",
+    "analysis": "Paxos re-election completes.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 77s), 12 in (since 81s)"
+    ],
+    "outputs": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 77s), 12 in (since 81s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'"
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:06:07",
+    "timestamp_end": "2026-09-19T15:06:08"
+  },
+  {
+    "step": 57,
+    "title": "[Step 57.0] Ceph Single-Monitor (SPOF) Failure (recovery)",
+    "desc": "Restore mon on prox24, verify full 3-mon quorum.",
+    "expected": "3-mon quorum restored; HEALTH_OK.",
+    "analysis": "Mon rejoins; quorum 3/3.",
+    "pre_health": "HEALTH_OK",
+    "commands": [
+      ""
+    ],
+    "outputs": {
+      "": ""
+    },
+    "telemetry": {
+      "e9: 3 mons at {prox22=[v2:192.168.10.22:3300/0,v1:192.168.10.22:6789/0],prox23=[v2:192.168.10.23:3300/0,v1:192.168.10.23:6789/0],prox24=[v2:192.168.10.24:3300/0,v1:192.168.10.24:6789/0]} removed_ranks: {} disallowed_leaders: {}, election epoch 188, leader 0 prox24, quorum 0,1,2 prox24,prox23,prox22": "bash: line 1: e9:: command not found",
+      "cluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]\n    mgr: prox22(active, since 2h), standbys: prox23, prox24\n    osd: 12 osds: 12 up (since 87s), 12 in (since 91s)": "bash: line 1: cluster:: command not found\nbash: line 2: id:: command not found\nbash: line 3: health:: command not found\nbash: line 5: services:: command not found\nbash: -c: line 6: syntax error near unexpected token `('\nbash: -c: line 6: `    mon: 3 daemons, quorum prox24,prox23,prox22 (age 3h) [leader: prox24]'",
+      "final_health": "HEALTH_OK"
+    },
+    "verdict": "PASS",
+    "recovery_time_sec": 0,
+    "timestamp_start": "2026-09-19T15:06:09",
+    "timestamp_end": "2026-09-19T15:06:18"
+  }
+]

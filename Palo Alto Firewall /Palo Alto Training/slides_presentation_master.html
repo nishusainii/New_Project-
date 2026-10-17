@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+    @page {
+        size: letter landscape;
+        margin: 10mm 12mm 10mm 12mm;
+        @bottom-right {
+            content: "Slide " counter(page) " of " counter(pages);
+            font-size: 8pt;
+            color: #718096;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+        @bottom-left {
+            content: "Palo Alto Networks Complete 11+ Hours Video Slide Notes | Innspark Solutions";
+            font-size: 8pt;
+            color: #718096;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #2D3748;
+        background: #F7FAFC;
+        margin: 0;
+        padding: 0;
+    }
+
+    .slide-container {
+        page-break-after: always;
+        height: 96vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 16px 20px;
+        box-sizing: border-box;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .slide-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid #FA582D;
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+    }
+
+    .slide-title {
+        font-size: 13pt;
+        font-weight: 700;
+        color: #0F2942;
+        margin: 0;
+    }
+
+    .slide-timestamp {
+        background: #0F2942;
+        color: #FBD38D;
+        font-size: 8.5pt;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .slide-content-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 16px;
+        flex-grow: 1;
+        align-items: center;
+    }
+
+    .slide-image-box {
+        text-align: center;
+        background: #1A202C;
+        border-radius: 6px;
+        padding: 6px;
+        border: 1px solid #CBD5E0;
+    }
+
+    .slide-image-box img {
+        max-width: 100%;
+        max-height: 380px;
+        object-fit: contain;
+        border-radius: 4px;
+    }
+
+    .slide-notes-box {
+        background: #F8FAFC;
+        border-left: 4px solid #2B6CB0;
+        padding: 12px 16px;
+        border-radius: 0 6px 6px 0;
+        font-size: 8.5pt;
+        line-height: 1.4;
+    }
+
+    .slide-notes-box h4 {
+        margin: 0 0 6px 0;
+        color: #2B6CB0;
+        font-size: 9.5pt;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .slide-notes-box ul {
+        margin: 0;
+        padding-left: 16px;
+    }
+
+    .slide-notes-box li {
+        margin-bottom: 4px;
+    }
+
+    .cover-slide {
+        page-break-after: always;
+        height: 96vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        background: linear-gradient(135deg, #0F2942 0%, #1A365D 60%, #FA582D 100%);
+        color: white;
+        text-align: center;
+        border-radius: 8px;
+        padding: 40px;
+        box-sizing: border-box;
+    }
+
+    .cover-slide h1 {
+        font-size: 26pt;
+        margin: 0 0 10px 0;
+        font-weight: 800;
+        color: #FFFFFF;
+    }
+
+    .cover-slide .subtitle {
+        font-size: 14pt;
+        color: #E2E8F0;
+        margin-bottom: 24px;
+    }
+
+    .cover-meta {
+        background: rgba(255,255,255,0.15);
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 10pt;
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+</style>
+</head>
+<body>
+
+<div class="cover-slide">
+    <h1>PALO ALTO NETWORKS (PAN-OS)</h1>
+    <div class="subtitle">Complete Presentation Slides & Architecture Master Deck (11+ Hours Video Course)</div>
+    <div class="cover-meta">
+        <strong>Source:</strong> I-MEDITA 11+ Hours Training Course &nbsp;|&nbsp; 
+        <strong>Format:</strong> High-Resolution Presentation Slide Captures + In-Depth Engineering Notes &nbsp;|&nbsp; 
+        <strong>Compiled for:</strong> Nishu Saini (Innspark Solutions)
+    </div>
+</div>
+
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Course Title & Instructor Masterclass Introduction</h3>
+            <span class="slide-timestamp">Timestamp: 00:00:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_00_30_course_title.jpg" alt="Course Title & Instructor Masterclass Introduction"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Comprehensive Palo Alto Networks Next-Generation Firewall Training (11+ Hours).</li><li>PCNSE & PCCET certification alignment with real-world enterprise architectures.</li><li>Instructor introduction and course expectations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Complete Training Curriculum & Agenda Blueprint</h3>
+            <span class="slide-timestamp">Timestamp: 00:03:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_03_30_course_agenda.jpg" alt="Complete Training Curriculum & Agenda Blueprint"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Roadmap covering Firewall Architecture, SP3, Hardware Engines, and Deployment Modes.</li><li>Hands-on lab modules: Routing, NAT, Security Policies, App-ID, User-ID, Content-ID, VPN, and HA.</li><li>Prerequisites and foundational networking concepts review.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Enterprise Lab Topology Blueprint & IP Planning</h3>
+            <span class="slide-timestamp">Timestamp: 00:06:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_06_30_lab_prerequisites.jpg" alt="Enterprise Lab Topology Blueprint & IP Planning"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Network topology layout: Trust LAN (10.1.1.0/24), Untrust WAN (192.168.0.0/24), and MGT (192.168.1.0/24).</li><li>Interconnecting PA-VM / PA-500 firewalls to Cisco core switches and edge routers.</li><li>Setting up management access workstations for Web GUI and CLI console.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Enterprise Security Threat Landscape Evolution</h3>
+            <span class="slide-timestamp">Timestamp: 00:09:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_09_30_security_threat_landscape.jpg" alt="Enterprise Security Threat Landscape Evolution"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Evolution of threats: From simple port scans to sophisticated Layer 7 application exploits.</li><li>Rise of ransomware, advanced persistent threats (APTs), and dynamic botnets.</li><li>Why traditional network perimeter boundaries have dissolved in modern enterprises.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">History & Evolution of Firewalls (Gen 1 to Gen 5)</h3>
+            <span class="slide-timestamp">Timestamp: 00:13:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_13_30_firewall_evolution_history.jpg" alt="History & Evolution of Firewalls (Gen 1 to Gen 5)"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>1st Gen: Stateless Packet Filters (IP/Port ACLs without connection tracking).</li><li>2nd Gen: Stateful Inspection (TCP 3-way handshake and session table tracking).</li><li>3rd Gen: Application Layer Gateways & Proxies.</li><li>4th Gen: UTM (Unified Threat Management) multi-engine appliances.</li><li>5th Gen: Single-Pass Next-Generation Firewalls (NGFW).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Why Port-Based Traditional Firewalls Failed</h3>
+            <span class="slide-timestamp">Timestamp: 00:16:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_16_30_traditional_firewall_limitations.jpg" alt="Why Port-Based Traditional Firewalls Failed"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Modern applications do not use fixed, predictable port numbers.</li><li>Dynamic port hopping protocols (BitTorrent, Skype, Zoom, RPC).</li><li>Evasive protocols tunneling over open standard ports (TCP 80 HTTP, TCP 443 HTTPS).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Application Tunneling & Evasion Techniques</h3>
+            <span class="slide-timestamp">Timestamp: 00:19:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_19_30_application_tunneling_evasion.jpg" alt="Application Tunneling & Evasion Techniques"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Non-web protocols wrapping inside HTTP/HTTPS payloads to bypass perimeter filters.</li><li>Port hopping and SSL encryption shielding malicious payloads from traditional inspection.</li><li>Need for Layer 7 payload decoders that classify traffic regardless of port.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Core Requirements for Next-Generation Firewalls</h3>
+            <span class="slide-timestamp">Timestamp: 00:26:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_26_30_next_gen_firewall_requirements.jpg" alt="Core Requirements for Next-Generation Firewalls"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Application visibility and granular control across all ports at all times.</li><li>Integrated real-time threat prevention (IPS, Antivirus, Anti-Spyware, URL Filtering).</li><li>User and group identity-based policies instead of static IP addresses.</li><li>High-performance line-rate throughput under full inspection.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Architectural Breakdown: UTM vs Palo Alto SP3</h3>
+            <span class="slide-timestamp">Timestamp: 00:29:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_29_30_single_pass_vs_utm_comparison.jpg" alt="Architectural Breakdown: UTM vs Palo Alto SP3"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>UTM Flaws: Sequential daisy-chaining of independent security engines (AV -> IPS -> URL).</li><li>UTM Latency: Packets disassembled and reassembled multiple times causing throughput collapse.</li><li>Palo Alto SP3: Single packet decode and single uniform signature matching scan.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">SP3 Software Engine & Uniform Signature Scan</h3>
+            <span class="slide-timestamp">Timestamp: 00:34:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_34_30_sp3_software_architecture.jpg" alt="SP3 Software Engine & Uniform Signature Scan"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Uniform Signature Matching: All threat signatures compiled into one unified matrix.</li><li>Simultaneous parallel execution of App-ID, User-ID, and Content-ID.</li><li>Consistent, predictable performance with all security features enabled.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Hardware Processing Engines: NPE, SPE & SME</h3>
+            <span class="slide-timestamp">Timestamp: 00:37:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_37_30_hardware_parallel_processing.jpg" alt="Hardware Processing Engines: NPE, SPE & SME"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Network Processor (NPE): Wire-speed L2/L3 switching, routing, and NAT offload.</li><li>Security Processor (SPE): Hardware cryptographic coprocessor for SSL/TLS and IPsec.</li><li>Signature Matching Engine (SME): Custom Match Engine ASICs for parallel RegEx scanning.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Control Plane vs Data Plane Hardware Separation</h3>
+            <span class="slide-timestamp">Timestamp: 00:44:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_44_30_control_plane_data_plane_separation.jpg" alt="Control Plane vs Data Plane Hardware Separation"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Management Plane: Dedicated CPU/RAM for Web GUI, CLI, Logging, and Panorama Sync.</li><li>Data Plane: Dedicated multi-core CPU and ASICs for line-rate packet forwarding.</li><li>Zero performance impact: Generating massive audit reports never slows network traffic.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">The 4 Foundational Pillars of PAN-OS</h3>
+            <span class="slide-timestamp">Timestamp: 00:51:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_00_51_30_core_technologies_app_user_content.jpg" alt="The 4 Foundational Pillars of PAN-OS"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>App-ID: Layer 7 application classification independent of port or protocol.</li><li>User-ID: Active Directory and LDAP identity-based security policies.</li><li>Content-ID: Integrated stream-based Antivirus, Anti-Spyware, and IPS.</li><li>WildFire: Automated cloud-based zero-day malware detonation and signature generation.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Zero-Day Attacks & The Patient Zero Threat Model</h3>
+            <span class="slide-timestamp">Timestamp: 01:02:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_02_30_zero_day_threat_landscape.jpg" alt="Zero-Day Attacks & The Patient Zero Threat Model"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Why signature-based detection fails against newly authored malware variants.</li><li>The concept of 'Patient Zero' and the window of vulnerability before signatures exist.</li><li>Need for automated, dynamic behavioral sandbox analysis.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Palo Alto WildFire Sandbox Architecture</h3>
+            <span class="slide-timestamp">Timestamp: 01:13:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_13_30_wildfire_cloud_detonation.jpg" alt="Palo Alto WildFire Sandbox Architecture"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Automated extraction and forwarding of unknown executable files to WildFire cloud.</li><li>Virtual multi-OS detonation observing behavioral anomalies (registry, C2 callbacks).</li><li>Worldwide distribution of newly created threat signatures in under 5 minutes.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Stateless ACLs vs Dedicated Stateful Firewalls</h3>
+            <span class="slide-timestamp">Timestamp: 01:22:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_22_30_stateless_acls_vs_stateful_firewalls.jpg" alt="Stateless ACLs vs Dedicated Stateful Firewalls"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Stateless router ACLs require explicit bi-directional rules (inbound and outbound).</li><li>Rule explosion, administrative overhead, and security holes in stateless filtering.</li><li>Inability of stateless ACLs to track TCP sequence numbers or dynamic port negotiations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Packet Filtering Mechanics & Header Inspection</h3>
+            <span class="slide-timestamp">Timestamp: 01:35:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_35_30_packet_filtering_deep_dive.jpg" alt="Packet Filtering Mechanics & Header Inspection"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Inspection of Layer 3 IP headers (Source/Dest IP, Protocol) and Layer 4 TCP/UDP ports.</li><li>Lack of payload inspection allowing malicious data in permitted ports.</li><li>Why Layer 3/4 filtering is insufficient for modern application security.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Proxy Architectures: Explicit vs Transparent</h3>
+            <span class="slide-timestamp">Timestamp: 01:44:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_44_30_proxy_architectures_explicit_transparent.jpg" alt="Proxy Architectures: Explicit vs Transparent"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Dual-socket termination architecture breaking direct client-to-server TCP connections.</li><li>Explicit Proxy: Client browser configuration (PAC/WPAD) redirecting traffic to proxy.</li><li>Transparent Proxy: Network-level interception (WCCP/PBR) without client reconfiguration.</li><li>Scaling limits: Heavy RAM consumption and protocol latency on traditional proxies.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Stateful Inspection & Session Table Architecture</h3>
+            <span class="slide-timestamp">Timestamp: 01:54:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_01_54_30_stateful_inspection_mechanics.jpg" alt="Stateful Inspection & Session Table Architecture"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Tracking TCP 3-way handshake (SYN, SYN-ACK, ACK) and connection lifecycle.</li><li>Session State Table: 5-Tuple (Src IP, Dst IP, Src Port, Dst Port, Protocol) + TCP State.</li><li>Fast-Path forwarding: Dynamic return traffic automatically permitted without explicit inbound rule.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">TCP State Machine Tracking & Anti-Spoofing</h3>
+            <span class="slide-timestamp">Timestamp: 02:02:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_02_30_tcp_state_machine_tracking.jpg" alt="TCP State Machine Tracking & Anti-Spoofing"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Validating TCP sequence and acknowledgment numbers to prevent session hijacking.</li><li>Strict TCP window validation and teardown tracking (FIN / RST packets).</li><li>Drop policies for out-of-state packets and malformed TCP segments.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Palo Alto Deployment Modes Overview</h3>
+            <span class="slide-timestamp">Timestamp: 02:08:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_08_30_deployment_modes_overview.jpg" alt="Palo Alto Deployment Modes Overview"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Layer 3 Routed Mode: Full routing, NAT, and gateway functionality.</li><li>Layer 2 Mode: Bridging between VLANs with Next-Gen inspection.</li><li>Virtual Wire (V-Wire): Transparent inline bump-in-the-wire without IP changes.</li><li>TAP Mode: Passive SPAN/mirror port traffic monitoring and visibility.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Virtual Wire (V-Wire / Transparent Mode) Deep Dive</h3>
+            <span class="slide-timestamp">Timestamp: 02:14:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_14_30_virtual_wire_transparent_mode.jpg" alt="Virtual Wire (V-Wire / Transparent Mode) Deep Dive"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Zero network redesign: Interfaces have NO IP addresses and NO MAC addresses.</li><li>Binds two physical ports into an inline transparent inspection tunnel.</li><li>Ideal for immediate POC deployments and inserting security between existing core switches.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Firewall Generations Timeline & Nir Zuk History</h3>
+            <span class="slide-timestamp">Timestamp: 02:20:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_20_30_firewall_generations_timeline.jpg" alt="Firewall Generations Timeline & Nir Zuk History"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>From Check Point FireWall-1 (1994) to Palo Alto Networks (2007+).</li><li>Nir Zuk's pioneering innovations: Stateful Inspection -> Hardware IPS -> NGFW.</li><li>How Palo Alto revolutionized the security industry with App-ID and SP3 architecture.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">UTM Architecture Performance Bottlenecks</h3>
+            <span class="slide-timestamp">Timestamp: 02:26:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_26_30_utm_architecture_bottlenecks.jpg" alt="UTM Architecture Performance Bottlenecks"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Independent proxies and scanning daemons competing for system RAM and CPU.</li><li>Multiple packet disassembly/reassembly stages creating significant packet latency.</li><li>Why enabling UTM security features causes a 70-80% throughput drop on legacy firewalls.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Palo Alto SP3 Hardware Acceleration Advantages</h3>
+            <span class="slide-timestamp">Timestamp: 02:34:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_34_30_palo_alto_sp3_acceleration.jpg" alt="Palo Alto SP3 Hardware Acceleration Advantages"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Predictable wire-speed throughput regardless of how many security features are enabled.</li><li>Dedicated Control Plane ensures administrative tasks never degrade packet processing.</li><li>Parallel hardware coprocessors dedicated to cryptographic offload and regex threat scans.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Palo Alto Hardware Appliance Portfolios</h3>
+            <span class="slide-timestamp">Timestamp: 02:41:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_41_30_hardware_appliance_portfolio.jpg" alt="Palo Alto Hardware Appliance Portfolios"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Branch Office: PA-220, PA-400 Series (PA-410, PA-440, PA-450, PA-460).</li><li>Mid-Enterprise: PA-500, PA-800 Series (PA-820, PA-850), PA-3200 / PA-3400 Series.</li><li>Data Center / Campus Core: PA-5200 Series (PA-5220/5250/5260), PA-5400 Series.</li><li>Modular Chassis: PA-7000 Series (PA-7050, PA-7080) for mega data centers and ISPs.</li><li>Virtual Firewalls: VM-Series (VM-50, VM-100, VM-300, VM-500, VM-700, VM-Flex).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Hardware Port Types & Interface Roles</h3>
+            <span class="slide-timestamp">Timestamp: 02:47:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_47_30_hardware_port_types.jpg" alt="Hardware Port Types & Interface Roles"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Management (MGT) Port: Out-of-band 10/100/1000 copper RJ-45 interface (Default IP: 192.168.1.1).</li><li>Console Ports: RJ-45 Serial (9600-8-N-1) and Micro-USB for initial setup.</li><li>High Availability Ports: Dedicated HA1 (Control/Heartbeat) and HA2 (Session Data Sync).</li><li>HSCI Port: High-Speed Cluster Interconnect (10G/40G) on enterprise platforms.</li><li>Data Plane Ports: 1G Copper, 1G/10G SFP+, 40G/100G QSFP28 interfaces.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Front Panel LED Status Diagnostics</h3>
+            <span class="slide-timestamp">Timestamp: 02:52:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_52_30_front_panel_led_diagnostics.jpg" alt="Front Panel LED Status Diagnostics"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>PWR LED: Green = Redundant power supplies normal; Amber = Power fault / single PSU down.</li><li>STS LED: Green = PAN-OS operational; Amber = Booting / initializing; Red = System alarm.</li><li>ALM LED: Off = Normal; Amber = Low severity alarm; Red = High severity hardware alarm.</li><li>HA LED: Green = Active; Amber = Passive; Off = Standalone / HA disabled.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Console Connection & Serial Parameters</h3>
+            <span class="slide-timestamp">Timestamp: 02:57:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_02_57_30_console_cable_and_baud_rates.jpg" alt="Console Connection & Serial Parameters"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Connecting via RJ-45 to DB9 / USB-to-Serial rollover console cable.</li><li>PuTTY / SecureCRT Terminal Settings: Baud Rate 9600, Data Bits 8, Parity None, Stop Bits 1, Flow Control None.</li><li>Default administrative credentials: admin / admin (forced password change on initial login).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Hands-On Lab Topology Interconnect & Setup</h3>
+            <span class="slide-timestamp">Timestamp: 03:02:30</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_03_02_30_initial_lab_topology_interconnect.jpg" alt="Hands-On Lab Topology Interconnect & Setup"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Connecting Admin Management PC to MGT port via HTTPS (https://192.168.1.1).</li><li>Configuring ethernet1/1 as Trust LAN interface and ethernet1/2 as Untrust WAN interface.</li><li>Interconnecting firewall to core switch and upstream internet gateway.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Hands-On Enterprise Lab Topology Design</h3>
+            <span class="slide-timestamp">Timestamp: 03:12:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_03_12_00.jpg" alt="Hands-On Enterprise Lab Topology Design"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Architecture of Trust LAN (10.1.1.0/24), Untrust WAN (192.168.0.0/24), and MGT.</li><li>Connecting admin PC via HTTPS/SSH to PA-VM-1 / PA-500 management port.</li><li>Core switch and ISP router interconnection layout.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Initial PAN-OS Access & CLI Command Structure</h3>
+            <span class="slide-timestamp">Timestamp: 03:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_03_30_00.jpg" alt="Initial PAN-OS Access & CLI Command Structure"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Default login credentials (admin/admin) and forced password change.</li><li>Operational mode vs Configuration mode (`configure`) commands.</li><li>`show`, `set`, `request`, and `test` command taxonomy.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Candidate Config, Running Config & Commit Engine</h3>
+            <span class="slide-timestamp">Timestamp: 03:50:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_03_50_00.jpg" alt="Candidate Config, Running Config & Commit Engine"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Candidate Configuration draft changes vs active Running Configuration.</li><li>Commit operation compiling rules into hardware ASICs.</li><li>Reverting uncommitted changes and utilizing multi-admin config locks.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Virtual Systems (VSYS) Fundamentals & Overview</h3>
+            <span class="slide-timestamp">Timestamp: 03:58:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_03_58_00_vsys_intro.jpg" alt="Virtual Systems (VSYS) Fundamentals & Overview"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Logical partitioning of a single physical firewall into multiple independent virtual firewalls.</li><li>Complete isolation of traffic, routing tables, security rules, NAT, and administrators.</li><li>Ideal for Managed Service Providers (MSPs), large multi-division enterprises, and compliance segregation.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Virtual Systems Multi-Tenancy Architecture</h3>
+            <span class="slide-timestamp">Timestamp: 04:02:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_02_00_vsys_concept.jpg" alt="Virtual Systems Multi-Tenancy Architecture"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Each VSYS operates as a standalone security domain with its own zones, virtual routers, and policies.</li><li>Shared physical hardware acceleration (SP3 engine, Single-Pass classification) across all virtual systems.</li><li>Eliminates hardware sprawl while maintaining strict isolation between tenant environments.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">VSYS Hardware Support, Platform Matrix & Licenses</h3>
+            <span class="slide-timestamp">Timestamp: 04:05:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_05_00_vsys.jpg" alt="VSYS Hardware Support, Platform Matrix & Licenses"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Supported on PA-3000, PA-3200, PA-3400, PA-5000, PA-5200, PA-5400, PA-7000 Series, and VM-300 / VM-Flex.</li><li>Base VSYS included by default with optional multi-vsys expansion licenses (e.g. up to 225 on PA-7000).</li><li>Note: Entry-level branch models (PA-220, PA-400) do not support multi-VSYS.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">VSYS Partitioning: Independent Policies, NAT & Objects</h3>
+            <span class="slide-timestamp">Timestamp: 04:08:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_08_00_vsys_architecture.jpg" alt="VSYS Partitioning: Independent Policies, NAT & Objects"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Independent Rulebase: Tenant A cannot view or modify Tenant B's Security or NAT policies.</li><li>Dedicated Object Repositories: Custom address objects, service groups, and URL categories per VSYS.</li><li>Global Shared Objects: Master administrator can publish global security profiles accessible across all VSYS.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Inter-VSYS Routing & Internal Packet Exchange</h3>
+            <span class="slide-timestamp">Timestamp: 04:12:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_12_00_vsys_intervsys.jpg" alt="Inter-VSYS Routing & Internal Packet Exchange"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Routing traffic between distinct VSYS instances internally inside the firewall without physical loopback cables.</li><li>Utilizes internal Virtual Routers or Shared Gateways for ultra-low latency, line-rate inter-tenant routing.</li><li>Enforces Security Policies and Content-ID threat inspection on all inter-VSYS traffic flows.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Security Zones & Policy Rule Evaluation</h3>
+            <span class="slide-timestamp">Timestamp: 04:15:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_15_00.jpg" alt="Security Zones & Policy Rule Evaluation"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Zero-Trust zone model: Intra-zone allowed, Inter-zone denied by default.</li><li>Top-to-bottom, first-match rule processing mechanics.</li><li>Rule anatomy: Source Zone/IP, User, Dest Zone/IP, App-ID, Service, Action.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Shared Gateways & Centralized WAN Edge Architecture</h3>
+            <span class="slide-timestamp">Timestamp: 04:18:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_18_00_vsys_shared_gw.jpg" alt="Shared Gateways & Centralized WAN Edge Architecture"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Shared Gateway allows multiple VSYS tenants to share a single public internet uplink and public IP pool.</li><li>Centralized perimeter security enforcement while delegating internal departmental policies to individual VSYS.</li><li>Simplifies WAN management and reduces public IP subnet consumption.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Interface & Zone Binding to Virtual Systems</h3>
+            <span class="slide-timestamp">Timestamp: 04:20:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_20_00_vsys.jpg" alt="Interface & Zone Binding to Virtual Systems"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Binding physical interfaces, 802.1Q sub-interfaces, and VLAN interfaces to specific VSYS instances.</li><li>Security zones are strictly scoped within their parent VSYS (e.g. `vsys1-Trust`, `vsys2-Trust`).</li><li>VLAN tagging allows multiple tenants to share trunked physical switch links into separate VSYS.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Multi-Tenant Administrator Roles & Role-Based Access</h3>
+            <span class="slide-timestamp">Timestamp: 04:25:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_25_00_vsys_admin_mgmt.jpg" alt="Multi-Tenant Administrator Roles & Role-Based Access"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Superuser (Device Administrator): Full control over all VSYS, hardware settings, and global objects.</li><li>VSYS Administrator: Restricted strictly to managing their designated virtual system(s).</li><li>Tenant isolation prevents unauthorized changes or audit visibility into other departments or clients.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Resource Allocation: Session, Rule & NAT Limits per VSYS</h3>
+            <span class="slide-timestamp">Timestamp: 04:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_30_00_vsys_resource_limit.jpg" alt="Resource Allocation: Session, Rule & NAT Limits per VSYS"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Resource Profiles prevent a single rogue tenant from exhausting firewall CPU or session memory (Noisy Neighbor).</li><li>Enforceable limits per VSYS: Max concurrent sessions, Security Rules, NAT Rules, VPN Tunnels, and Decryption sessions.</li><li>Dynamic real-time monitoring and alerting when a VSYS approaches its configured resource threshold.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Interface Configuration & Management Profiles</h3>
+            <span class="slide-timestamp">Timestamp: 04:40:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_04_40_00.jpg" alt="Interface Configuration & Management Profiles"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Assigning Layer 3 interfaces to Virtual Routers and Security Zones.</li><li>Default block of ping/SSH on data plane interface IP addresses.</li><li>Creating and applying Interface Management Profiles to permit ICMP ping.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Virtual Routers & Static Routing Configuration</h3>
+            <span class="slide-timestamp">Timestamp: 05:05:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_05_05_00.jpg" alt="Virtual Routers & Static Routing Configuration"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Decoupling routing tables using Virtual Routers (e.g. `default`).</li><li>Configuring default route (0.0.0.0/0) pointing to upstream ISP gateway.</li><li>Administrative distance, route metrics, and 802.1Q tagged sub-interfaces.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Path Monitoring & Dynamic WAN Failover (IP SLA)</h3>
+            <span class="slide-timestamp">Timestamp: 05:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_05_30_00.jpg" alt="Path Monitoring & Dynamic WAN Failover (IP SLA)"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Attaching ICMP ping probes to next-hop gateway monitoring.</li><li>Automatic route withdrawal and failover to backup ISP on line failure.</li><li>Configuring probe intervals and failure thresholds.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Source NAT: Dynamic IP and Port (DIPP / PAT)</h3>
+            <span class="slide-timestamp">Timestamp: 06:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_06_00_00.jpg" alt="Source NAT: Dynamic IP and Port (DIPP / PAT)"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Translating private LAN subnets to public interface IP with port multiplexing.</li><li>Pre-NAT Source/Destination vs Post-NAT interface translation.</li><li>Up to 64,000 concurrent sessions per IP address.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Destination NAT: Inbound Port Forwarding</h3>
+            <span class="slide-timestamp">Timestamp: 06:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_06_30_00.jpg" alt="Destination NAT: Inbound Port Forwarding"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Publishing internal DMZ servers to public internet.</li><li>Translating public destination IP:port to private server IP:port.</li><li>Security policy configuration matching pre-NAT destination IP and post-NAT zone.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">U-Turn NAT (Hairpinning) for Internal Access</h3>
+            <span class="slide-timestamp">Timestamp: 07:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_07_00_00.jpg" alt="U-Turn NAT (Hairpinning) for Internal Access"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Allowing internal LAN users to access internal servers via public IP/DNS.</li><li>Source NAT + Destination NAT dual-translation on the same physical interface.</li><li>Preventing asymmetric routing drops inside the LAN.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">App-ID™ Protocol Decoders & Heuristics</h3>
+            <span class="slide-timestamp">Timestamp: 07:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_07_30_00.jpg" alt="App-ID™ Protocol Decoders & Heuristics"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Payload inspection across initial packets to classify exact application.</li><li>Handling application shifts (e.g. SSL -> Facebook -> Facebook-Chat).</li><li>App-ID dependencies and parent/child application definitions.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Policy Optimizer & App-ID Migration</h3>
+            <span class="slide-timestamp">Timestamp: 08:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_08_00_00.jpg" alt="Policy Optimizer & App-ID Migration"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Analyzing legacy port-based rules (`any` application on port 80/443).</li><li>Built-in Policy Optimizer monitoring observed App-IDs over time.</li><li>1-click migration to tight, least-privilege App-ID rules.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Content-ID™ Suite: Antivirus, Anti-Spyware & DNS Sinkholing</h3>
+            <span class="slide-timestamp">Timestamp: 08:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_08_30_00.jpg" alt="Content-ID™ Suite: Antivirus, Anti-Spyware & DNS Sinkholing"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Stream-based Antivirus across HTTP, FTP, SMB, SMTP, and POP3.</li><li>Anti-Spyware blocking C2 botnet communication.</li><li>DNS Sinkholing diverting malicious domain queries to decoy IP for threat isolation.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Vulnerability Protection (IPS) & URL Filtering</h3>
+            <span class="slide-timestamp">Timestamp: 09:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_09_00_00.jpg" alt="Vulnerability Protection (IPS) & URL Filtering"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>IPS signatures preventing buffer overflows, RCE, and OS exploits.</li><li>URL Filtering across 80+ web categories.</li><li>Action controls: `allow`, `alert`, `block`, `continue` (warning), and `override`.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">User-ID™ Integration with Active Directory</h3>
+            <span class="slide-timestamp">Timestamp: 09:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_09_30_00.jpg" alt="User-ID™ Integration with Active Directory"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>User-ID Agent querying Windows Event Logs (Events 4624/4625) via WMI/WinRM.</li><li>Syslog listener parsing VPN, 802.1X, and wireless authentication.</li><li>LDAP group mapping for role-based security rules.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">SSL/TLS Decryption: Forward Proxy vs Inbound Inspection</h3>
+            <span class="slide-timestamp">Timestamp: 10:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_10_00_00.jpg" alt="SSL/TLS Decryption: Forward Proxy vs Inbound Inspection"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>SSL Forward Proxy: Enterprise Subordinate CA inspecting outbound employee traffic.</li><li>SSL Inbound Inspection: Protecting internal servers using private keys.</li><li>Decryption exclusions for financial and healthcare compliance.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">Site-to-Site IPsec VPN (IKEv1 / IKEv2)</h3>
+            <span class="slide-timestamp">Timestamp: 10:30:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_10_30_00.jpg" alt="Site-to-Site IPsec VPN (IKEv1 / IKEv2)"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Route-based VPN architecture using virtual `tunnel.x` interfaces.</li><li>IKE Phase 1 (ISAKMP management tunnel) & IKE Phase 2 (IPsec SA data encryption).</li><li>DH Groups, AES-256-GCM encryption, and Perfect Forward Secrecy (PFS).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-container">
+        <div class="slide-header">
+            <h3 class="slide-title">High Availability (Active/Passive) & Clustering Failover</h3>
+            <span class="slide-timestamp">Timestamp: 11:00:00</span>
+        </div>
+        <div class="slide-content-grid">
+            <div class="slide-image-box">
+                <img src="/home/nishusaini/Desktop/Innspark/Palo Alto Firewall /Palo Alto Training/extracted_slides/slide_11_00_00.jpg" alt="High Availability (Active/Passive) & Clustering Failover"/>
+            </div>
+            <div class="slide-notes-box">
+                <h4>Core Concepts & Key Highlights</h4>
+                <ul>
+                    <li>Active/Passive cluster state synchronization and sub-second failover.</li><li>HA1 Control Link (Config & Heartbeats) and HA2 Data Link (Session State Table).</li><li>Device Priority, Preemption, Link Monitoring, and Path Monitoring failover triggers.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    </body></html>

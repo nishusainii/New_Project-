@@ -1,0 +1,70 @@
+# Ansible Playbook: Completely remove Webmin across servers
+# Usage:
+#   ansible-playbook -i hosts.ini remove_webmin_playbook.yml
+
+- name: Completely Remove Webmin
+  hosts: webmin_servers
+  become: true
+  tasks:
+    - name: Stop and disable Webmin systemd service
+      systemd:
+        name: webmin
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: Kill any lingering Webmin processes (miniserv.pl)
+      shell: pkill -9 -f "miniserv.pl" || true
+      ignore_errors: true
+
+    - name: Run official uninstall.sh if available
+      shell: printf "y\n" | /etc/webmin/uninstall.sh
+      args:
+        removes: /etc/webmin/uninstall.sh
+      ignore_errors: true
+
+    - name: Remove Webmin package on Debian/Ubuntu
+      apt:
+        name:
+          - webmin
+          - usermin
+        state: absent
+        purge: true
+        autoremove: true
+      when: ansible_os_family == "Debian"
+      ignore_errors: true
+
+    - name: Remove Webmin package on RHEL/CentOS/Rocky/Alma
+      package:
+        name:
+          - webmin
+          - usermin
+        state: absent
+      when: ansible_os_family == "RedHat"
+      ignore_errors: true
+
+    - name: Remove Webmin and Usermin directories and data
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/webmin
+        - /etc/usermin
+        - /var/webmin
+        - /var/usermin
+        - /usr/share/webmin
+        - /usr/share/usermin
+        - /usr/libexec/webmin
+        - /usr/libexec/usermin
+        - /opt/webmin
+        - /var/log/webmin
+        - /etc/init.d/webmin
+        - /etc/systemd/system/webmin.service
+        - /etc/apt/sources.list.d/webmin.list
+        - /etc/apt/sources.list.d/webmin.sources
+        - /etc/apt/trusted.gpg.d/webmin.gpg
+        - /etc/yum.repos.d/webmin.repo
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: true

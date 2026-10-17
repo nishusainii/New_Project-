@@ -1,0 +1,69 @@
+The rules are duplicated because sudo nft -f /etc/nftables.conf adds the file contents to the rules already loaded in the kernel. 
+It appears the file was loaded multiple times without first flushing or deleting the existing rules.
+
+In your output, most rules appear three times, while the first copy is older because it does not contain the newly added IP 10.31.1.81.
+
+Fix safely
+
+Since your input policy is drop and you are connected remotely, use an atomic config reload rather than running a separate flush command first.
+
+1. Back up the configuration
+sudo cp /etc/nftables.conf /etc/nftables.conf.backup-$(date +%F-%H%M%S)
+
+2. Add this as the first active line of /etc/nftables.conf
+flush ruleset
+
+
+The beginning should look like:
+
+#!/usr/sbin/nft -f
+
+flush ruleset
+
+table inet filter {
+    ...
+}
+
+
+Make sure the rules themselves occur only once inside the file:
+
+sudo nano /etc/nftables.conf
+
+3. Validate without changing running rules
+sudo nft -c -f /etc/nftables.conf
+
+
+No output means the syntax is valid.
+
+4. Load the complete configuration
+sudo nft -f /etc/nftables.conf
+
+
+Because flush ruleset and the replacement rules are in the same nftables transaction, this is safer than separately running sudo nft flush ruleset over SSH.
+
+5. Verify
+sudo nft list ruleset
+
+
+Each rule should now appear only once.
+
+Also verify these before closing your current SSH session:
+
+sudo nft list chain inet filter input
+sudo nft list chain inet filter forward
+sudo nft list chain ip nat postrouting
+sudo systemctl status nftables --no-pager
+
+Important detail
+
+Do not repeatedly run this against a file that lacks flush ruleset:
+
+sudo nft -f /etc/nftables.conf
+
+
+Each run can append another copy of the rules. nftables evaluates rules sequentially, so duplicate entries also result in confusing counters and unnecessary processing.
+
+Once /etc/nftables.conf starts with flush ruleset, you can safely validate and reload edits using:
+
+sudo nft -c -f /etc/nftables.conf &&
+sudo systemctl reload nftables

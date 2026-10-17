@@ -1,0 +1,71 @@
+Name: Nishu Saini
+Date: 19/09/2026
+Login: 9:25 AM 
+Logout: 7:20 PM 
+
+Today's Work Summary
+
+
+09:25 AM To 11:00 AM
+
+Prometheus Exporters Installer Hardening (install-cluster-exporters.sh):
+-Verified binary syntax and updated release endpoints for smartctl_exporter (v0.13.0) and zfs_exporter (v2.3.4).
+-Added asset directory fallback handling, hardened curl/install logic, and documented findings in 
+
+EXPORTERS_SCRIPT_REVIEW.md.
+-Configured Prometheus scrape targets for 5 core exporters: Node, IPMI, smartctl, Ceph, and ZFS.
+Cluster Drive Identification Tooling:
+-Built harddrive-sticker-finder.sh and cluster drive viewer tooling with PDF preview generation.
+-Executed baseline 57-step cluster fault-injection scenario planning and resolved systemd unit restart rate-limit races (reset-failed).
+
+11:00 AM To 1:25 PM 
+
+VM 9003 Diagnostic, Boot Repair & Access Recovery:
+-Identified root cause of UEFI boot failure: raw zvol block corruption from earlier testing.
+-Cloned healthy OS (32 GB) and UEFI OVMF EFI system disks from VM 9002 using qemu-img convert.
+-Mounted guest LVM (ubuntu-vg/ubuntu-lv), configured root credentials (pve123), enabled root SSH, and confirmed full guest access.
+
+Live Migration Speed Benchmarks (10G DAC Interconnect):
+-Ceph Shared Storage (VM 9001): Completed in 7.0s with 0 MB disk moved and 75 ms cutover pause.
+-ZFS Replicated Storage (VM 9003): Completed in 13.0s via NBD live dirty block sync with 12 ms cutover pause.
+-Continuity: Recorded 0 ping drops / 0% packet loss across all migration events.
+
+Direct Block & Concurrency Storage Benchmarks (dd & fio 3.39):
+-Direct 4K Write IOPS: ZFS RAIDZ2 achieved 43,408 IOPS (178 MB/s) vs. Ceph 1,624 IOPS (6.7 MB/s) — ZFS is 26.7x faster.
+-1MB Sequential Read: ZFS reached 2.5 GB/s (bus saturation) vs. Ceph 232 MB/s (10G link saturation) — ZFS is 10.8x faster.
+-4K Random Read Scaling (QD=32, 4 Jobs): Ceph delivered 415,220 IOPS (1,622 MB/s, p99 = 0.34 ms) via distributed librbd cache.
+-8K Mixed 70/30 OLTP Database Simulation: ZFS delivered 264,602 IOPS (2,067 MB/s) vs. Ceph 8,376 IOPS — ZFS is 31.6x faster for database workloads.
+
+1:25 PM To 2:05 PM
+
+Lunch break
+
+2:05 TO 4:30 PM 
+
+Production Kernel & Security Hardening Deployed Cluster-Wide:
+
+Applied /etc/sysctl.d/99-pve-production-hardening.conf across prox22, prox23, and prox24.
+-Enforced vm.swappiness = 10, dirty_ratio = 10, strict anti-spoofing (rp_filter = 1), anti-routing bypass (accept_source_route = 0), and traversal protection (fs.protected_fifos = 2).
+
+Thin-Provisioning Discard & 10G Network Quality Audit:
+-Wrote 1.0 GB of data to thin zvol, ran fstrim -v /, and confirmed space immediately collapsed back to 112 KB (0 block leakage).
+-Audited 10G storage network: verified 73–91 µs ultra-low latency, 0% packet loss, and Corosync knet encryption active (secauth: on).
+
+Physical Server Shutdown & Automated HA Failover Resilience Test:
+-Created a 1.0 GiB file inside VM 9003 on prox23 with SHA-256 fingerprint (30fc945d...).
+-Initiated physical reboot on prox23 (systemctl reboot); Proxmox HA Manager automatically evacuated VM 9003 live to prox22 under shutdown_policy=migrate.
+-Corosync votequorum maintained 2/3 nodes quorate throughout host hardware POST.
+-Connected to surviving node prox22: validated continuous VM uptime (zero OS reboot) and 100% bit-for-bit SHA-256 match (OK, zero data loss).
+-Host auto-healed, rejoined Corosync ring, and restored full 3/3 quorum automatically.
+
+4:30 PM TO 7:20 PM
+
+Advanced Enterprise Parameter Testing (Memory Slog, QoS, Live vzdump):
+-Dirty RAM Live Migration: Dirtied 1.5 GB RAM at 1.2 GiB/s; QEMU adaptive convergence transferred 17.4 GiB and completed in 36s with only 338 ms downtime.
+-Storage QoS Throttling: Applied hypervisor caps (mbps_wr=50, iops_wr=500); confirmed real-time clamping from 765 MB/s to 54.2 MB/s and 490 IOPS, followed by instant unconstrained restoration (76.4 MB/s, 18k IOPS).
+-Live Online Snapshot Backup Under Load: Ran continuous random writes while executing vzdump 9003 --compress zstd; backed up 32 GB in 25s at 1.3 GiB/s (4.82 GB archive), verified 100% healthy with zstd -t.
+
+Environment & Storage Hygiene Cleanup:
+-Removed temporary test IP (10.31.4.236/22); reverted guest cleanly to standard DHCP (dhcp4: true).
+-Purged all test datasets, reclaimed 5.4 GiB of storage via TRIM, and deleted all scratch files and temporary logs.
+

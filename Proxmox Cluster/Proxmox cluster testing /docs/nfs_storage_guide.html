@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Proxmox VE Enterprise NFS Storage Implementation & Troubleshooting Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 0.9cm 0.9cm 0.8cm 0.9cm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.34;
+      font-size: 8.6pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+      min-height: 275mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .page-content {
+      flex: 1;
+    }
+
+    /* Header Banner */
+    .header-banner {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .header-banner h1 {
+      font-size: 13.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .header-banner .subtitle {
+      font-size: 8.2pt;
+      color: #475569;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 7.2pt;
+      color: #64748b;
+      line-height: 1.32;
+    }
+
+    .meta-box strong {
+      color: #0f172a;
+    }
+
+    .badge-doc {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 7.4pt;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+
+    /* Headings */
+    h2 {
+      font-size: 9.6pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 3px solid #2563eb;
+      padding-left: 6px;
+      margin-top: 7px;
+      margin-bottom: 3px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 8.3pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 5px;
+      margin-bottom: 2px;
+      page-break-after: avoid;
+    }
+
+    p {
+      color: #334155;
+      margin-bottom: 4px;
+      font-size: 7.8pt;
+    }
+
+    ul, ol {
+      margin-left: 15px;
+      margin-bottom: 4px;
+      font-size: 7.8pt;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 2px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 3px;
+      margin-bottom: 6px;
+      font-size: 7.1pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 3px 5.5px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 7.1pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.0pt;
+    }
+
+    /* Code Blocks */
+    .cmd-block {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 4px;
+      padding: 4px 7px;
+      margin: 3px 0 5px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.7pt;
+      line-height: 1.3;
+      page-break-inside: avoid;
+    }
+
+    .cmd-title {
+      color: #38bdf8;
+      font-weight: 700;
+      margin-bottom: 2px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 6.4pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .cmd-line {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .cmd-out {
+      color: #94a3b8;
+      white-space: pre-wrap;
+      margin-top: 1px;
+    }
+
+    /* Alerts / Callouts */
+    .alert {
+      border-radius: 4px;
+      padding: 4px 7px;
+      margin: 4px 0;
+      font-size: 7.2pt;
+      line-height: 1.3;
+      page-break-inside: avoid;
+    }
+
+    .alert-note {
+      background: #eff6ff;
+      border-left: 3px solid #3b82f6;
+      color: #1e3a8a;
+    }
+
+    .alert-important {
+      background: #f0fdf4;
+      border-left: 3px solid #22c55e;
+      color: #14532d;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left: 3px solid #f59e0b;
+      color: #78350f;
+    }
+
+    .alert-caution {
+      background: #fef2f2;
+      border-left: 3px solid #ef4444;
+      color: #7f1d1d;
+    }
+
+    .footer-note {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+      font-size: 7.0pt;
+      color: #94a3b8;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin: 5px 0;
+    }
+
+    .arch-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 6px;
+    }
+
+    .arch-card-title {
+      font-size: 7.3pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #2563eb;
+      margin-bottom: 2px;
+    }
+
+    .arch-card-body {
+      font-size: 6.9pt;
+      color: #475569;
+      line-height: 1.28;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <div class="header-banner">
+        <div>
+          <span class="badge-doc">Enterprise Storage Engineering SOP</span>
+          <h1>Proxmox VE NFS Storage Implementation & Operations Guide</h1>
+          <div class="subtitle">10-Disk Array Provisioning, Server Setup, Cluster Mount, 10G Tuning & Disaster Recovery</div>
+        </div>
+        <div class="meta-box">
+          <div><strong>Document Version:</strong> 1.1-Production</div>
+          <div><strong>Target Environment:</strong> Proxmox VE 8.x / 9.x</div>
+          <div><strong>Storage Fabric:</strong> 10G Optical (192.168.10.0/24)</div>
+          <div><strong>Storage Media:</strong> 10x SAS/SATA/NVMe Disks</div>
+        </div>
+      </div>
+
+      <h2>1. Overview & Architectural Role of NFS in Proxmox VE</h2>
+      <p>
+        Network File System (NFS) provides a standardized, shared, file-level storage backend across all nodes in a Proxmox VE cluster. While block-level Ceph RBD and local ZFS are ideal for active virtual machine execution, NFS serves as the optimal centralized repository for multi-node operations:
+      </p>
+
+      <div class="arch-grid">
+        <div class="arch-card">
+          <div class="arch-card-title">Centralized Backups (VZDump)</div>
+          <div class="arch-card-body">
+            • All 3 to 5 cluster nodes write automated VM/LXC backup archives (<code>.vma.zst</code>) to a unified NFS target.<br>
+            • Centralized prune and retention policies across the entire datacenter.
+          </div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-title">Shared ISO & Templates</div>
+          <div class="arch-card-body">
+            • Download an ISO or CT template once; instantly available across all cluster nodes.<br>
+            • Eliminates redundant storage consumption across individual hypervisor hosts.
+          </div>
+        </div>
+        <div class="arch-card">
+          <div class="arch-card-title">Shared VM Disks & Snippets</div>
+          <div class="arch-card-body">
+            • Supports QCOW2/RAW VM disk images.<br>
+            • Supports zero-copy live VM migration without SAN storage.<br>
+            • Stores shared Cloud-Init YAML configuration snippets.
+          </div>
+        </div>
+      </div>
+
+      <h2>2. Supported PVE Content Types on NFS</h2>
+      <p>
+        Proxmox VE automatically creates structured subdirectories inside the NFS export path based on configured content flags:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Content Flag</th>
+            <th>Subdirectory Path on NFS</th>
+            <th>Typical File Format</th>
+            <th>Primary Use Case in Production</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">backup</span></td>
+            <td class="mono">&lt;export&gt;/dump/</td>
+            <td><code>vzdump-qemu-*.vma.zst</code></td>
+            <td>Automated scheduled VZDump guest backups</td>
+          </tr>
+          <tr>
+            <td><span class="mono">iso</span></td>
+            <td class="mono">&lt;export&gt;/template/iso/</td>
+            <td><code>*.iso</code> (e.g. Ubuntu, Windows)</td>
+            <td>Guest operating system installation media</td>
+          </tr>
+          <tr>
+            <td><span class="mono">vztmpl</span></td>
+            <td class="mono">&lt;export&gt;/template/cache/</td>
+            <td><code>*.tar.zst, *.tar.gz</code></td>
+            <td>LXC container base OS templates</td>
+          </tr>
+          <tr>
+            <td><span class="mono">images</span></td>
+            <td class="mono">&lt;export&gt;/images/&lt;VMID&gt;/</td>
+            <td><code>vm-&lt;VMID&gt;-disk-*.qcow2</code></td>
+            <td>Virtual machine virtual disk images</td>
+          </tr>
+          <tr>
+            <td><span class="mono">rootdir</span></td>
+            <td class="mono">&lt;export&gt;/subvol/&lt;CTID&gt;/</td>
+            <td>Subvolumes / raw container root</td>
+            <td>Container root filesystems</td>
+          </tr>
+          <tr>
+            <td><span class="mono">snippets</span></td>
+            <td class="mono">&lt;export&gt;/snippets/</td>
+            <td><code>*.yaml, *.yml, *.sh</code></td>
+            <td>Cloud-init user-data, vendor-data, and hook scripts</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>3. Network Fabric & 10G Subnet Routing</h2>
+      <p>
+        To achieve line-rate backup transfer speeds (> 600 MB/s) and eliminate network contention on Corosync cluster heartbeats, NFS traffic must be routed strictly across the dedicated 10G/25G optical network interface (<code>nic3</code>):
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Subsystem</th>
+            <th>Network Interface</th>
+            <th>Subnet Range</th>
+            <th>MTU Setting</th>
+            <th>Design Consideration</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Management & Corosync</strong></td>
+            <td><code>vmbr0 (eno1 - 1G)</code></td>
+            <td class="mono">10.31.6.0/22</td>
+            <td>1500 (Standard)</td>
+            <td>Dedicated to cluster quorum; zero storage traffic</td>
+          </tr>
+          <tr>
+            <td><strong>NFS Storage & Migration</strong></td>
+            <td><code>nic3 (Broadcom 10G)</code></td>
+            <td class="mono">192.168.10.0/24</td>
+            <td><strong>9000 (Jumbo)</strong></td>
+            <td>Dedicated 10Gbps optical fabric for Ceph and NFS</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-important">
+        <strong>IP ADDRESSING BEST PRACTICE:</strong> Always specify the NFS Server's <code>192.168.10.x</code> IP address (never the management 10.31.6.x address) when mounting NFS in Proxmox. This forces all streaming I/O through the 10GbE optical link.
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 1 of 6</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <h2>4. Phase 1: 10-Disk Storage Pool Architecture & Provisioning</h2>
+      <p>
+        Before initializing the NFS daemon, the 10 physical disks must be aggregated into an enterprise-grade resilient volume. The optimal storage layout depends directly on the intended I/O pattern:
+      </p>
+
+      <h3>4.1. Storage Topology Comparison for 10 Disks</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Topology</th>
+            <th>Usable Space (10x 2TB drives)</th>
+            <th>Fault Tolerance</th>
+            <th>Read/Write Profile</th>
+            <th>Production Recommendation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>ZFS RAIDZ2 (Single 10-Disk vdev)</strong></td>
+            <td><strong>~80%</strong> (8 Data + 2 Parity) ~16 TB</td>
+            <td>Survives any <strong>2 disk failures</strong></td>
+            <td>High sequential throughput; moderate random IOPS</td>
+            <td><strong>Recommended for VZDump Backups, ISOs & Templates</strong></td>
+          </tr>
+          <tr>
+            <td><strong>ZFS Striped Mirrors (RAID 10: 5 pairs)</strong></td>
+            <td><strong>50%</strong> (5 Data + 5 Mirror) ~10 TB</td>
+            <td>Survives <strong>1 disk per pair</strong> (up to 5 total)</td>
+            <td>Maximum random IOPS; fastest rebuild times</td>
+            <td><strong>Recommended for Active VM Disks (QCOW2/RAW)</strong></td>
+          </tr>
+          <tr>
+            <td><strong>ZFS Dual RAIDZ2 (2x 5-disk vdevs)</strong></td>
+            <td><strong>60%</strong> (6 Data + 4 Parity) ~12 TB</td>
+            <td>Survives <strong>2 disks per vdev</strong> (up to 4 total)</td>
+            <td>Balanced random IOPS and sequential throughput</td>
+            <td>Mixed workloads (VM disks + VZDump backups)</td>
+          </tr>
+          <tr>
+            <td><strong>Linux Software RAID 6 (`mdadm` + XFS)</strong></td>
+            <td><strong>~80%</strong> (8 Data + 2 Parity) ~16 TB</td>
+            <td>Survives any <strong>2 disk failures</strong></td>
+            <td>High sequential throughput; standard POSIX filesystem</td>
+            <td>Non-ZFS environments or systems with low RAM</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>4.2. Disk Discovery & Persistent Identifier Mapping</h3>
+      <p>
+        Identify disks using persistent serial or WWN paths rather than ephemeral device letters (<code>/dev/sdX</code>):
+      </p>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Commands: Identify Block Devices by Persistent ID</span><span>Storage Host</span></div>
+        <div class="cmd-line"># 1. List block devices and partition tables</div>
+        <div class="cmd-line">$ lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL,SERIAL</div>
+        <div class="cmd-line"># 2. Inspect persistent device paths (use these in pool creation)</div>
+        <div class="cmd-line">$ ls -la /dev/disk/by-id/</div>
+      </div>
+
+      <h3>4.3. Creating the 10-Disk Storage Pool</h3>
+
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Option A: ZFS RAIDZ2 (10 Disks) — Recommended for Centralized Backups</span><span>Storage Host</span></div>
+        <div class="cmd-line">$ zpool create -f -o ashift=12 -O acltype=posixacl -O xattr=sa -O normalization=formD nfs-pool raidz2 \
+    /dev/disk/by-id/drive1 /dev/disk/by-id/drive2 /dev/disk/by-id/drive3 \
+    /dev/disk/by-id/drive4 /dev/disk/by-id/drive5 /dev/disk/by-id/drive6 \
+    /dev/disk/by-id/drive7 /dev/disk/by-id/drive8 /dev/disk/by-id/drive9 \
+    /dev/disk/by-id/drive10</div>
+      </div>
+
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Option B: ZFS Striped Mirrors (RAID 10) — Recommended for Active VM Storage</span><span>Storage Host</span></div>
+        <div class="cmd-line">$ zpool create -f -o ashift=12 -O acltype=posixacl -O xattr=sa -O normalization=formD nfs-pool \
+    mirror /dev/disk/by-id/drive1 /dev/disk/by-id/drive2 \
+    mirror /dev/disk/by-id/drive3 /dev/disk/by-id/drive4 \
+    mirror /dev/disk/by-id/drive5 /dev/disk/by-id/drive6 \
+    mirror /dev/disk/by-id/drive7 /dev/disk/by-id/drive8 \
+    mirror /dev/disk/by-id/drive9 /dev/disk/by-id/drive10</div>
+      </div>
+
+      <h3>4.4. ZFS Dataset Creation & Recordsize Tuning</h3>
+      <p>
+        Set dataset record sizes matching your target workload to maximize disk efficiency and minimize fragmentation:
+      </p>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Commands: Create & Tune ZFS Dataset</span><span>Storage Host</span></div>
+        <div class="cmd-line"># Create dedicated dataset with zstd compression and atime disabled</div>
+        <div class="cmd-line">$ zfs create -o compression=zstd -o atime=off nfs-pool/pve-storage</div>
+        <div class="cmd-line"># For VZDump backups and ISOs, set recordsize to 1M (drastically improves throughput)</div>
+        <div class="cmd-line">$ zfs set recordsize=1M nfs-pool/pve-storage</div>
+        <div class="cmd-line"># Verify dataset properties</div>
+        <div class="cmd-line">$ zfs get compression,recordsize,mountpoint nfs-pool/pve-storage</div>
+      </div>
+
+      <div class="alert alert-note">
+        <strong>NOTE ON HARDWARE RAID CONTROLLERS:</strong> If using a hardware RAID controller (e.g. Dell PERC / MegaRAID), configure a 10-disk RAID-6 virtual disk with 1MB stripe size and Write-Back cache enabled, then format with XFS using <code>mkfs.xfs -K /dev/sdX</code>.
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 2 of 6</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <h2>5. Phase 2: Deploying & Configuring the NFS Server Daemon</h2>
+
+      <p>
+        Configure the Linux NFS Kernel Server on the host managing the 10-disk array (e.g. dedicated NAS or designated cluster host):
+      </p>
+
+      <h3>5.1. Install Packages & Set Storage Permissions</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Commands: Install NFS Packages & Configure Directory</span><span>NFS Host</span></div>
+        <div class="cmd-line"># 1. Install kernel NFS server and RPC packages</div>
+        <div class="cmd-line">$ apt update && apt install -y nfs-kernel-server rpcbind</div>
+        <div class="cmd-line"># 2. Configure POSIX permissions for nobody:nogroup</div>
+        <div class="cmd-line">$ chown -R nobody:nogroup /nfs-pool/pve-storage</div>
+        <div class="cmd-line">$ chmod 777 /nfs-pool/pve-storage</div>
+      </div>
+
+      <h3>5.2. Multi-Thread NFS Daemon Tuning for 10 Disks</h3>
+      <p>
+        By default, Linux runs only 8 worker threads for NFS. A 10-disk storage array handling concurrent multi-node backup streams can saturate 8 threads, causing I/O queuing. Increase worker threads to <strong>32 or 64</strong>:
+      </p>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>File Configuration: /etc/nfs.conf (or /etc/default/nfs-kernel-server)</span><span>NFS Host</span></div>
+        <div class="cmd-line"># Configure 32 parallel worker threads</div>
+        <div class="cmd-out">[nfsd]
+threads=32</div>
+        <div class="cmd-line"># Apply thread update:</div>
+        <div class="cmd-line">$ systemctl restart nfs-kernel-server</div>
+      </div>
+
+      <h3>5.3. Configure `/etc/exports` for Proxmox 10G Subnet</h3>
+      <p>
+        Edit <code>/etc/exports</code> to restrict access exclusively to the Proxmox 10G network fabric (<code>192.168.10.0/24</code>):
+      </p>
+
+      <div class="cmd-block">
+        <div class="cmd-title"><span>File Configuration: /etc/exports</span><span>NFS Server</span></div>
+        <div class="cmd-line"># Proxmox VE Cluster 10G Optical Fabric Export</div>
+        <div class="cmd-out">/nfs-pool/pve-storage 192.168.10.0/24(rw,sync,no_subtree_check,no_root_squash,no_all_squash,sec=sys)</div>
+        <div class="cmd-line"># Reload export configuration live without restarting service:</div>
+        <div class="cmd-line">$ exportfs -arv</div>
+        <div class="cmd-out">exporting 192.168.10.0/24:/nfs-pool/pve-storage</div>
+        <div class="cmd-line">$ systemctl enable --now nfs-kernel-server rpcbind</div>
+      </div>
+
+      <h3>Understanding Export Parameters</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Option Parameter</th>
+            <th>Recommended Setting</th>
+            <th>Engineering Rationale</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">rw</span></td>
+            <td>Read-Write</td>
+            <td>Mandatory for creating backup archives, uploading ISOs, and writing VM images.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">sync</span></td>
+            <td>Synchronous writes</td>
+            <td>Guarantees write integrity to disk before acknowledging I/O. Prevents corrupted backup chunks.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">no_subtree_check</span></td>
+            <td>Disabled check</td>
+            <td>Enhances transfer speed and prevents file transfer aborts when renaming backup files.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">no_root_squash</span></td>
+            <td>Allow Root Access</td>
+            <td><strong>CRITICAL:</strong> Proxmox backup processes run as root. Without this, PVE cannot create backup archives or write image metadata.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">sec=sys</span></td>
+            <td>Standard UNIX Auth</td>
+            <td>Standard UID/GID matching for secure, fast internal cluster access over private VLANs.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>5.4. Firewall Configuration (Port 2049 & 111)</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Commands: Open NFS Firewall Ports on UFW / IPTables</span><span>NFS Server</span></div>
+        <div class="cmd-line"># Allow NFS v4 (TCP 2049) and RPC (TCP/UDP 111) from 10G subnet only</div>
+        <div class="cmd-line">$ ufw allow from 192.168.10.0/24 to any port 2049 proto tcp</div>
+        <div class="cmd-line">$ ufw allow from 192.168.10.0/24 to any port 111 proto tcp</div>
+        <div class="cmd-line">$ ufw allow from 192.168.10.0/24 to any port 111 proto udp</div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 3 of 6</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <h2>6. Phase 3: Mounting NFS Storage in Proxmox VE</h2>
+
+      <h3>Step 6.1: Verify Remote NFS Reachability from Proxmox Nodes</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Command: Query NFS Exports from PVE Node</span><span>Target: prox22</span></div>
+        <div class="cmd-line">prox22$ showmount -e 192.168.10.50   # (Replace with your NFS Server 10G IP)</div>
+        <div class="cmd-out">Export list for 192.168.10.50:
+/nfs-pool/pve-storage 192.168.10.0/24</div>
+      </div>
+
+      <h3>Step 6.2: Method 1 — Adding NFS via Proxmox CLI (`pvesm`)</h3>
+      <p>
+        Adding NFS storage via <code>pvesm add nfs</code> automatically propagates cluster-wide to all nodes via <code>/etc/pve/storage.cfg</code>:
+      </p>
+
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Command: Add NFS Storage via PVE Storage Manager</span><span>Target: prox22</span></div>
+        <div class="cmd-line">$ pvesm add nfs nfs-10disk-storage \
+    --server 192.168.10.50 \
+    --export /nfs-pool/pve-storage \
+    --content backup,iso,vztmpl,images \
+    --options "vers=4.2,tcp,nconnect=8,timeo=600,retrans=2" \
+    --prune-backups "keep-last=3,keep-daily=7,keep-weekly=4,keep-monthly=12"</div>
+        <div class="cmd-line"># Verify storage status across all cluster nodes:</div>
+        <div class="cmd-line">$ pvesm status</div>
+        <div class="cmd-out">Name                  Type     Status           Total            Used       Available        %
+ceph                   rbd     active     76303248384     10821304320     65481944064   14.18%
+zfs-ha             zfspool     active     91100344320      8589934592     82510409728    9.43%
+nfs-10disk-storage     nfs     active    160000000000     12000000000    148000000000    7.50%</div>
+      </div>
+
+      <h3>Step 6.3: Method 2 — Adding NFS via Proxmox Web GUI</h3>
+      <ol>
+        <li>Log in to the Proxmox Web GUI (<code>https://10.31.6.172:8006</code>).</li>
+        <li>In the left navigation tree, select <strong>Datacenter</strong> ➔ <strong>Storage</strong> ➔ Click <strong>Add</strong> ➔ Select <strong>NFS</strong>.</li>
+        <li>Enter parameters:
+          <ul>
+            <li><strong>ID:</strong> <code>nfs-10disk-storage</code></li>
+            <li><strong>Server:</strong> <code>192.168.10.50</code> (NFS Server 10G Optical IP)</li>
+            <li><strong>Export:</strong> Select <code>/nfs-pool/pve-storage</code> from dropdown</li>
+            <li><strong>Content:</strong> Select <code>VZDump backup file</code>, <code>ISO image</code>, <code>Container template</code>, <code>Disk image</code></li>
+            <li><strong>Nodes:</strong> Leave empty (All nodes) for cluster-wide mount</li>
+          </ul>
+        </li>
+        <li>Click <strong>Add</strong>. Proxmox synchronously mounts the NFS volume across all nodes within seconds.</li>
+      </ol>
+
+      <h2>7. Phase 4: 10GbE High-Performance Tuning Parameters</h2>
+      <p>
+        Default Linux NFS uses a single TCP stream. On high-speed 10GbE optical interconnects, configure connection multiplexing (<code>nconnect=8</code>) and 1MB buffers:
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Mount Option</th>
+            <th>Recommended Value</th>
+            <th>Performance Benefit on 10G Optical Interconnect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="mono">vers=4.2</span></td>
+            <td>NFSv4.2</td>
+            <td>Enables Server-Side Copy (SSC) and sparse file allocation for ultra-fast VM cloning.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">nconnect=8</span></td>
+            <td>8 TCP Streams</td>
+            <td>Multiplexes RPC requests across 8 parallel TCP connections, saturating 10GbE bandwidth.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">rsize=1048576</span></td>
+            <td>1 MB Read Buffer</td>
+            <td>Optimizes sequential restore throughput from NFS to local Ceph/ZFS pools.</td>
+          </tr>
+          <tr>
+            <td><span class="mono">wsize=1048576</span></td>
+            <td>1 MB Write Buffer</td>
+            <td>Optimizes VZDump streaming backup throughput (> 600 MB/s sustained).</td>
+          </tr>
+          <tr>
+            <td><span class="mono">timeo=600</span></td>
+            <td>60 Seconds Timeout</td>
+            <td>Prevents premature timeout during high-throughput parallel backup commits.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 4 of 6</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 5 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <h2>8. Phase 5: Automated Scheduled Backups (VZDump) to NFS</h2>
+
+      <h3>Step 8.1: Schedule Daily Backups via Proxmox Datacenter</h3>
+      <ol>
+        <li>In PVE GUI: <strong>Datacenter</strong> ➔ <strong>Backup</strong> ➔ Click <strong>Add</strong>.</li>
+        <li>Configure parameters:
+          <ul>
+            <li><strong>Node:</strong> All (Entire Cluster) | <strong>Storage:</strong> <code>nfs-10disk-storage</code></li>
+            <li><strong>Schedule:</strong> <code>01:00</code> (Nightly at 1:00 AM) | <strong>Selection Mode:</strong> <code>All guests</code></li>
+            <li><strong>Mode:</strong> <code>Snapshot</code> (Zero downtime) | <strong>Compression:</strong> <code>Zstandard (zstd)</code></li>
+            <li><strong>Retention/Prune:</strong> Keep last 3, Keep daily 7, Keep weekly 4, Keep monthly 12</li>
+          </ul>
+        </li>
+        <li>Click <strong>Create</strong>. Automatically registered in <code>/etc/pve/vzdump.cron</code>.</li>
+      </ol>
+
+      <h3>Step 8.2: Test Manual Backup Execution via CLI</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Shell Command: Test Snapshot Backup of VM 9001 to NFS</span><span>Target: prox22</span></div>
+        <div class="cmd-line">$ vzdump 9001 --storage nfs-10disk-storage --mode snapshot --compress zstd --notes-template "{{guestname}} (Weekly Full)"</div>
+        <div class="cmd-out">INFO: starting new backup job: vzdump 9001 --mode snapshot --storage nfs-10disk-storage --compress zstd
+INFO: Starting Backup of VM 9001 (qemu)
+INFO: status = running
+INFO: backup mode: snapshot
+INFO: creating VZDump architecture archive to 'nfs-10disk-storage:backup/vzdump-qemu-9001-2026_09_18-17_15_00.vma.zst'
+INFO: transferring 4.00 GiB [==========================>] 100% in 7s (average 585.1 MiB/s)
+INFO: archive and directory size: 1.42 GiB
+INFO: Finished Backup of VM 9001 (00:00:11)
+INFO: Backup job finished successfully</div>
+      </div>
+
+      <h2>9. Phase 6: Maintenance & Troubleshooting Playbooks</h2>
+
+      <h3>9.1. 10-Disk Pool Maintenance & Disk Replacement</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Playbook: Monitor Health, Scrub & Replace Failed Disk</span><span>Storage Host</span></div>
+        <div class="cmd-line"># 1. Check array status and error counters</div>
+        <div class="cmd-line">$ zpool status nfs-pool</div>
+        <div class="cmd-line"># 2. Initiate monthly background data scrub</div>
+        <div class="cmd-line">$ zpool scrub nfs-pool</div>
+        <div class="cmd-line"># 3. Disk Replacement Procedure:</div>
+        <div class="cmd-line">$ zpool offline nfs-pool /dev/disk/by-id/old-drive-serial</div>
+        <div class="cmd-line"># (Physically swap drive in chassis hot-swap bay)</div>
+        <div class="cmd-line">$ zpool replace nfs-pool /dev/disk/by-id/old-drive-serial /dev/disk/by-id/new-drive-serial</div>
+      </div>
+
+      <h3>9.2. Playbook A: NFS Storage Shows Question Mark `(?)` Icon in Web GUI</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Playbook: Diagnose and Re-arm Inactive NFS Storage</span><span>Cluster Terminal</span></div>
+        <div class="cmd-line"># 1. Test basic IP and port connectivity over 10G optical interface</div>
+        <div class="cmd-line">$ ping -c 3 192.168.10.50 && nc -zv 192.168.10.50 2049</div>
+        <div class="cmd-line"># 2. Check if export is broadcasted</div>
+        <div class="cmd-line">$ showmount -e 192.168.10.50</div>
+        <div class="cmd-line"># 3. Trigger manual storage scan and mount refresh</div>
+        <div class="cmd-line">$ pvesm set nfs-10disk-storage --disable 1 && sleep 2 && pvesm set nfs-10disk-storage --disable 0</div>
+        <div class="cmd-line">$ pvesm status</div>
+      </div>
+
+      <h3>9.3. Playbook B: Stale File Handle (`ESTALE`) Resolution</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Playbook: Clear Stale Mountpoints via Lazy Unmount</span><span>Target Node</span></div>
+        <div class="cmd-line"># 1. Force detach stale mount from namespace</div>
+        <div class="cmd-line">$ umount -l /mnt/pve/nfs-10disk-storage</div>
+        <div class="cmd-line"># 2. Refresh storage status to trigger clean reconnection</div>
+        <div class="cmd-line">$ pvesm status</div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 5 of 6</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 6 ==================== -->
+  <div class="page">
+    <div class="page-content">
+      <h3>9.4. Playbook C: Node Boot Hangs Waiting for Unreachable NFS Server</h3>
+      <p>
+        If the NFS server is powered down, Proxmox nodes take up to 90 seconds per mount to boot due to blocking systemd mount units. Enable non-blocking systemd automounting:
+      </p>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Playbook: Enable Non-Blocking Auto-Mounting (x-systemd.automount)</span><span>Target Node</span></div>
+        <div class="cmd-line"># Update PVE storage options to include nofail and background automounting:</div>
+        <div class="cmd-line">$ pvesm set nfs-10disk-storage --options "vers=4.2,tcp,nconnect=8,timeo=600,retrans=2,_netdev,nofail,x-systemd.automount,x-systemd.idle-timeout=60"</div>
+      </div>
+
+      <h3>9.5. Playbook D: Permission Denied (`EACCES` / `EPERM`) on Writing Backups</h3>
+      <div class="cmd-block">
+        <div class="cmd-title"><span>Playbook: Fix UID/GID Squash & Directory Ownership</span><span>NFS Server</span></div>
+        <div class="cmd-line"># 1. Verify /etc/exports contains no_root_squash</div>
+        <div class="cmd-line">$ cat /etc/exports | grep pve-storage</div>
+        <div class="cmd-line"># 2. Reset filesystem permissions and reload export table</div>
+        <div class="cmd-line">$ chmod 777 /nfs-pool/pve-storage && exportfs -arv</div>
+      </div>
+
+      <h2>10. Daily Operational Cheat Sheet for NFS Storage</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Administrative Task</th>
+            <th>Exact Shell Command</th>
+            <th>Healthy Expected Output</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Inspect 10-Disk Pool Health</strong></td>
+            <td><span class="mono">zpool status nfs-pool</span></td>
+            <td><code>state: ONLINE</code>, 0 errors across all 10 drives</td>
+          </tr>
+          <tr>
+            <td><strong>Check Storage Health on PVE</strong></td>
+            <td><span class="mono">pvesm status -storage nfs-10disk-storage</span></td>
+            <td><code>Status: active</code></td>
+          </tr>
+          <tr>
+            <td><strong>List Existing Backups</strong></td>
+            <td><span class="mono">pvesm list nfs-10disk-storage --content backup</span></td>
+            <td>List of <code>.vma.zst</code> backup archives with sizes</td>
+          </tr>
+          <tr>
+            <td><strong>List Available ISOs</strong></td>
+            <td><span class="mono">pvesm list nfs-10disk-storage --content iso</span></td>
+            <td>List of available OS installation ISOs</td>
+          </tr>
+          <tr>
+            <td><strong>Download ISO Directly to NFS</strong></td>
+            <td><span class="mono">pveam download nfs-10disk-storage &lt;TEMPLATE_NAME&gt;</span></td>
+            <td>Downloaded and immediately visible cluster-wide</td>
+          </tr>
+          <tr>
+            <td><strong>Check Mount Performance</strong></td>
+            <td><span class="mono">nfsstat -m /mnt/pve/nfs-10disk-storage</span></td>
+            <td>Displays active options (<code>vers=4.2</code>, <code>rsize=1048576</code>, <code>nconnect=8</code>)</td>
+          </tr>
+          <tr>
+            <td><strong>Benchmark Direct Write Speed</strong></td>
+            <td><span class="mono">dd if=/dev/zero of=/mnt/pve/nfs-10disk-storage/test.img bs=1M count=1000 oflag=direct</span></td>
+            <td>Speed <code>&gt; 550 MB/s</code> over 10G optical fabric</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>11. Engineering Document Sign-Off</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;">
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; font-size: 7.4pt;">
+          <strong>Document Author:</strong><br>
+          Infrastructure Engineering<br>
+          Innspark / CISAI Cluster Team<br>
+          Signature: _______________________
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; font-size: 7.4pt;">
+          <strong>Storage Architecture Review:</strong><br>
+          10-Disk Array + NFSv4.2 10G Certified<br>
+          VZDump Multi-Node Retention<br>
+          Signature: _______________________
+        </div>
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 8px; font-size: 7.4pt;">
+          <strong>Management Approval:</strong><br>
+          [  ] Approved for Production<br>
+          [  ] Approved for Staging<br>
+          Signature: _______________________
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise NFS Storage Implementation Guide</span>
+      <span>Page 6 of 6</span>
+    </div>
+  </div>
+
+</body>
+</html>

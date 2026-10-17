@@ -1,0 +1,369 @@
+
+Below is a safe, repeatable procedure for adding or removing OpenFortiVPN clients. The key is to update both controls on the Squid server: the Squid ACL file and the nftables input allowlist.
+
+Squid ACL files support one address per line, and http_access rules are evaluated in order, so keep the restricted VPN rule before the normal authenticated-access rule and before the final deny all.
+
+Current design
+Approved client IP
+       ↓ TCP/8085
+Squid proxy
+       ↓ CONNECT only
+182.19.54.189:4433
+
+
+The exception should match all four conditions:
+
+Approved source IP
+Destination 182.19.54.189
+Port 4433
+CONNECT method only
+
+Add a new VPN client
+
+Example new client:
+
+10.31.0.88
+
+1. Assign a stable IP
+
+Configure either:
+
+A static IP on the client, or
+A DHCP reservation
+
+Do not authorize dynamically changing client addresses without a reservation.
+
+2. Back up current configurations
+
+On the Squid server:
+
+sudo cp -a /etc/squid/openfortivpn_clients.txt \
+  /etc/squid/openfortivpn_clients.txt.backup-$(date +%Y%m%d-%H%M%S)
+
+sudo cp -a /etc/nftables.conf \
+  /etc/nftables.conf.backup-$(date +%Y%m%d-%H%M%S)
+
+3. Add the IP to the Squid VPN-client list
+
+Edit:
+
+sudo vi /etc/squid/openfortivpn_clients.txt
+
+
+Add one client per line:
+
+10.31.0.87/32
+10.31.0.88/32
+10.31.0.89/32
+
+
+Or add it without opening the editor:
+
+echo '10.31.0.88/32' |
+sudo tee -a /etc/squid/openfortivpn_clients.txt
+
+
+Prevent duplicates:
+
+sudo sort -u -o /etc/squid/openfortivpn_clients.txt \
+  /etc/squid/openfortivpn_clients.txt
+
+
+Review:
+
+sudo cat /etc/squid/openfortivpn_clients.txt
+
+4. Confirm the Squid ACL references the file
+sudo grep -n 'openfortivpn_clients' /etc/squid/squid.conf
+
+
+Expected configuration:
+
+acl openfortivpn_clients src "/etc/squid/openfortivpn_clients.txt"
+
+acl fortigate_sslvpn dst 182.19.54.189/32
+acl fortigate_sslvpn_port port 4433
+acl CONNECT method CONNECT
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+
+http_access allow openfortivpn_clients fortigate_sslvpn fortigate_sslvpn_port CONNECT
+
+http_access allow allowed_ips authenticated
+http_access deny all
+
+
+Squid supports src, dst, port, and method ACL matching, so all these conditions can be applied together to the CONNECT exception.
+
+5. Add the client to the nftables input allowlist
+
+The client must also be permitted to connect to Squid TCP port 8085.
+
+If /etc/nftables.conf contains a named set:
+
+set openfortivpn_clients {
+    type ipv4_addr
+    elements = {
+        10.31.0.87,
+        10.31.0.89
+    }
+}
+
+
+Add the new address:
+
+set openfortivpn_clients {
+    type ipv4_addr
+    elements = {
+        10.31.0.87,
+        10.31.0.88,
+        10.31.0.89
+    }
+}
+
+
+The corresponding input rule should be:
+
+ip saddr @openfortivpn_clients tcp dport 8085 accept
+
+Temporary runtime addition
+
+If you need to test before editing the persistent file:
+
+sudo nft add element inet filter openfortivpn_clients \
+'{ 10.31.0.88 }'
+
+
+Verify:
+
+sudo nft list set inet filter openfortivpn_clients
+
+
+Important: a runtime addition may be lost after reboot. Update /etc/nftables.conf for persistence.
+
+6. Validate nftables before applying
+sudo nft -c -f /etc/nftables.conf
+
+
+If there is no error:
+
+sudo nft -f /etc/nftables.conf
+
+
+Verify:
+
+sudo nft list ruleset
+
+7. Validate Squid
+sudo squid -k parse
+
+
+If parsing succeeds:
+
+sudo systemctl reload squid
+
+
+Check:
+
+sudo systemctl status squid --no-pager
+
+
+Review recent logs:
+
+sudo journalctl -u squid -n 30 --no-pager
+
+8. Test from the new client
+env -u http_proxy \
+-u HTTP_PROXY \
+-u https_proxy \
+-u HTTPS_PROXY \
+curl -vk \
+-x http://10.31.212.14:8085 \
+-H "User-Agent: FortiSSLVPN" \
+https://182.19.54.189:4433/remote/info
+
+
+Expected:
+
+HTTP/1.1 200 Connection established
+
+
+Then start the VPN:
+
+sudo systemctl start openfortivpn-squid.service
+
+
+Verify:
+
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+9. Verify on the Squid server
+sudo tail -f /var/log/squid/access.log
+
+
+Expected:
+
+10.31.0.88 TCP_TUNNEL/200 ... CONNECT 182.19.54.189:4433
+
+Remove an existing VPN client
+
+Example client to remove:
+
+10.31.0.88
+
+1. Stop and disable VPN on that client
+
+Run on the client being removed:
+
+sudo systemctl disable --now openfortivpn-squid.service
+
+
+Verify:
+
+sudo systemctl status openfortivpn-squid.service --no-pager
+
+2. Back up the Squid allowlist
+
+On the Squid server:
+
+sudo cp -a /etc/squid/openfortivpn_clients.txt \
+  /etc/squid/openfortivpn_clients.txt.backup-$(date +%Y%m%d-%H%M%S)
+
+3. Remove the IP from the Squid list
+sudo sed -i '\|^10\.31\.0\.88/32$|d' \
+  /etc/squid/openfortivpn_clients.txt
+
+
+If the file contains the IP without /32, use:
+
+sudo sed -i '\|^10\.31\.0\.88$|d' \
+  /etc/squid/openfortivpn_clients.txt
+
+
+Confirm removal:
+
+sudo grep -n '10\.31\.0\.88' \
+  /etc/squid/openfortivpn_clients.txt
+
+
+No output means the IP is absent.
+
+Review the complete list:
+
+sudo cat /etc/squid/openfortivpn_clients.txt
+
+4. Remove the IP from nftables
+Runtime removal
+sudo nft delete element inet filter openfortivpn_clients \
+'{ 10.31.0.88 }'
+
+
+Verify:
+
+sudo nft list set inet filter openfortivpn_clients
+
+
+Also remove the address from the persistent set in:
+
+sudo vi /etc/nftables.conf
+
+5. Validate and apply nftables
+sudo nft -c -f /etc/nftables.conf
+
+
+If valid:
+
+sudo nft -f /etc/nftables.conf
+
+6. Validate and reload Squid
+sudo squid -k parse
+sudo systemctl reload squid
+sudo systemctl status squid --no-pager
+
+7. Disable the user’s FortiGate VPN account
+
+Removing the IP from Squid blocks this proxy path, but you should also disable or revoke the user’s FortiGate VPN account when access is no longer required.
+
+This provides two layers of revocation:
+
+Squid client IP removed
++
+FortiGate VPN user disabled
+
+8. Confirm the removed client is blocked
+
+From the removed client, test:
+
+env -u http_proxy \
+-u HTTP_PROXY \
+-u https_proxy \
+-u HTTPS_PROXY \
+curl -vk \
+-x http://10.31.212.14:8085 \
+https://182.19.54.189:4433/remote/info
+
+
+The connection should no longer match the VPN exception.
+
+Check Squid logs:
+
+sudo tail -f /var/log/squid/access.log
+
+
+Look for a denied request from the removed IP.
+
+Quick add-client command sequence
+
+Replace 10.31.0.88 with the new client IP:
+
+echo '10.31.0.88/32' |
+sudo tee -a /etc/squid/openfortivpn_clients.txt
+
+sudo sort -u -o /etc/squid/openfortivpn_clients.txt \
+  /etc/squid/openfortivpn_clients.txt
+
+sudo nft add element inet filter openfortivpn_clients \
+'{ 10.31.0.88 }'
+
+sudo squid -k parse &&
+sudo systemctl reload squid
+
+
+Remember to also add the IP persistently to /etc/nftables.conf.
+
+Quick remove-client command sequence
+
+Replace 10.31.0.88 with the client being removed:
+
+sudo sed -i '\|^10\.31\.0\.88/32$|d' \
+  /etc/squid/openfortivpn_clients.txt
+
+sudo nft delete element inet filter openfortivpn_clients \
+'{ 10.31.0.88 }'
+
+sudo squid -k parse &&
+sudo systemctl reload squid
+
+
+Also remove the IP from /etc/nftables.conf.
+
+Final checklist
+When adding
+Assign static IP or DHCP reservation
+Add /32 IP to Squid client file
+Add IP to nftables set
+Update persistent nftables configuration
+Validate nftables
+Parse and reload Squid
+Deploy the OpenFortiVPN client configuration
+Test for TCP_TUNNEL/200
+Verify ppp0
+When removing
+Stop and disable the client VPN service
+Remove IP from Squid client file
+Remove IP from runtime and persistent nftables
+Parse and reload Squid
+Disable the FortiGate VPN account
+Confirm the old client is denied
+Review Squid access logs

@@ -1,0 +1,118 @@
+How to Check Active Squid Proxy Ports
+1. Check Which Ports Squid Is Listening On
+sudo netstat -tnlp | grep squid
+
+
+or
+
+sudo ss -lnpt | grep squid
+
+
+Example output:
+
+10.31.1.159:8860
+10.31.1.159:8859
+10.31.1.159:8878
+10.31.1.159:8888
+10.31.1.159:8898
+10.31.1.159:8858
+
+
+This confirms Squid is actively listening on those proxy ports.
+
+2. Check Which Clients Are Using a Specific Port
+
+For port 8860:
+
+sudo ss -tn | grep :8860
+
+
+For port 8859:
+
+sudo ss -tn | grep :8859
+
+
+For port 8878:
+
+sudo ss -tn | grep :8878
+
+
+Example:
+
+ESTAB 10.31.1.159:8860 10.31.4.226:54096
+ESTAB 10.31.1.159:8860 10.31.7.86:37284
+
+
+This shows active users connected to that proxy port.
+
+3. Count Active Connections Per Port
+sudo ss -tn | grep :8860 | wc -l
+
+sudo ss -tn | grep :8859 | wc -l
+
+sudo ss -tn | grep :8878 | wc -l
+
+
+This gives the number of current client sessions.
+
+4. Verify Traffic Is Passing Through the Port
+
+Check Squid logs:
+
+sudo grep CONNECT /var/log/squid/access.log | tail
+
+
+or
+
+sudo tail -f /var/log/squid/access.log
+
+
+You should see new requests while users browse.
+
+5. Verify the Port's WAN Mapping
+grep tcp_outgoing_address /etc/squid/squid.conf
+
+
+Example:
+
+tcp_outgoing_address 192.168.14.30 proxy8860
+tcp_outgoing_address 192.168.16.30 proxy8859
+tcp_outgoing_address 192.168.12.30 proxy8878
+
+
+Meaning:
+
+8860 → kv1 → 192.168.14.30
+8859 → kv2 → 192.168.16.30
+8878 → kv3 → 192.168.12.30
+
+6. Verify Outbound Internet Sessions
+sudo lsof -iTCP -nP | grep squid | grep ESTABLISHED | grep 192.168.
+
+
+Example:
+
+192.168.14.30 -> Internet
+192.168.16.30 -> Internet
+192.168.12.30 -> Internet
+
+
+This proves the port is actively sending traffic through its assigned ISP.
+
+Quick Verification Commands
+# Show active Squid ports
+sudo ss -lnpt | grep squid
+
+# Show connected clients
+sudo ss -tn | grep :8860
+sudo ss -tn | grep :8859
+sudo ss -tn | grep :8878
+
+# Show port mappings
+grep tcp_outgoing_address /etc/squid/squid.conf
+
+# Show active Internet sessions
+sudo lsof -iTCP -nP | grep squid | grep ESTABLISHED
+
+
+These four checks are usually enough to verify that a Squid proxy port is active, being used by clients, and correctly mapped to its WAN interface.

@@ -1,0 +1,599 @@
+Yes. You can set up Ubuntu Squid exactly with this structure, including **htpasswd authentication, separate ACL files, SquidGuard filtering, access/cache logs, and cache storage**.
+
+One important distinction: **SquidGuard logs** and **Squid cache/access logs** are separate. Also, Squid's `cache_dir` controls actual disk cache storage.
+
+## 1. Target directory structure
+
+```text
+/etc/squid/
+├── squid.conf
+├── passwd
+├── acl/
+│   ├── admins
+│   ├── developers
+│   ├── users
+│   ├── allowed_ips
+│   └── blocked_ips
+└── squidGuard.conf
+
+/var/lib/squidguard/db/
+├── whitelist/
+├── blacklist/
+├── social/
+├── malware/
+└── gambling/
+
+/var/spool/squid/
+└── cache/
+
+ /var/log/squid/
+├── access.log
+├── cache.log
+└── store.log
+```
+
+## 2. Create directories
+
+```bash
+sudo mkdir -p /etc/squid/acl
+
+sudo mkdir -p /var/lib/squidguard/db/{whitelist,blacklist,social,malware,gambling}
+
+sudo mkdir -p /var/spool/squid/cache
+
+sudo mkdir -p /var/log/squid
+```
+
+Check:
+
+```bash
+sudo tree /etc/squid
+sudo tree /var/lib/squidguard
+```
+
+If `tree` isn't installed:
+
+```bash
+sudo apt install tree -y
+```
+
+## 3. Create htpasswd authentication
+
+Install the required package:
+
+```bash
+sudo apt install apache2-utils -y
+```
+
+Create the password database:
+
+```bash
+sudo htpasswd -c /etc/squid/passwd nishu
+```
+
+Add additional users:
+
+```bash
+sudo htpasswd /etc/squid/passwd user1
+sudo htpasswd /etc/squid/passwd user2
+sudo htpasswd /etc/squid/passwd developer1
+```
+
+Set permissions:
+
+```bash
+sudo chown proxy:proxy /etc/squid/passwd
+sudo chmod 640 /etc/squid/passwd
+```
+
+## 4. Create separate user ACL files
+
+### Admins
+
+```bash
+sudo nano /etc/squid/acl/admins
+```
+
+Example:
+
+```text
+nishu
+admin1
+admin2
+```
+
+### Developers
+
+```bash
+sudo nano /etc/squid/acl/developers
+```
+
+```text
+developer1
+developer2
+developer3
+```
+
+### Normal users
+
+```bash
+sudo nano /etc/squid/acl/users
+```
+
+```text
+user1
+user2
+user3
+```
+
+## 5. IP ACL files
+
+Allowed IPs:
+
+```bash
+sudo nano /etc/squid/acl/allowed_ips
+```
+
+Example:
+
+```text
+192.168.10.0/24
+192.168.20.0/24
+```
+
+Blocked IPs:
+
+```bash
+sudo nano /etc/squid/acl/blocked_ips
+```
+
+Example:
+
+```text
+192.168.10.50
+192.168.10.51
+```
+
+## 6. SquidGuard databases
+
+For example, create blacklist domains:
+
+```bash
+sudo nano /var/lib/squidguard/db/social/domains
+```
+
+```text
+facebook.com
+instagram.com
+tiktok.com
+twitter.com
+```
+
+Blacklist:
+
+```bash
+sudo nano /var/lib/squidguard/db/blacklist/domains
+```
+
+```text
+example-malware-site.com
+example-gambling-site.com
+```
+
+Whitelist:
+
+```bash
+sudo nano /var/lib/squidguard/db/whitelist/domains
+```
+
+```text
+company.com
+redhat.com
+ubuntu.com
+github.com
+```
+
+Similarly, you can maintain:
+
+```text
+/var/lib/squidguard/db/malware/domains
+/var/lib/squidguard/db/gambling/domains
+```
+
+## 7. Build SquidGuard databases
+
+After creating or modifying the lists:
+
+```bash
+sudo squidGuard -C all
+```
+
+Check:
+
+```bash
+sudo find /var/lib/squidguard/db -type f
+```
+
+Make sure the Squid user can read them:
+
+```bash
+sudo chown -R proxy:proxy /var/lib/squidguard
+```
+
+## 8. SquidGuard configuration
+
+Edit:
+
+```bash
+sudo nano /etc/squid/squidGuard.conf
+```
+
+A basic structure:
+
+```conf
+dbhome /var/lib/squidguard/db
+logdir /var/log/squid
+
+dest whitelist {
+    domainlist whitelist/domains
+}
+
+dest blacklist {
+    domainlist blacklist/domains
+}
+
+dest social {
+    domainlist social/domains
+}
+
+dest malware {
+    domainlist malware/domains
+}
+
+dest gambling {
+    domainlist gambling/domains
+}
+
+acl {
+
+    default {
+        pass whitelist !malware !gambling !social !blacklist all
+        redirect http://proxy.example.com/blocked.html
+    }
+}
+```
+
+If you don't have a block page yet, initially remove the `redirect` line:
+
+```conf
+acl {
+
+    default {
+        pass whitelist !malware !gambling !social !blacklist all
+    }
+}
+```
+
+This avoids introducing another dependency while you are testing.
+
+## 9. Squid configuration
+
+Back up the existing configuration:
+
+```bash
+sudo cp /etc/squid/squid.conf /etc/squid/squid.conf.backup
+```
+
+Then configure the important portions of `/etc/squid/squid.conf`:
+
+```conf
+# ==========================================================
+# SQUID PROXY SERVER
+# Ubuntu Linux
+# ==========================================================
+
+# ----------------------------------------------------------
+# PROXY PORT
+# ----------------------------------------------------------
+
+http_port 3128
+
+
+# ----------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------
+
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+auth_param basic realm Enterprise-Proxy
+auth_param basic credentialsttl 2 hours
+auth_param basic casesensitive off
+
+acl authenticated proxy_auth REQUIRED
+
+
+# ----------------------------------------------------------
+# CLIENT IP ACL
+# ----------------------------------------------------------
+
+acl allowed_ips src "/etc/squid/acl/allowed_ips"
+acl blocked_ips src "/etc/squid/acl/blocked_ips"
+
+
+# ----------------------------------------------------------
+# USER ACL
+# ----------------------------------------------------------
+
+acl admins proxy_auth "/etc/squid/acl/admins"
+acl developers proxy_auth "/etc/squid/acl/developers"
+acl users proxy_auth "/etc/squid/acl/users"
+
+
+# ----------------------------------------------------------
+# SAFE PORTS
+# ----------------------------------------------------------
+
+acl SSL_ports port 443
+
+acl Safe_ports port 80
+acl Safe_ports port 443
+acl Safe_ports port 8080
+acl Safe_ports port 8443
+
+acl CONNECT method CONNECT
+
+
+# ----------------------------------------------------------
+# SQUIDGUARD
+# ----------------------------------------------------------
+
+url_rewrite_program /usr/bin/squidGuard -c /etc/squid/squidGuard.conf
+
+url_rewrite_children 10
+
+
+# ----------------------------------------------------------
+# LOGGING
+# ----------------------------------------------------------
+
+access_log /var/log/squid/access.log squid
+
+cache_log /var/log/squid/cache.log
+
+cache_store_log /var/log/squid/store.log
+
+
+# ----------------------------------------------------------
+# CACHE STORAGE
+# ----------------------------------------------------------
+
+cache_dir ufs /var/spool/squid/cache 10000 16 256
+
+cache_mem 512 MB
+
+maximum_object_size 50 MB
+
+minimum_object_size 0 KB
+
+
+# ----------------------------------------------------------
+# SECURITY
+# ----------------------------------------------------------
+
+http_access deny blocked_ips
+
+http_access deny !Safe_ports
+
+http_access deny CONNECT !SSL_ports
+
+
+# ----------------------------------------------------------
+# AUTHENTICATION
+# ----------------------------------------------------------
+
+http_access allow allowed_ips authenticated
+
+
+# ----------------------------------------------------------
+# DEFAULT DENY
+# ----------------------------------------------------------
+
+http_access deny all
+```
+
+### Important point about `cache_mem`
+
+This:
+
+```conf
+cache_mem 512 MB
+```
+
+does **not** mean Squid will use only 512 MB of cache.
+
+The actual disk cache is controlled by:
+
+```conf
+cache_dir ufs /var/spool/squid/cache 10000 16 256
+```
+
+Here:
+
+```text
+10000 = approximately 10 GB disk cache
+16    = first-level directories
+256   = second-level directories
+```
+
+So you could change it according to your server:
+
+```conf
+cache_dir ufs /var/spool/squid/cache 50000 16 256
+```
+
+for approximately 50 GB of disk cache.
+
+## 10. Initialize Squid cache
+
+After adding `cache_dir`, initialize the cache:
+
+```bash
+sudo squid -z
+```
+
+Then check:
+
+```bash
+sudo ls -lah /var/spool/squid/cache
+```
+
+## 11. Permissions
+
+Make sure Squid can access everything:
+
+```bash
+sudo chown -R proxy:proxy /var/spool/squid
+sudo chown -R proxy:proxy /var/lib/squidguard
+sudo chown -R proxy:proxy /var/log/squid
+
+sudo chown proxy:proxy /etc/squid/passwd
+sudo chown proxy:proxy /etc/squid/squidGuard.conf
+```
+
+For the configuration files:
+
+```bash
+sudo chmod 640 /etc/squid/passwd
+sudo chmod 640 /etc/squid/acl/*
+```
+
+## 12. Validate Squid configuration
+
+Always perform this before restarting:
+
+```bash
+sudo squid -k parse
+```
+
+If you get:
+
+```text
+Configuration file parsed OK
+```
+
+then restart:
+
+```bash
+sudo systemctl restart squid
+```
+
+Check:
+
+```bash
+sudo systemctl status squid
+```
+
+## 13. Monitor logs
+
+### Access log
+
+```bash
+sudo tail -f /var/log/squid/access.log
+```
+
+### Squid cache log
+
+```bash
+sudo tail -f /var/log/squid/cache.log
+```
+
+### Cache store log
+
+```bash
+sudo tail -f /var/log/squid/store.log
+```
+
+### SquidGuard log
+
+Depending on your SquidGuard configuration:
+
+```bash
+sudo ls -lh /var/log/squid/
+```
+
+Then:
+
+```bash
+sudo tail -f /var/log/squid/squidGuard.log
+```
+
+## 14. Check cache statistics
+
+You can use:
+
+```bash
+sudo squidclient mgr:info
+```
+
+and:
+
+```bash
+sudo squidclient mgr:5min
+```
+
+If `squidclient` isn't installed:
+
+```bash
+sudo apt install squidclient -y
+```
+
+## 15. Final architecture
+
+Your final setup will look like:
+
+```text
+                         INTERNET
+                            |
+                            |
+                     +-------------+
+                     |   Firewall  |
+                     +-------------+
+                            |
+                            |
+                     +-------------+
+                     |    SQUID    |
+                     |    :3128    |
+                     +-------------+
+                       /    |     \
+                      /     |      \
+                     /      |       \
+             htpasswd     ACL     SquidGuard
+                |           |          |
+                |           |          +-- whitelist
+                |           |          +-- blacklist
+                |           |          +-- social
+                |           |          +-- malware
+                |           |          +-- gambling
+                |           |
+                |           +-- allowed_ips
+                |           +-- blocked_ips
+                |
+                +-- admins
+                +-- developers
+                +-- users
+
+                     |
+                     v
+              /var/spool/squid/
+                    cache
+
+                     |
+                     v
+                /var/log/squid/
+                  access.log
+                  cache.log
+                  store.log
+```
+
+One correction to the earlier design: **SquidGuard's filtering database files and Squid's disk cache are separate functions**. Keep SquidGuard databases under `/var/lib/squidguard/db/` and Squid's actual object cache under `/var/spool/squid/`.
+
+If this is going into production, I would also add **`logrotate`, UFW rules, systemd hardening, cache sizing based on your RAM/disk, and a proper SquidGuard block page** rather than using the configuration above unchanged.

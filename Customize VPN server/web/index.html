@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSL VPN Management Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Background glow effects -->
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+  <div class="bg-glow glow-3"></div>
+
+  <!-- App Container -->
+  <div id="app">
+    <!-- ======================================================== -->
+    <!-- 1. LOGIN VIEW                                            -->
+    <!-- ======================================================== -->
+    <div id="login-view" class="view active">
+      <div class="login-container">
+        <div class="login-card glass-panel">
+          <div class="login-header">
+            <div class="brand-badge">
+              <span class="pulse-dot"></span>
+              <span>SSL VPN v1.0.0</span>
+            </div>
+            <div class="login-icon">
+              <svg viewBox="0 0 24 24" width="36" height="36" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <h1 class="login-title">Secure Portal</h1>
+            <p class="login-subtitle">Sign in to manage your SSL VPN gateway and view connections</p>
+          </div>
+
+          <form id="login-form" autocomplete="off">
+            <div id="login-alert" class="alert-banner hidden"></div>
+
+            <div class="form-group">
+              <label for="username">Username</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <input type="text" id="username" name="username" placeholder="admin" required autofocus>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="password">Password</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <input type="password" id="password" name="password" placeholder="••••••••" required>
+                <button type="button" id="toggle-password" class="input-action-btn" title="Toggle password visibility">
+                  <svg id="eye-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" id="login-submit-btn" class="btn btn-primary btn-block">
+              <span>Sign In to Dashboard</span>
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </button>
+          </form>
+
+          <div class="login-footer">
+            <div class="credentials-hint">
+              <span class="hint-label">Default Admin:</span>
+              <code>admin</code> / <code>admin123</code>
+            </div>
+            <div class="status-pill online">
+              <span class="pulse-dot"></span>
+              <span>VPN Daemon Active on :443</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- 2. DASHBOARD VIEW                                        -->
+    <!-- ======================================================== -->
+    <div id="dashboard-view" class="view">
+      <!-- Header -->
+      <header class="navbar glass-panel">
+        <div class="nav-left">
+          <div class="brand-logo">
+            <div class="brand-icon">
+              <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <span class="brand-title">Innspark SSL VPN</span>
+              <span class="brand-sub">Management Console</span>
+            </div>
+          </div>
+
+          <div class="server-status-badge online" id="global-status-badge">
+            <span class="pulse-dot"></span>
+            <span id="global-status-text">Server Online (Port 443)</span>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <div class="user-profile">
+            <div class="user-avatar" id="user-avatar-initials">AD</div>
+            <div class="user-info">
+              <span class="user-name" id="display-username">admin</span>
+              <span class="user-role">Administrator</span>
+            </div>
+          </div>
+          <button id="logout-btn" class="btn btn-secondary btn-sm" title="Log out">
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Layout -->
+      <div class="dashboard-body">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar glass-panel">
+          <nav class="sidebar-nav">
+            <button class="nav-tab active" data-tab="overview">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Overview</span>
+            </button>
+
+            <button class="nav-tab" data-tab="users">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <span>Users & Access</span>
+            </button>
+
+            <button class="nav-tab" data-tab="quickconnect">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+              <span>Client Connection</span>
+            </button>
+
+            <button class="nav-tab" data-tab="logs">
+              <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2" fill="none">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+              </svg>
+              <span>Live Logs</span>
+            </button>
+          </nav>
+
+          <div class="sidebar-footer">
+            <div class="tun-mode-indicator">
+              <span class="mode-label">TUN Mode</span>
+              <span class="mode-value" id="sidebar-tun-mode">MOCK TUN (Safe)</span>
+            </div>
+            <div class="version-tag">SSL VPN Stdlib v1.0.0</div>
+          </div>
+        </aside>
+
+        <!-- Tab Contents -->
+        <main class="content-area">
+          <!-- 1. OVERVIEW TAB -->
+          <section id="tab-overview" class="tab-content active">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Gateway Overview</h2>
+                <p class="section-desc">Real-time status of the TLS tunnel daemon and network allocation</p>
+              </div>
+              <button id="btn-refresh-status" class="btn btn-secondary btn-sm">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
+
+            <!-- KPI Cards Strip -->
+            <div class="kpi-grid">
+              <div class="kpi-card glass-panel">
+                <div class="kpi-top">
+                  <span class="kpi-label">Server State</span>
+                  <div class="kpi-icon icon-emerald">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                <div class="kpi-value" id="kpi-status">Healthy</div>
+                <div class="kpi-sub" id="kpi-container-name">sslvpn-server container</div>
+              </div>
+
+              <div class="kpi-card glass-panel">
+                <div class="kpi-top">
+                  <span class="kpi-label">TLS Listener</span>
+                  <div class="kpi-icon icon-indigo">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <line x1="2" y1="12" x2="22" y2="12"></line>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                    </svg>
+                  </div>
+                </div>
+                <div class="kpi-value" id="kpi-port">0.0.0.0:443</div>
+                <div class="kpi-sub">TLSv1.2 / TLSv1.3 Encrypted</div>
+              </div>
+
+              <div class="kpi-card glass-panel">
+                <div class="kpi-top">
+                  <span class="kpi-label">VPN Subnet</span>
+                  <div class="kpi-icon icon-cyan">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                      <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                      <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                      <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                      <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                    </svg>
+                  </div>
+                </div>
+                <div class="kpi-value" id="kpi-subnet">10.8.0.0/24</div>
+                <div class="kpi-sub" id="kpi-server-ip">Gateway: 10.8.0.1</div>
+              </div>
+
+              <div class="kpi-card glass-panel">
+                <div class="kpi-top">
+                  <span class="kpi-label">Configured Users</span>
+                  <div class="kpi-icon icon-purple">
+                    <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                </div>
+                <div class="kpi-value" id="kpi-users-count">1</div>
+                <div class="kpi-sub" id="kpi-active-sessions">Auto-reload on changes</div>
+              </div>
+            </div>
+
+            <!-- Detailed Cards Grid -->
+            <div class="details-grid">
+              <!-- Network Config Card -->
+              <div class="card glass-panel">
+                <div class="card-header">
+                  <h3 class="card-title">Network & Tunnel Configuration</h3>
+                  <span class="tag tag-indigo">Active Profile</span>
+                </div>
+                <div class="card-body">
+                  <div class="spec-table">
+                    <div class="spec-row">
+                      <span class="spec-label">Virtual IP Pool Range</span>
+                      <span class="spec-val" id="spec-ip-pool">10.8.0.10 &rarr; 10.8.0.250</span>
+                    </div>
+                    <div class="spec-row">
+                      <span class="spec-label">Tunnel MTU</span>
+                      <span class="spec-val" id="spec-mtu">1400 bytes</span>
+                    </div>
+                    <div class="spec-row">
+                      <span class="spec-label">DNS Servers</span>
+                      <span class="spec-val" id="spec-dns">8.8.8.8, 1.1.1.1</span>
+                    </div>
+                    <div class="spec-row">
+                      <span class="spec-label">Authentication Mode</span>
+                      <span class="spec-val" id="spec-auth-mode">Password (PBKDF2-HMAC-SHA256)</span>
+                    </div>
+                    <div class="spec-row">
+                      <span class="spec-label">Max Concurrent Clients</span>
+                      <span class="spec-val" id="spec-max-clients">50</span>
+                    </div>
+                    <div class="spec-row">
+                      <span class="spec-label">Idle Timeout</span>
+                      <span class="spec-val" id="spec-idle-timeout">300 seconds</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Command Card -->
+              <div class="card glass-panel">
+                <div class="card-header">
+                  <h3 class="card-title">Connect Client Now</h3>
+                  <span class="tag tag-emerald">Ready</span>
+                </div>
+                <div class="card-body">
+                  <p class="card-desc">Execute this command in your terminal to connect to the VPN server:</p>
+                  
+                  <div class="code-block-wrapper">
+                    <div class="code-header">
+                      <span>Bash CLI Client</span>
+                      <button class="btn-copy" id="btn-copy-quick-cli" title="Copy command">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                    <pre class="code-content"><code id="quick-cli-code">python3 vpn_client.py --server 127.0.0.1 --port 443 --username admin --mock-tun</code></pre>
+                  </div>
+
+                  <div class="code-block-wrapper" style="margin-top: 1rem;">
+                    <div class="code-header">
+                      <span>Docker Run Client</span>
+                      <button class="btn-copy" id="btn-copy-quick-docker" title="Copy command">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                    <pre class="code-content"><code id="quick-docker-code">docker run --rm -it --network host --entrypoint python3 innspark/sslvpn:1.0.0 vpn_client.py --server 127.0.0.1 --port 443 --username admin --mock-tun</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. USERS & ACCESS TAB -->
+          <section id="tab-users" class="tab-content">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">User Accounts & Access Control</h2>
+                <p class="section-desc">Manage VPN credentials, allowed IP subnets, and bandwidth limits</p>
+              </div>
+              <button id="btn-open-add-user" class="btn btn-primary btn-sm">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Add New User</span>
+              </button>
+            </div>
+
+            <!-- Users Table Card -->
+            <div class="card glass-panel">
+              <div class="table-responsive">
+                <table class="custom-table" id="users-table">
+                  <thead>
+                    <tr>
+                      <th>Username</th>
+                      <th>Status</th>
+                      <th>Assigned VPN IP</th>
+                      <th>Allowed Subnets (ACL)</th>
+                      <th>Bandwidth Cap</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-table-body">
+                    <!-- Populated dynamically via JS -->
+                    <tr>
+                      <td colspan="6" class="text-center py-4">Loading users...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- 3. CLIENT CONNECTION TAB -->
+          <section id="tab-quickconnect" class="tab-content">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Client Connection Guide</h2>
+                <p class="section-desc">Everything needed to connect remote machines to this SSL VPN</p>
+              </div>
+            </div>
+
+            <div class="connect-grid">
+              <div class="card glass-panel">
+                <div class="card-header">
+                  <h3 class="card-title">1. Mock TUN Mode (No Root / Safe Testing)</h3>
+                  <span class="tag tag-emerald">No Sudo Required</span>
+                </div>
+                <div class="card-body">
+                  <p class="card-desc">Simulates a complete VPN tunnel inside memory. Verifies the TLS 1.3 handshake, credentials, routing tables, and keepalives without modifying host networking interfaces.</p>
+                  
+                  <div class="code-block-wrapper">
+                    <pre class="code-content"><code>cd testing
+python3 vpn_client.py --server 127.0.0.1 --port 443 --username admin --mock-tun</code></pre>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card glass-panel">
+                <div class="card-header">
+                  <h3 class="card-title">2. Real Kernel TUN Mode (Full OS Routing)</h3>
+                  <span class="tag tag-indigo">Requires Sudo</span>
+                </div>
+                <div class="card-body">
+                  <p class="card-desc">Creates a real kernel network interface (e.g. <code>ssladmin</code>) so system packets and applications route through the VPN tunnel gateway.</p>
+                  
+                  <div class="code-block-wrapper">
+                    <pre class="code-content"><code>cd testing
+sudo python3 vpn_client.py --server 127.0.0.1 --port 443 --username admin</code></pre>
+                  </div>
+                  <p class="hint-sub">Once connected, verify with: <code>ip addr show ssladmin</code></p>
+                </div>
+              </div>
+
+              <div class="card glass-panel">
+                <div class="card-header">
+                  <h3 class="card-title">3. Standalone Client via Docker</h3>
+                  <span class="tag tag-cyan">Zero Host Dependencies</span>
+                </div>
+                <div class="card-body">
+                  <p class="card-desc">Runs the standard Python client inside the official container image.</p>
+                  
+                  <div class="code-block-wrapper">
+                    <pre class="code-content"><code>docker run --rm -it --network host --entrypoint python3 innspark/sslvpn:1.0.0 \
+    vpn_client.py --server 127.0.0.1 --port 443 --username admin --mock-tun</code></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 4. LIVE LOGS TAB -->
+          <section id="tab-logs" class="tab-content">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">Live VPN Daemon Logs</h2>
+                <p class="section-desc">Real-time log stream from the containerized SSL VPN server</p>
+              </div>
+              <div class="action-row">
+                <label class="toggle-checkbox">
+                  <input type="checkbox" id="auto-refresh-logs" checked>
+                  <span>Auto-refresh (every 3s)</span>
+                </label>
+                <button id="btn-refresh-logs" class="btn btn-secondary btn-sm">
+                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                  </svg>
+                  <span>Refresh Now</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="terminal-card glass-panel">
+              <div class="terminal-header">
+                <div class="terminal-buttons">
+                  <span class="dot dot-red"></span>
+                  <span class="dot dot-yellow"></span>
+                  <span class="dot dot-green"></span>
+                </div>
+                <span class="terminal-title">docker logs sslvpn-server --tail 60</span>
+                <button class="btn-copy-terminal" id="btn-copy-logs" title="Copy all logs">
+                  <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+              <pre class="terminal-body" id="terminal-logs">Loading container logs...</pre>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- ADD USER MODAL                                           -->
+  <!-- ======================================================== -->
+  <div id="add-user-modal" class="modal-overlay hidden">
+    <div class="modal-card glass-panel">
+      <div class="modal-header">
+        <h3 class="modal-title">Create New VPN User</h3>
+        <button id="modal-close-btn" class="modal-close">&times;</button>
+      </div>
+
+      <form id="add-user-form">
+        <div id="modal-alert" class="alert-banner hidden"></div>
+
+        <div class="form-group">
+          <label for="new-username">Username *</label>
+          <input type="text" id="new-username" required placeholder="e.g. alice, bob, engineer1">
+        </div>
+
+        <div class="form-group">
+          <label for="new-password">Password *</label>
+          <div class="input-wrapper">
+            <input type="password" id="new-password" required placeholder="Enter strong password">
+            <button type="button" id="modal-gen-pw-btn" class="input-action-btn" title="Generate random password">
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="new-vpn-ip">Fixed VPN IP (Optional)</label>
+            <input type="text" id="new-vpn-ip" placeholder="e.g. 10.8.0.55 (auto if blank)">
+          </div>
+          <div class="form-group flex-1">
+            <label for="new-bandwidth">Bandwidth Limit (kbps)</label>
+            <input type="number" id="new-bandwidth" placeholder="0 = unlimited" value="0">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="new-subnets">Allowed Subnets (comma separated CIDRs)</label>
+          <input type="text" id="new-subnets" value="0.0.0.0/0" placeholder="0.0.0.0/0 or 10.0.0.0/8">
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="modal-cancel-btn" class="btn btn-secondary">Cancel</button>
+          <button type="submit" id="modal-submit-btn" class="btn btn-primary">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

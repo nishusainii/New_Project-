@@ -1,0 +1,59 @@
+
+Nishu Saini
+Date: 29/08/2026
+Login: 8:51AM
+Logout:700 PM
+
+Today's Work Summary
+
+9:00 AM to 12:30 PM
+
+Squid Proxy server-10.31.1.24
+
+-Investigated Squid proxy browsing issues following Jio1 data exhaustion and verified connectivity across the available ISP links.
+-Reviewed source-based policy routing for Jio1 192.168.18.30 -> vlan13 and Jio2 192.168.5.30 -> vlan18.
+-Verified the routing tables, IP policy rules, gateways, and Squid listener-to-ISP mappings.
+-Confirmed that Squid port 8855 routes through Jio1 and port 8848 routes through Jio2.
+-Tested both proxy listeners using authenticated curl requests and validated their respective outgoing public IP addresses.
+-Identified a WAN path MTU mismatch and confirmed an effective path MTU of 1480 instead of the previous value of 1500.
+-Updated the MTU of vlan13 and vlan18 to 1480 and added the settings to Netplan for persistence.
+-Reconfigured Netplan with custom routing tables and routing-policy entries to retain policy-based routing after reloads and reboots.
+-Removed duplicate and legacy manually added default routes from the Jio1 and Jio2 routing tables.
+-Validated the cleaned routing configuration using ip route show table jio1 and ip route show table jio2.
+-Added TCP MSS clamping with an MSS value of 1440 under the firewall mangle/FORWARD chain.
+-Configured persistent firewall-rule storage to retain the TCP MSS rule after system restart.
+-Monitored /var/log/squid/access-cisai.log and confirmed successful traffic through the Jio1 and Jio2 proxy ports.
+-Verified successful Squid responses, including TCP_TUNNEL/200 and TCP_MISS/200.
+-Investigated recurring TCP_TUNNEL/503 errors for www.reddit.com and 10.31.5.197:443.
+-Performed ping, nc -zv, and curl -vk tests and confirmed that the target host was reachable, port 443 was open, and Nginx returned HTTP/2 200.
+
+12:30 PM to 2:00 PM 
+
+Squid Proxy server - 10.31.1.159
+-Converted hardcoded Squid user, domain, and source-IP ACL definitions into maintainable files under /etc/squid/acl/.
+-Created separate file-based ACLs for AI users, GitHub users, special-port users, AI domains, GitHub domains, WhatsApp domains, and automation-server IPs.
+-Removed obsolete ACL names and references, resolving the earlier ACL not found: nimmi_user configuration error.
+-Restricted authenticated users nishu and shyam to Squid listener ports 8860, 8859, and 8878, while denying them access through other listeners.
+-Preserved the existing multi-WAN source-address bindings for all Squid ports, including the approved ports assigned to nishu and shyam.
+-Validated the complete Squid configuration with sudo squid -k parse, successfully reloaded/reconfigured the service, and confirmed that Squid remained active.
+
+
+2:00 PM To 3:00 PM 
+
+- Lunch break.
+
+
+3:00 PM to 7:00 PM 
+
+Squid Proxy 10.31.1.159 and 10.31.88.24
+
+-Created and validated the last-known-good recovery snapshot at /var/backups/proxy-safe/last-known-good-20260829-151029 for emergency 
+  rollback of Squid, Netplan, routing, policy rules, and firewall configuration.
+-Prepared a console-based emergency recovery procedure for power-failure scenarios where Ubuntu boots but proxy services, interface addresses, 
+ routing tables, policy rules, or firewall settings are missing.
+-Implemented a safe recovery workflow using proxy-safe verify and proxy-recovery-assistant compare to validate the backup and identify actual configuration 
+ differences before performing any restoration.
+-Documented the controlled restoration process using proxy-recovery-assistant restore, including current-state capture, Squid restoration and parsing, Netplan validation, i
+  ptables restoration, and Squid service recovery.
+-Established post-recovery validation checks for Netplan, WAN interfaces, custom routing tables, policy rules, iptables/nftables, Squid service status, listener port 3128, 
+ local proxy connectivity, boot-service enablement, and final snapshot comparison.

@@ -1,0 +1,58 @@
+Name: Nishu Saini
+ Date: 07/09/2026
+ Login: 09:08 AM
+ Logout: 08:05 PM
+
+ Today's Work Summary
+
+9:10 AM to 1:00 PM
+
+-Deployed and configured a new Squid Proxy Server on Ubuntu using TCP port 8085.
+-Configured Squid cache directories, memory cache settings, and validated the configuration using squid -k parse.
+-Implemented Basic Authentication using /etc/squid/password and successfully verified authenticated proxy access.
+-Troubleshot and resolved HTTP 407 Authentication Required errors caused by missing user credentials.
+-Implemented Squid ACLs for authenticated users, approved source IP addresses, safe ports, HTTPS CONNECT requests, and OpenFortiVPN clients.
+-Centralized approved proxy client IP addresses in /etc/squid/allowed_ips.txt.
+-Created /etc/squid/openfortivpn_clients.txt for managing FortiGate SSL VPN client access.
+-Configured and tested proxy CONNECT requests to the FortiGate SSL VPN endpoint on TCP port 4433.
+-Reviewed and updated nftables rules for Squid Proxy and SSL VPN client access.
+-Configured NAT rules to route SSL VPN client traffic through the proxy server.
+-Corrected nftables IP set syntax issues and validated the configuration using nft -c -f /etc/nftables.conf.
+-Investigated Squid errors including HTTP 403, HTTP 407, HTTP 400, and TCP_TUNNEL/503.
+-Verified proxy authentication and connectivity using curl.
+-Reviewed Squid access and cache logs to validate authentication events and CONNECT tunnel attempts.
+-Cleaned up Squid configuration files and identified an accidental duplicate squid.conf' file.
+
+
+ 1:00 PM To 1:45 PM 
+
+- Lunch break.
+
+1:45 PM TO 5:00 PM
+
+Security Audting on 10.31.5.10,10.31.7.60,10.31.5.137 and Patch upgrardation
+-Upgraded NGINX on Ubuntu 16.04 from 1.10.3 to 1.20.1 while preserving the production configuration.
+-Upgraded legacy NGINX on Ubuntu 14.04 from 1.4.6 to 1.16.0.
+-Validated NGINX configurations and confirmed HTTP port 80 and HTTPS port 443 were operational.
+-Resolved duplicate NGINX virtual-host conflicts and removed deprecated SSL configuration directives.
+-Identified a separate 502 Bad Gateway issue caused by the backend service not listening on 127.0.0.1:8080.
+
+5:00 PM to 8:10 PM
+
+Created the Update Dashroad SARG Reporting for Four Suqid proxy server- 10.31.1.159,10.31.1.24,10.31.212.14,10.31.88.24
+-Reinstalled and configured SARG using /var/log/squid/access-sarg.log.
+-Corrected SARG configuration and dashboard report-selection issues.
+-Updated SARG dashboard logic to select only valid report directories containing a sarg-date file.
+-Confirmed SARG dashboard regeneration, KPI extraction, authentication page creation, and report redirection.
+-Investigated the SARG dashboard timezone difference and prepared the Asia/Kolkata timezone correction.
+-Installed Webmin 2.660 and resolved required package dependencies.
+-Configured the Webmin admin ACL with full module permissions.
+-Identified duplicate admin authentication entries and prepared cleanup and login validation steps.
+-Prepared firewall rules for HTTP port 80 and Webmin port 10000.
+-Recommended restricting Webmin access to the trusted management network.
+-Confirmed that the Squid proxy, NGINX services, SARG reporting, and Webmin installation are operational.
+-Continued investigation of outbound HTTPS CONNECT failures returning TCP_TUNNEL/503.
+
+
+
+

@@ -1,0 +1,357 @@
+Your environment is now a three-node Proxmox VE cluster with centralized multi-master management, using the existing management network for Corosync. 
+Storage is still local and independent on each node, while the planned 10 Gb replication network is only partially functional and is not yet being used by Proxmox.
+
+Current architecture
+                         Management LAN
+                         10.31.88.0/22
+                    Default gateway: 10.31.88.1
+                                  |
+              +-------------------+-------------------+
+              |                   |                   |
+          +--------+          +--------+          +--------+
+          | prox22 |          | prox23 |          | prox24 |
+          | Node 2 |          | Node 3 |          | Node 1 |
+          +--------+          +--------+          +--------+
+          vmbr0               vmbr0               vmbr0
+          10.31.89.26         10.31.89.28         10.31.89.30
+          via nic0            via nic1            via nic0
+              |                   |                   |
+              +------ Corosync / KNET link 0 --------+
+                     Cluster name: cisai-pve
+                     3 votes, quorum requires 2
+                     Current status: Quorate
+
+1. Proxmox cluster layer
+
+Your cluster is:
+
+Cluster name: cisai-pve
+Transport:    Corosync KNET
+Secure auth:  Enabled
+Nodes:        3
+Total votes:  3
+Quorum:       2
+Status:       Quorate
+
+
+Cluster membership:
+
+Node ID 1   prox24   10.31.89.30
+Node ID 2   prox22   10.31.89.26
+Node ID 3   prox23   10.31.89.28
+
+
+All three nodes currently show as connected.
+
+Proxmox uses a multi-master management architecture. There is no permanent master server, even though prox24 was used to create the cluster. Any available node can manage the complete cluster.
+
+You can manage the cluster through any of these Web UI addresses:
+
+prox22: https://10.31.89.26:8006
+prox23: https://10.31.89.28:8006
+prox24: https://10.31.89.30:8006
+
+
+In the Web UI, the expected structure is:
+
+Datacenter
+├── prox22
+├── prox23
+└── prox24
+
+2. Current Corosync architecture
+
+Corosync is currently using the management network:
+
+prox22 Corosync address: 10.31.89.26
+prox23 Corosync address: 10.31.89.28
+prox24 Corosync address: 10.31.89.30
+
+
+Current Corosync connection:
+
+prox24 → prox22: connected
+prox24 → prox23: connected
+
+
+This architecture is functional and currently quorate.
+
+However, the same vmbr0 network currently carries:
+
+Proxmox Web UI/API traffic
+SSH management
+Corosync cluster communication
+Potential general management traffic
+
+Proxmox recommends a dedicated physical interface for Corosync because it needs consistent low latency, although it does not require large bandwidth. A dedicated 1 Gb interface is normally sufficient.
+
+Therefore, your current Corosync design is:
+
+Operational: Yes
+Recommended final production design: Not yet
+
+
+Do not manually edit /etc/pve/corosync.conf while the cluster is healthy.
+
+3. Physical NIC architecture
+prox22
+nic0   1 Gb    Management uplink for vmbr0
+nic1   1 Gb    Disconnected, planned dedicated Corosync
+nic2   10 Gb   DAC link, replication address configured
+nic3   10/25G  Disconnected, planned VM traffic
+
+
+Addresses:
+
+vmbr0  10.31.89.26/22
+nic2   10.31.122.22/24
+
+prox23
+nic0   1 Gb    Disconnected, planned dedicated Corosync
+nic1   1 Gb    Management uplink for vmbr0
+nic2   10 Gb   DAC link, replication address configured
+nic3   10/25G  Disconnected, planned VM traffic
+
+
+Addresses:
+
+vmbr0  10.31.89.28/22
+nic2   10.31.122.23/24
+
+prox24
+nic0   1 Gb    Management uplink for vmbr0
+nic1   1 Gb    Disconnected, planned dedicated Corosync
+nic2   10 Gb   DAC link, replication address configured
+nic3   10/25G  Disconnected, planned VM traffic
+
+
+Addresses:
+
+vmbr0  10.31.89.30/22
+nic2   10.31.122.24/24
+
+
+Each server has only one default gateway:
+
+default via 10.31.88.1 dev vmbr0
+
+
+That is the correct routing design. The replication interfaces have no gateways.
+
+4. 10 Gb replication network
+
+The planned replication network is:
+
+Network: 10.31.122.0/24
+MTU:     1500
+
+prox22 nic2: 10.31.122.22
+prox23 nic2: 10.31.122.23
+prox24 nic2: 10.31.122.24
+
+
+All three nic2 ports report:
+
+Speed: 10000Mb/s
+Duplex: Full
+Port: Direct Attach Copper
+Link detected: yes
+
+
+But the network is not fully operational:
+
+prox23 ↔ prox24: Working
+prox22 ↔ prox23: Failed during tested neighbor discovery
+prox22 ↔ prox24: Failed
+
+
+An additional issue was observed: prox24 learned 10.31.122.22 using prox22’s management MAC instead of prox22’s nic2 MAC. This suggests the attached switch ports or DAC topology are not currently providing one clean, isolated Layer 2 network for all three nodes.
+
+Therefore:
+
+10 Gb physical links:      UP
+Local IPv4 configuration:  Applied
+End-to-end connectivity:   Incomplete
+Migration network:         Not configured
+ZFS replication traffic:   Not enabled
+
+
+Do not select 10.31.122.0/24 under Datacenter migration settings yet.
+
+Proxmox storage replication uses an initial transfer and then snapshot-based incremental transfers. Replication can be bandwidth-limited, but it still requires reliable network connectivity between the source and target nodes.
+
+5. Management architecture
+
+Your cluster is centrally manageable but has no single management controller:
+
+prox22 Web UI
+      |
+      +---- manages prox22, prox23, and prox24
+
+prox23 Web UI
+      |
+      +---- manages prox22, prox23, and prox24
+
+prox24 Web UI
+      |
+      +---- manages prox22, prox23, and prox24
+
+
+Cluster configuration is stored under:
+
+/etc/pve
+
+
+and synchronized across the cluster using pmxcfs and Corosync. Proxmox documents this multi-master centralized management model.
+
+6. Current storage architecture
+
+Each node currently has its own independent local Proxmox OS storage:
+
+local
+local-lvm
+
+
+The operating-system disk on each node is:
+
+/dev/sdm
+
+
+It contains:
+
+EFI partition
+pve-root
+pve-swap
+pve-data / local-lvm
+
+/dev/sdm must never be included in the future ZFS pool.
+
+Data disks
+
+Each server has twelve approximately 18.2 TiB disks:
+
+/dev/sda through /dev/sdl
+
+
+The chosen future design has not yet been created. The preferred plan discussed is:
+
+Pool name: tank
+Layout: 6 mirrored vdevs
+Disks per node: 12
+Proxmox storage ID: zfs-vm
+
+
+Local ZFS is not shared storage. Each node would have an independent tank pool.
+
+prox24 special storage condition
+
+On prox24:
+
+/dev/sdb   old Ceph OSD LVM metadata/data
+/dev/sdc   old Ceph OSD LVM metadata/data
+/dev/sde   historical/stale storage metadata
+/dev/sdm   Proxmox OS disk
+
+
+All twelve prox24 data drives passed the basic SMART health checks shown:
+
+SMART Health Status: OK
+Grown defect list: 0
+
+
+However, /dev/sdb, /dev/sdc, and /dev/sde must not be wiped until the old-data disposition is formally decided.
+
+7. Current HA architecture
+
+The Proxmox HA software is available as part of the platform, but you have not yet configured production HA resources.
+
+Current state:
+
+Three-node quorum:       Ready
+Centralized management:  Ready
+Shared storage:          Not present
+ZFS replication:         Not configured
+HA groups:               Not configured
+HA resources:            Not configured
+Production failover:     Not ready
+
+
+Proxmox HA Manager can monitor selected VMs and containers and perform automatic failover, but resources must explicitly be added to HA.
+
+Your planned HA data flow is:
+
+VM runs on prox22/tank
+          |
+          | scheduled ZFS replication
+          v
+Replica on prox23/tank
+          |
+prox22 fails
+          |
+HA starts VM on prox23 from the latest replica
+
+
+Because ZFS replication is asynchronous, changes made after the last completed replication may be lost during a sudden node failure. 
+Proxmox explicitly notes that HA can be combined with storage replication, but data loss may occur between the last synchronization and the node failure.
+
+8. Current versus target architecture
+Current environment
+Three-node cluster             Complete
+Multi-master management        Complete
+Corosync over management LAN   Active
+Cluster quorum                 Healthy
+10 Gb replication addresses    Configured
+10 Gb full connectivity        Not complete
+ZFS pools                      Not created
+ZFS replication                Not configured
+HA groups/resources            Not configured
+Dedicated VM bridge            Not configured
+Independent backup platform    Not confirmed
+
+Target production environment
+Management:
+vmbr0 on 10.31.88.0/22
+
+Corosync:
+Dedicated 1 Gb interfaces/network
+prox22 nic1
+prox23 nic0
+prox24 nic1
+
+ZFS replication/migration:
+Dedicated 10 Gb nic2 network
+10.31.122.0/24
+
+VM traffic:
+nic3 through common VLAN-aware vmbr1
+
+Storage:
+Matching local ZFS tank pools on all nodes
+
+Availability:
+ZFS replication plus Proxmox HA
+
+Backup:
+Independent Proxmox Backup Server or external backup storage
+
+Architecture summary
+Today:
+3-node Proxmox cluster
+→ central multi-master management
+→ healthy quorum
+→ Corosync on management network
+→ local independent storage
+→ HA not enabled
+
+Final goal:
+3-node Proxmox cluster
+→ dedicated Corosync network
+→ 10 Gb ZFS replication network
+→ identical ZFS mirror pools
+→ VM replication between nodes
+→ controlled Proxmox HA
+→ independent backup storage
+
+
+The cluster-management layer is complete and healthy. The next incomplete layer is the storage and replication architecture, 
+beginning with resolution of the prox22 10 Gb Layer 2 connectivity and confirmation that the PERC controller exposes the data disks appropriately for ZFS.

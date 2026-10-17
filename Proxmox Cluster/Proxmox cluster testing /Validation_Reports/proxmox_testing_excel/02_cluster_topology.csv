@@ -1,0 +1,4 @@
+Node Hostname,Management IP (vmbr0),Storage Fabric IP (nic3),Corosync Role,Ceph OSDs,Storage Capacity (TiB),Initial Workloads
+prox22,10.31.6.172,192.168.10.22,HA Master / Quorum Member,4 OSDs (osd.0-3),72.76 TiB,VM 9001 (Ubuntu 24.04 HA)
+prox23,10.31.6.173,192.168.10.23,Quorum Member,4 OSDs (osd.4-7),72.76 TiB,Failover Target (VM 9002)
+prox24,10.31.6.174,192.168.10.24,Quorum Member,4 OSDs (osd.8-11),72.76 TiB,"VM 9002, VM 9003 (HA Active)"

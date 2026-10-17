@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · WireGuard Control Center</title>
+  <link rel="stylesheet" href="/static/css/style.css?v=2.1">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-header">
+        <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+          <div class="brand-icon" style="width: 52px; height: 52px; font-size: 1.5rem;">WG</div>
+        </div>
+        <h2>WireGuard Enterprise</h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.35rem;">Sign in to manage WireGuard VPN infrastructure</p>
+      </div>
+
+      {% if error %}
+      <div class="alert-error">
+        {{ error }}
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}">
+        
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" placeholder="admin" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">
+          Sign In
+        </button>
+      </form>
+
+      <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center; font-size: 0.75rem; color: var(--text-muted);">
+        Role-based access: <strong>admin</strong> (Full Access) or <strong>viewer</strong> (Read-Only)
+      </div>
+    </div>
+  </div>
+</body>
+</html>

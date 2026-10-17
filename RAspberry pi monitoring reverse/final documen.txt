@@ -1,0 +1,825 @@
+Yes. Below is the complete step-by-step summary of the changes you performed on the Grafan-Pi Raspberry Pi, from the original setup through the dedicated Amritaserve HEAD probe.
+
+Security note: Proxy credentials and Base64 authentication values are intentionally omitted. The credentials displayed during troubleshooting should be rotated because Base64 is encoding, not encryption.
+
+1. Original monitoring environment
+
+The Raspberry Pi originally had these containers:
+
+grafana
+prometheus
+blackbox-exporter
+openwa-docker-proxy
+
+
+The original monitoring path was:
+
+Prometheus
+    ↓ 127.0.0.1:9115
+Blackbox Exporter
+    ↓
+Website availability and SSL certificate checks
+    ↓
+Grafana dashboard
+
+
+The goal was to add an Nginx reverse proxy before Blackbox Exporter:
+
+Prometheus
+    ↓
+Nginx Reverse Proxy
+    ↓
+Blackbox Exporter
+    ↓
+Websites
+
+2. Checked the Docker network
+
+You checked existing Docker networks:
+
+docker network ls
+
+
+The network already existed:
+
+monitoring-net
+
+
+You checked which containers were connected:
+
+docker network inspect monitoring-net \
+  --format '{{range $id, $container := .Containers}}{{println $container.Name $container.IPv4Address}}{{end}}'
+
+
+Initially, only Blackbox Exporter was connected:
+
+blackbox-exporter 172.18.0.2/16
+
+
+The Blackbox IP was not used directly because Docker container IP addresses can change. Nginx accesses Blackbox through its Docker DNS name:
+
+blackbox-exporter:9115
+
+3. Discovered that Prometheus uses host networking
+
+You attempted:
+
+docker network connect monitoring-net prometheus
+
+
+Docker returned:
+
+container sharing network namespace with another container or host cannot be connected to any other network
+
+
+You confirmed the Prometheus network mode:
+
+docker inspect prometheus \
+  --format 'NetworkMode={{.HostConfig.NetworkMode}}'
+
+
+Result:
+
+NetworkMode=host
+
+
+Therefore, Prometheus could not be connected to monitoring-net.
+
+The selected design became:
+
+Prometheus using host network
+    ↓ 127.0.0.1:9117
+Nginx container on monitoring-net
+    ↓ blackbox-exporter:9115
+Blackbox Exporter
+
+4. Created the Nginx reverse-proxy configuration
+
+You created the directory:
+
+sudo mkdir -p /opt/blackbox-nginx
+
+
+You created the configuration:
+
+sudo vim /opt/blackbox-nginx/nginx.conf
+
+
+The Nginx configuration forwarded /probe requests to Blackbox Exporter:
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log warn;
+
+    upstream blackbox_backend {
+        server blackbox-exporter:9115;
+        keepalive 16;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+
+        location = /proxy-health {
+            access_log off;
+            default_type text/plain;
+            return 200 "Nginx reverse proxy is healthy\n";
+        }
+
+        location = /probe {
+            proxy_pass http://blackbox_backend;
+            proxy_http_version 1.1;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 40s;
+            proxy_read_timeout 40s;
+        }
+
+        location = /metrics {
+            proxy_pass http://blackbox_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+        }
+
+        location / {
+            return 404;
+        }
+    }
+}
+
+5. Validated the Nginx configuration
+
+The first validation failed because the temporary Nginx container was not connected to monitoring-net.
+
+You corrected it by adding:
+
+--network monitoring-net
+
+
+Validation command:
+
+docker run --rm \
+  --network monitoring-net \
+  -v /opt/blackbox-nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  nginx:1.28-alpine \
+  nginx -t
+
+
+Successful result:
+
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+6. Resolved the Nginx port conflict
+
+You first tried host port 9116, but Docker returned:
+
+address already in use
+
+
+Your Prometheus configuration showed that 9116 was already used by:
+
+- job_name: 'custom_site_exporter'
+  static_configs:
+    - targets:
+        - '127.0.0.1:9116'
+
+
+Therefore, you selected host port 9117 for Nginx.
+
+You removed the failed Created container and started Nginx on 9117:
+
+docker rm -f blackbox-nginx-proxy
+
+docker run -d \
+  --name blackbox-nginx-proxy \
+  --restart unless-stopped \
+  --network monitoring-net \
+  -p 127.0.0.1:9117:8080 \
+  -v /opt/blackbox-nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  nginx:1.28-alpine
+
+
+The mapping became:
+
+Raspberry Pi 127.0.0.1:9117
+    ↓
+Nginx container port 8080
+    ↓
+Blackbox Exporter port 9115
+
+
+Binding to 127.0.0.1 prevents port 9117 from being exposed on all Raspberry Pi interfaces.
+
+7. Tested Nginx health
+
+You tested the Nginx health endpoint:
+
+curl -fsS http://127.0.0.1:9117/proxy-health
+
+
+Result:
+
+Nginx reverse proxy is healthy
+
+8. Tested Blackbox through Nginx
+
+You tested the complete reverse-proxy path:
+
+curl -sG \
+  --data-urlencode "target=https://innspark.in" \
+  --data-urlencode "module=http_2xx" \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success|^probe_ssl_earliest_cert_expiry'
+
+
+Result:
+
+probe_ssl_earliest_cert_expiry ...
+probe_success 1
+
+
+This confirmed:
+
+Nginx → Blackbox Exporter → Website
+
+
+was working.
+
+9. Located the Prometheus configuration
+
+You inspected Prometheus mounts:
+
+docker inspect prometheus \
+  --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
+
+
+You found:
+
+/home/ubuntu/prometheus.yml -> /etc/prometheus/prometheus.yml
+Docker volume -> /prometheus
+
+
+The Prometheus data volume contained historical metrics and was preserved during recreation.
+
+10. Changed Prometheus from direct Blackbox access to Nginx
+
+Both Blackbox jobs originally contained:
+
+replacement: 127.0.0.1:9115
+
+
+You changed both to:
+
+replacement: 127.0.0.1:9117
+
+
+The two changed jobs were:
+
+blackbox-domains-pi
+blackbox-domains-pi-proxy
+
+
+The final relabel section became:
+
+relabel_configs:
+  - source_labels: [__address__]
+    target_label: __param_target
+
+  - source_labels: [__param_target]
+    target_label: instance
+
+  - target_label: __address__
+    replacement: 127.0.0.1:9117
+
+
+You kept custom_site_exporter unchanged on port 9116.
+
+11. Resolved the Prometheus read-only bind-mount problem
+
+The host file showed 9117, but the running container still showed 9115.
+
+You confirmed with:
+
+docker exec prometheus \
+  grep -n 'replacement:' /etc/prometheus/prometheus.yml
+
+
+The configuration was mounted read-only, and editing the host file had replaced its inode. The running container remained attached to the old inode.
+
+You preserved the old Prometheus container:
+
+docker stop prometheus
+docker rename prometheus prometheus-old
+
+
+You recreated Prometheus using:
+
+Host networking
+The updated configuration
+The existing Prometheus data volume
+Lifecycle reload support
+docker run -d \
+  --name prometheus \
+  --restart unless-stopped \
+  --network host \
+  -v /home/ubuntu/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
+  -v YOUR_EXISTING_PROMETHEUS_VOLUME:/prometheus \
+  prom/prometheus:latest \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --web.enable-lifecycle
+
+
+You preserved all historical Prometheus data by reusing the original volume.
+
+12. Validated the new Prometheus container
+
+You validated the configuration:
+
+docker exec prometheus \
+  promtool check config /etc/prometheus/prometheus.yml
+
+
+Result:
+
+SUCCESS
+
+
+You checked readiness:
+
+curl -fsS http://127.0.0.1:9090/-/ready
+
+
+Result:
+
+Prometheus Server is Ready.
+
+
+You checked active targets and confirmed:
+
+scrape URL uses 127.0.0.1:9117/probe
+health=up
+error=
+
+
+This confirmed that Prometheus was using Nginx instead of accessing Blackbox directly.
+
+13. Checked automatic Prometheus requests in Nginx
+
+You viewed Nginx logs:
+
+docker logs --since 5m blackbox-nginx-proxy 2>&1 \
+  | grep '"GET /probe'
+
+
+You confirmed automatic requests with:
+
+Prometheus/3.13.0
+
+
+The active monitoring path became:
+
+Prometheus
+    ↓ 127.0.0.1:9117
+Nginx
+    ↓ blackbox-exporter:9115
+Blackbox Exporter
+
+14. Found the Prometheus timeout issue
+
+Your global Prometheus configuration was:
+
+global:
+  scrape_interval: 15s
+
+
+The Blackbox jobs did not have explicit scrape_timeout values. Their probes were being stopped at approximately 9.5s.
+
+You added the following to both Blackbox jobs:
+
+scrape_interval: 60s
+scrape_timeout: 30s
+
+
+The direct job became:
+
+- job_name: 'blackbox-domains-pi'
+  scrape_interval: 60s
+  scrape_timeout: 30s
+  metrics_path: /probe
+
+
+The proxy job became:
+
+- job_name: 'blackbox-domains-pi-proxy'
+  scrape_interval: 60s
+  scrape_timeout: 30s
+  metrics_path: /probe
+
+
+You validated and reloaded Prometheus:
+
+docker exec prometheus \
+  promtool check config /etc/prometheus/prometheus.yml
+
+curl -fsS -X POST http://127.0.0.1:9090/-/reload
+
+
+The logs confirmed:
+
+Loading configuration file
+Completed loading of configuration file
+
+15. Updated Blackbox Exporter timeouts
+
+You identified the active Blackbox configuration:
+
+Host: /home/ubuntu/blackbox.yml
+Container: /etc/blackbox/blackbox_config.yml
+Mode: read-only
+
+
+You changed the following module timeouts:
+
+timeout: 15s
+
+
+to:
+
+timeout: 25s
+
+
+The updated modules included:
+
+http_2xx
+http_2xx_proxy_jio1
+http_2xx_proxy_jio2
+
+
+The final timing chain became:
+
+Blackbox module timeout:     25s
+Prometheus scrape timeout:   30s
+Prometheus scrape interval:  60s
+Nginx timeout:               40s
+
+16. Validated and recreated Blackbox Exporter
+
+You validated the host configuration:
+
+docker run --rm \
+  --entrypoint /bin/blackbox_exporter \
+  -v /home/ubuntu/blackbox.yml:/etc/blackbox/blackbox_config.yml:ro \
+  prom/blackbox-exporter:latest \
+  --config.file=/etc/blackbox/blackbox_config.yml \
+  --config.check
+
+
+Result:
+
+Config file is ok exiting...
+
+
+Because Blackbox also used a read-only bind mount, you recreated it:
+
+docker stop blackbox-exporter
+docker rename blackbox-exporter blackbox-exporter-old
+
+docker run -d \
+  --name blackbox-exporter \
+  --restart unless-stopped \
+  --network monitoring-net \
+  -p 9115:9115 \
+  -v /home/ubuntu/blackbox.yml:/etc/blackbox/blackbox_config.yml:ro \
+  prom/blackbox-exporter:latest \
+  --config.file=/etc/blackbox/blackbox_config.yml
+
+
+You confirmed that the running container saw:
+
+timeout: 25s
+
+
+You restarted Nginx after recreating Blackbox:
+
+docker restart blackbox-nginx-proxy
+
+
+This refreshed Nginx’s resolution of the blackbox-exporter container name.
+
+17. Compared Jio1 and Jio2
+
+You tested the same website using both modules:
+
+for module in http_2xx_proxy_jio1 http_2xx_proxy_jio2
+do
+  echo "===== $module ====="
+
+  curl --max-time 35 -sG \
+    -H 'X-Prometheus-Scrape-Timeout-Seconds: 30' \
+    --data-urlencode 'target=https://care.innspark.in' \
+    --data-urlencode "module=$module" \
+    http://127.0.0.1:9117/probe \
+    | grep -E '^probe_success |^probe_http_status_code |^probe_duration_seconds |^probe_http_ssl '
+done
+
+
+Results:
+
+Jio1:
+TLS timeout
+status 0
+probe_success 0
+
+Jio2:
+HTTP 200
+TLS 1
+probe_success 1
+
+
+This isolated the problem to the Jio1 path on proxy port 8855.
+
+Jio2 on port 8848 worked correctly.
+
+18. Switched the Prometheus proxy job to Jio2
+
+You changed:
+
+params:
+  module: [http_2xx_proxy_jio1]
+
+
+to:
+
+params:
+  module: [http_2xx_proxy_jio2]
+
+
+You confirmed Prometheus automatic requests in Nginx:
+
+module=http_2xx_proxy_jio2
+Prometheus/3.13.0
+
+
+Most proxy-monitored websites then became UP.
+
+19. Diagnosed the remaining Amritaserve issue
+
+Amritaserve remained DOWN even through Jio2.
+
+The debug output showed:
+
+TLS 1.3 negotiated
+HTTP status 200
+No redirects
+Failed to read HTTP response body
+context deadline exceeded
+probe_success 0
+
+
+This meant:
+
+Proxy connection worked
+TLS worked
+Certificate collection worked
+HTTP status 200 was received
+Response body did not finish within 25s
+
+Therefore, the problem was not site availability or SSL. It was the long or unfinished response body during a GET request.
+
+20. Created a dedicated HEAD module for Amritaserve
+
+You added this Blackbox module:
+
+http_head_proxy_jio2:
+  prober: http
+  timeout: 25s
+  http:
+    valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+    valid_status_codes: [200, 301, 302, 303, 307, 308, 404]
+    method: HEAD
+    preferred_ip_protocol: ip4
+    follow_redirects: true
+    proxy_url: "JIO2_PROXY_URL_WITH_CREDENTIALS_REDACTED"
+    proxy_connect_header:
+      Proxy-Authorization:
+        - "Basic REDACTED"
+    tls_config:
+      insecure_skip_verify: true
+
+
+The HEAD method checks:
+
+Proxy connectivity
+TCP connectivity
+TLS
+Certificate
+HTTP status
+
+It does not wait to download the entire response body.
+
+You validated blackbox.yml again:
+
+docker run --rm \
+  --entrypoint /bin/blackbox_exporter \
+  -v /home/ubuntu/blackbox.yml:/etc/blackbox/blackbox_config.yml:ro \
+  prom/blackbox-exporter:latest \
+  --config.file=/etc/blackbox/blackbox_config.yml \
+  --config.check
+
+
+You recreated Blackbox again to load the new module and restarted Nginx.
+
+21. Validated the Amritaserve HEAD probe
+
+You ran:
+
+curl --max-time 35 -sG \
+  -H 'X-Prometheus-Scrape-Timeout-Seconds: 30' \
+  --data-urlencode 'target=https://amritaserve.org' \
+  --data-urlencode 'module=http_head_proxy_jio2' \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success |^probe_http_status_code |^probe_duration_seconds |^probe_http_ssl '
+
+
+Successful result:
+
+probe_duration_seconds 0.454381796
+probe_http_ssl 1
+probe_http_status_code 200
+probe_success 1
+
+
+This confirmed that the dedicated HEAD module solved the Amritaserve GET-body timeout.
+
+22. Created a dedicated Prometheus job for Amritaserve
+
+You commented out Amritaserve in the general Jio2 job:
+
+# - https://amritaserve.org
+
+
+You added the dedicated Prometheus job:
+
+- job_name: 'blackbox-amritaserve-jio2'
+  scrape_interval: 60s
+  scrape_timeout: 30s
+  metrics_path: /probe
+
+  params:
+    module: [http_head_proxy_jio2]
+
+  static_configs:
+    - targets:
+        - https://amritaserve.org
+
+  relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+
+    - source_labels: [__param_target]
+      target_label: instance
+
+    - target_label: __address__
+      replacement: 127.0.0.1:9117
+
+
+You confirmed that Amritaserve appeared only once as an active target. The other occurrence was commented and therefore ignored.
+
+23. Reloaded and checked the dedicated target
+
+You reloaded Prometheus:
+
+curl -fsS -X POST http://127.0.0.1:9090/-/reload
+
+
+You checked the target:
+
+curl -s http://127.0.0.1:9090/api/v1/targets | python3 -c '
+import sys,json
+data=json.load(sys.stdin)
+
+for target in data["data"]["activeTargets"]:
+    if target.get("labels",{}).get("job") == "blackbox-amritaserve-jio2":
+        print(
+            target["labels"].get("instance",""),
+            "|", target.get("scrapeUrl",""),
+            "| health=" + target.get("health",""),
+            "| error=" + target.get("lastError","")
+        )
+'
+
+
+Prometheus discovered the correct scrape URL:
+
+module=http_head_proxy_jio2
+target=amritaserve.org
+
+
+The first status showed:
+
+health=unknown
+error=
+
+
+This meant the target had been discovered but had not yet completed its first automatic scrape at the exact moment the API was checked.
+
+24. Final Grafana query requirement
+
+Because Amritaserve now has a separate job, Grafana queries need to include all three jobs:
+
+probe_success{
+  job=~"blackbox-domains-pi|blackbox-domains-pi-proxy|blackbox-amritaserve-jio2"
+}
+
+
+For the website-down count:
+
+count(
+  probe_success{
+    job=~"blackbox-domains-pi|blackbox-domains-pi-proxy|blackbox-amritaserve-jio2"
+  } == 0
+)
+
+
+For the DOWN details panel:
+
+probe_success{
+  job=~"blackbox-domains-pi|blackbox-domains-pi-proxy|blackbox-amritaserve-jio2"
+} == 0
+
+
+Recommended Grafana settings:
+
+Query type: Instant
+Calculation: Last not null
+Value 1: UP
+Value 0: DOWN
+
+25. Final architecture
+Grafana
+    ↓
+Prometheus, host network
+    ↓ 127.0.0.1:9117
+Nginx Reverse Proxy
+    ↓ blackbox-exporter:9115
+Blackbox Exporter
+    ├── http_2xx for direct websites
+    ├── http_2xx_proxy_jio2 for proxy websites
+    └── http_head_proxy_jio2 for Amritaserve
+        ↓
+Website availability and SSL metrics
+
+26. Final validation commands
+Container health
+docker ps --filter name=prometheus
+docker ps --filter name=blackbox-exporter
+docker ps --filter name=blackbox-nginx-proxy
+
+Prometheus readiness
+curl -fsS http://127.0.0.1:9090/-/ready
+
+Nginx health
+curl -fsS http://127.0.0.1:9117/proxy-health
+
+Amritaserve stored result
+curl -sG \
+  --data-urlencode 'query=probe_success{job="blackbox-amritaserve-jio2",instance="https://amritaserve.org"}' \
+  http://127.0.0.1:9090/api/v1/query
+
+Amritaserve automatic Nginx request
+docker logs --since 10m blackbox-nginx-proxy 2>&1 \
+  | grep 'module=http_head_proxy_jio2' \
+  | grep 'amritaserve.org'
+
+Show all failed sites
+curl -sG \
+  --data-urlencode 'query=probe_success{job=~"blackbox-domains-pi|blackbox-domains-pi-proxy|blackbox-amritaserve-jio2"} == 0' \
+  http://127.0.0.1:9090/api/v1/query
+
+27. Security cleanup
+
+Proxy credentials and reusable Basic authentication tokens appeared during troubleshooting. Complete these security actions:
+
+Rotate the Squid proxy password.
+Update all Blackbox proxy modules with the rotated credential.
+Do not share the new Base64 token.
+Restrict the Blackbox configuration:
+sudo chown root:root /home/ubuntu/blackbox.yml
+sudo chmod 600 /home/ubuntu/blackbox.yml
+
+Remove old stopped backup containers only after the final setup is fully validated:
+docker ps -a --filter name=prometheus
+docker ps -a --filter name=blackbox-exporter
+
+Do not remove the existing Prometheus data volume.

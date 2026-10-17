@@ -1,0 +1,51 @@
+flush ruleset
+
+table inet filter {
+
+    chain input {
+        type filter hook input priority filter; policy drop;
+
+        iifname "lo" accept
+        ct state established,related accept
+        ct state invalid drop
+        ip protocol icmp accept
+        tcp dport 8000 accept
+
+        # Management SSH
+        iifname "ens18" tcp dport 22 accept
+
+        # WireGuard Encrypted UDP Gateway
+        udp dport 443 accept
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy drop;
+
+        ct state established,related accept
+        ct state invalid drop
+
+        # Client-to-Client Essential Management (ICMP ping & SSH)
+        iifname "wg0" oifname "wg0" ip protocol icmp accept
+        iifname "wg0" oifname "wg0" tcp dport 22 accept
+
+        # Zero-Trust ACL Enforcement
+        iifname "wg0" oifname "ens18" jump vpn_acl
+        iifname "wg0" oifname "wg0" jump vpn_acl
+    }
+
+    chain output {
+        type filter hook output priority filter; policy accept;
+    }
+
+    chain vpn_acl {
+        include "/etc/nftables/acl.nft"
+        counter drop
+    }
+}
+
+table ip nat {
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+        oifname "ens18" masquerade
+    }
+}

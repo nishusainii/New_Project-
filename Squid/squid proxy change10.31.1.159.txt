@@ -1,0 +1,397 @@
+You successfully reorganized and extended your Squid configuration to support file-based domain ACLs and user-specific inbound proxy-port restrictions. The main objective was to ensure that nishu and shyam can use only ports 8860, 8859, and 8878, while normal users continue using the existing proxy rules.
+
+Detailed summary of changes
+1. Converted hardcoded ACLs to file-based ACLs
+
+Previously, usernames, domains, and source IP addresses were written directly in squid.conf.
+
+You moved them into separate files under:
+
+/etc/squid/acl/
+├── users/
+├── domains/
+└── ips/
+
+User ACL files
+/etc/squid/acl/users/ai_users.txt
+/etc/squid/acl/users/github_users.txt
+/etc/squid/acl/users/special_port_users.txt
+
+Domain ACL files
+/etc/squid/acl/domains/ai_domains.txt
+/etc/squid/acl/domains/github_domains.txt
+/etc/squid/acl/domains/whatsapp_domains.txt
+
+Source-IP ACL file
+/etc/squid/acl/ips/automation_servers.txt
+
+
+This makes the configuration easier to maintain because users, domains, or IP addresses can be added by editing the appropriate text file rather than changing ACL logic throughout squid.conf.
+
+2. Created service-specific user ACLs
+
+You configured Squid to read AI users and GitHub users from external files:
+
+acl ai_users proxy_auth "/etc/squid/acl/users/ai_users.txt"
+acl github_users proxy_auth "/etc/squid/acl/users/github_users.txt"
+
+
+The AI group currently represents users such as vts-user.
+
+The GitHub group represents users such as nimmi.
+
+3. Created domain-based ACLs
+
+You moved the allowed destination domains into separate files and referenced them using dstdomain:
+
+acl ai_domains dstdomain "/etc/squid/acl/domains/ai_domains.txt"
+acl github_domains dstdomain "/etc/squid/acl/domains/github_domains.txt"
+acl whatsapp_domains dstdomain "/etc/squid/acl/domains/whatsapp_domains.txt"
+
+
+The resulting purpose is:
+
+AI users       → AI-related destination domains
+GitHub users   → GitHub and Python-package domains
+WhatsApp VM    → WhatsApp/Facebook-related domains
+
+4. Created a source-IP ACL for the automation server
+
+You moved the WhatsApp Automation VM source IP into:
+
+/etc/squid/acl/ips/automation_servers.txt
+
+
+Squid now loads it using:
+
+acl automation_servers src \
+    "/etc/squid/acl/ips/automation_servers.txt"
+
+
+The associated access rule is:
+
+http_access allow automation_servers whatsapp_domains
+
+
+This permits matching source IPs to access the WhatsApp domain list.
+
+5. Removed obsolete hardcoded ACL names
+
+You removed old definitions and references such as:
+
+acl vts_user proxy_auth vts-user
+acl nimmi_user proxy_auth nimmi
+acl whatsapp_vm src 10.31.5.58
+
+
+You also replaced old access rules such as:
+
+http_access allow nimmi_user nimmi_domains
+http_access allow vts_user vts_domains
+http_access allow whatsapp_vm whatsapp_domains
+
+
+with the new file-based ACL names:
+
+http_access allow github_users github_domains
+http_access allow ai_users ai_domains
+http_access allow automation_servers whatsapp_domains
+
+
+This resolved the earlier fatal parse error:
+
+ACL not found: nimmi_user
+
+Special inbound-port restriction
+6. Created a special-user file
+
+You created:
+
+/etc/squid/acl/users/special_port_users.txt
+
+
+Current contents:
+
+nishu
+shyam
+
+
+These are the users whose inbound Squid port usage is now restricted.
+
+7. Defined the selected-user ACL
+
+You added:
+
+acl special_port_users proxy_auth \
+    "/etc/squid/acl/users/special_port_users.txt"
+
+
+This ACL matches the authenticated proxy username against the entries in special_port_users.txt.
+
+8. Defined the approved inbound Squid ports
+
+You reused the existing Squid listening ports:
+
+http_port 10.31.1.159:8860 name=8860
+http_port 10.31.1.159:8859 name=8859
+http_port 10.31.1.159:8878 name=8878
+
+
+You then grouped these ports into one ACL:
+
+acl special_user_ports myportname 8860 8859 8878
+
+
+This ACL matches the incoming listener through which the client connected.
+
+No additional http_port entries such as 8855 or 8846 were ultimately added.
+
+9. Added the special-user allow rule
+
+You added this rule near the beginning of the main access-control section:
+
+http_access allow special_user_ports allowed_ips special_port_users
+
+
+For a request to match this rule, all three conditions must be true:
+
+1. Incoming Squid port is 8860, 8859, or 8878
+2. Client source IP is present in /etc/squid/allowed_ips.txt
+3. Authenticated username is present in special_port_users.txt
+
+
+For example:
+
+User: nishu
+Source IP: permitted by allowed_ips
+Proxy listener: 8860
+Result: allowed
+
+10. Added the catch-all denial for special users
+
+Immediately after the allow rule, you added:
+
+http_access deny special_port_users
+
+
+This denies nishu and shyam if they connect through any other Squid listener.
+
+Expected port policy
+nishu/shyam + 8860 → Allowed
+nishu/shyam + 8859 → Allowed
+nishu/shyam + 8878 → Allowed
+
+nishu/shyam + 3128 → Denied
+nishu/shyam + 8888 → Denied
+nishu/shyam + 8898 → Denied
+nishu/shyam + 8858 → Denied
+
+
+This denial rule appears before your normal authenticated-user rules, preventing a later general rule from allowing nishu or shyam through a prohibited port.
+
+Existing multi-WAN behavior retained
+11. Retained individual per-port ACLs
+
+You kept the existing listener ACLs:
+
+acl proxy8860 myportname 8860
+acl proxy8859 myportname 8859
+acl proxy8878 myportname 8878
+acl proxy8888 myportname 8888
+acl proxy8898 myportname 8898
+acl proxy8858 myportname 8858
+
+
+You also retained the source-network restrictions for each listener, such as:
+
+acl proxy8860_clients src \
+    10.31.0.0/23 \
+    10.31.4.0/22 \
+    10.31.88.0/22 \
+    10.40.0.0/16
+
+
+Port 8878 additionally allows these addresses:
+
+10.31.73.11/32
+10.31.72.113/32
+
+12. Retained outgoing WAN bindings
+
+You kept your existing tcp_outgoing_address routing:
+
+tcp_outgoing_address 192.168.14.30 proxy8860
+tcp_outgoing_address 192.168.16.30 proxy8859
+tcp_outgoing_address 192.168.12.30 proxy8878
+tcp_outgoing_address 192.168.1.30 proxy8888
+tcp_outgoing_address 192.168.4.30 proxy8898
+tcp_outgoing_address 192.168.19.30 proxy8858
+
+
+Therefore, selected users receive the existing WAN behavior:
+
+nishu/shyam using 8860 → source address 192.168.14.30
+nishu/shyam using 8859 → source address 192.168.16.30
+nishu/shyam using 8878 → source address 192.168.12.30
+
+
+The ACL restricts which incoming port they may use. It does not redirect them to another port. Their browser, operating system, or application must be configured with one of the approved proxy ports.
+
+Access-control cleanup
+13. Removed duplicate early access decisions
+
+Originally, some http_access rules appeared in the ACL-definition section before the standard security checks.
+
+You reorganized the configuration so ACL definitions are separate from access decisions, and the operative rules are maintained in the ACCESS CONTROL ORDER section.
+
+Your important ordering is now:
+
+http_access deny !Safe_ports
+http_access deny CONNECT !SSL_ports
+
+http_access allow special_user_ports allowed_ips special_port_users
+http_access deny special_port_users
+
+http_access allow github_users github_domains
+http_access deny github_users
+
+http_access allow ai_users ai_domains
+http_access deny ai_users
+
+http_access allow automation_servers whatsapp_domains
+
+
+Normal authenticated-user rules then follow, and the configuration ends with:
+
+http_access allow localhost
+http_access deny all
+
+Configuration validation
+14. Validated the syntax
+
+You ran:
+
+sudo squid -k parse
+
+
+The final parse completed without:
+
+FATAL
+Bungled
+ACL not found
+
+
+Squid successfully processed:
+
+acl special_port_users proxy_auth \
+    "/etc/squid/acl/users/special_port_users.txt"
+
+acl special_user_ports myportname 8860 8859 8878
+
+http_access allow special_user_ports allowed_ips special_port_users
+
+http_access deny special_port_users
+
+15. Reloaded Squid successfully
+
+You ran:
+
+sudo systemctl reload squid
+
+
+The service reported:
+
+ExecReload=/bin/kill -HUP $MAINPID
+status=0/SUCCESS
+
+
+The service status remained:
+
+Active: active (running)
+
+
+This confirms that Squid accepted the reload and continued running.
+
+Remaining cleanup items
+16. GitHub ACL warnings remain
+
+Squid still reports that these entries are redundant:
+
+.api.github.com
+.objects.githubusercontent.com
+.codeload.github.com
+
+
+They are covered by the broader entries:
+
+.github.com
+.githubusercontent.com
+
+
+The cleaned /etc/squid/acl/domains/github_domains.txt should contain:
+
+.github.com
+.githubusercontent.com
+.githubassets.com
+.pypi.org
+.pythonhosted.org
+
+
+It appears .api.github.com may occur twice, since that warning is repeated. Check with:
+
+sudo nl -ba /etc/squid/acl/domains/github_domains.txt
+
+17. Custom logformat escaping still remains
+
+The configuration still contains:
+
+%&gt;a
+%&lt;st
+
+
+instead of:
+
+%>a
+%<st
+
+
+This did not prevent Squid from parsing or reloading, and it does not stop the new ACL policy from being evaluated. However, the custom kv*.log output may not provide the fields in the intended format until those active logformat lines are corrected.
+
+The desired active formats are:
+
+logformat ispflow "%ts client=%>a clientport=%>p user=%un bytes=%<st url=%>ru status=%>Hs result=%Ss dst=%>A out-ip=%la"
+
+logformat flow %ts.%03tu %>a:%>p %la:%lp %<a:%<p %Ss/%03>Hs %rm %ru
+
+Final implementation status
+Completed successfully
+Created file-based user ACLs
+Created file-based domain ACLs
+Created file-based automation source-IP ACL
+Removed obsolete ACL-name references
+Created special_port_users.txt
+Added nishu
+Added shyam
+Restricted both users to listener ports 8860, 8859, and 8878
+Added denial for every other Squid listener
+Preserved existing per-port client-network validation
+Preserved existing multi-WAN outgoing-IP bindings
+Successfully parsed the configuration
+Successfully reloaded Squid
+Confirmed that the service remains active
+Still to verify through client testing
+Allowed:
+nishu + 8860
+nishu + 8859
+nishu + 8878
+
+Denied:
+nishu + 3128
+nishu + 8888
+nishu + 8898
+nishu + 8858
+
+Still recommended for cleanup
+Remove redundant GitHub subdomain entries
+Correct the HTML-escaped active custom logformat tokens
+Run allowed and denied client tests while monitoring /var/log/squid/access.log

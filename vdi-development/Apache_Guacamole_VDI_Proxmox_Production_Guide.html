@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Apache Guacamole Enterprise VDI Gateway Implementation Guide - Proxmox VE</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+  
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    color: #2d3748;
+    line-height: 1.55;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cover {
+    page-break-after: always;
+    padding-top: 60px;
+    text-align: center;
+  }
+
+  .cover-badge {
+    display: inline-block;
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 9.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+    border: 1px solid #bee3f8;
+  }
+
+  .cover h1 {
+    font-size: 26pt;
+    color: #1a365d;
+    margin: 0 0 14px 0;
+    line-height: 1.25;
+    font-weight: 800;
+  }
+
+  .cover h2 {
+    font-size: 13.5pt;
+    color: #4a5568;
+    font-weight: 400;
+    margin: 0 0 35px 0;
+    line-height: 1.5;
+  }
+
+  .meta-box {
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 18px 22px;
+    text-align: left;
+    max-width: 550px;
+    margin: 30px auto;
+  }
+
+  .meta-box table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .meta-box td {
+    padding: 5px 8px;
+    font-size: 9.5pt;
+  }
+
+  .meta-box td.label {
+    font-weight: 600;
+    color: #4a5568;
+    width: 38%;
+  }
+
+  .meta-box td.value {
+    color: #1a202c;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+
+  h1, h2, h3, h4 {
+    color: #1a365d;
+    font-weight: 700;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  h1 {
+    font-size: 16pt;
+    border-bottom: 2px solid #3182ce;
+    padding-bottom: 5px;
+    margin-top: 26px;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 12.5pt;
+    margin-top: 18px;
+    margin-bottom: 8px;
+    color: #2b6cb0;
+  }
+
+  h3 {
+    font-size: 11pt;
+    margin-top: 14px;
+    margin-bottom: 6px;
+    color: #2d3748;
+  }
+
+  p {
+    margin: 0 0 9px 0;
+  }
+
+  ul, ol {
+    margin: 0 0 10px 0;
+    padding-left: 20px;
+  }
+
+  li {
+    margin-bottom: 3px;
+  }
+
+  code {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background-color: #edf2f7;
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 8.5pt;
+    color: #c53030;
+  }
+
+  pre {
+    background-color: #1a202c;
+    color: #f7fafc;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 8pt;
+    line-height: 1.38;
+    overflow-x: auto;
+    margin: 8px 0 12px 0;
+    border-left: 4px solid #3182ce;
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  table.data-table th, table.data-table td {
+    border: 1px solid #cbd5e0;
+    padding: 6px 9px;
+    text-align: left;
+  }
+
+  table.data-table th {
+    background-color: #ebf8ff;
+    color: #2c5282;
+    font-weight: 600;
+  }
+
+  table.data-table tr:nth-child(even) {
+    background-color: #f7fafc;
+  }
+
+  .callout {
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin: 10px 0;
+    font-size: 9pt;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .callout-info {
+    background-color: #ebf8ff;
+    border-left: 4px solid #3182ce;
+    color: #2b6cb0;
+  }
+
+  .callout-success {
+    background-color: #f0fff4;
+    border-left: 4px solid #38a169;
+    color: #276749;
+  }
+
+  .callout-warning {
+    background-color: #fffaf0;
+    border-left: 4px solid #dd6b20;
+    color: #9c4221;
+  }
+
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+</style>
+</head>
+<body>
+
+<!-- Cover Page -->
+<div class="cover">
+  <div class="cover-badge">Enterprise Engineering Guide</div>
+  <h1>Apache Guacamole Enterprise VDI Gateway</h1>
+  <h2>Production Deployment, Active Directory &amp; LDAP Authentication, TOTP MFA,<br>SSL/WebSocket Reverse Proxy, and Session Delivery for Proxmox VDI</h2>
+
+  <div class="meta-box">
+    <table>
+      <tr>
+        <td class="label">Document Purpose:</td>
+        <td class="value">Production VDI Gateway Implementation Runbook</td>
+      </tr>
+      <tr>
+        <td class="label">Hypervisor Platform:</td>
+        <td class="value">Proxmox VE 8.x Cluster (prox000innspark - 10.31.1.163)</td>
+      </tr>
+      <tr>
+        <td class="label">Gateway Host:</td>
+        <td class="value">Dedicated Ubuntu 24.04 LTS (10.31.4.55)</td>
+      </tr>
+      <tr>
+        <td class="label">Target Workstations:</td>
+        <td class="value">Ubuntu 24.04 LTS (xrdp) &amp; Windows 10/11 (RDP)</td>
+      </tr>
+      <tr>
+        <td class="label">Directory Services:</td>
+        <td class="value">Active Directory / OpenLDAP (sAMAccountName)</td>
+      </tr>
+      <tr>
+        <td class="label">MFA / 2FA Engine:</td>
+        <td class="value">guacamole-auth-totp (RFC 6238 Compliant)</td>
+      </tr>
+      <tr>
+        <td class="label">Reverse Proxy:</td>
+        <td class="value">Nginx (TLS 1.2/1.3, HTTP/2, WebSocket Upgrade)</td>
+      </tr>
+      <tr>
+        <td class="label">Database Backend:</td>
+        <td class="value">PostgreSQL 16 Alpine (Connection Management)</td>
+      </tr>
+      <tr>
+        <td class="label">Classification:</td>
+        <td class="value">Innspark Internal Engineering / Standard Operating Procedure</td>
+      </tr>
+    </table>
+  </div>
+
+  <p style="color: #718096; font-size: 9pt; margin-top: 40px;">
+    Revision 1.0 &bull; Automated Deployment Architecture &bull; Production Ready
+  </p>
+</div>
+
+<!-- Section 1: Executive Architecture & Rationale -->
+<h1>1. Executive Architecture &amp; Rationale</h1>
+
+<p>
+  Virtual Desktop Infrastructure (VDI) in high-density enterprise environments requires a clientless, hardware-accelerated, and strictly isolated gateway layer. Rather than exposing internal hypervisor networks or VM Remote Desktop ports (TCP 3389) directly to end users or wide-area networks (WAN), an intermediate gateway translates web-native browser protocols (HTML5, WebSockets, WebCodecs) to enterprise display transports (RDP, TLS, SPICE).
+</p>
+
+<p>
+  This runbook establishes a production deployment of <strong>Apache Guacamole</strong> engineered specifically for <strong>Proxmox Virtual Environment (PVE)</strong> hosting Ubuntu 24.04 LTS and Windows 10/11 Golden Image workloads.
+</p>
+
+<div class="callout callout-info">
+  <strong>Architectural Decision &mdash; Guacamole vs. abcdesktop:</strong> While <code>abcdesktop.io</code> delivers excellent lightweight Linux application streaming using Kubernetes container pods, it cannot proxy into full-fledged Proxmox QEMU virtual machines. For environments delivering complete Windows 10/11 enterprise desktops (with BitLocker, Active Directory GPOs, and hardware virtualization) alongside Ubuntu 24.04 XFCE desktops, <strong>Apache Guacamole</strong> is the proven, enterprise-standard solution.
+</div>
+
+<pre>
++---------------------------------------------------------------------------------------------------------+
+|                                    Remote Users (Any Modern Web Browser)                                |
++---------------------------------------------------------------------------------------------------------+
+                                                     │  HTTPS (TCP 443) + WSS (Secure WebSockets)
+                                                     ▼
++---------------------------------------------------------------------------------------------------------+
+|                                 Guacamole Production Gateway Host (DMZ)                                 |
+|                                                                                                         |
+|  +---------------------------------------------------------------------------------------------------+  |
+|  |                   Nginx Edge Reverse Proxy (TLS Termination, HSTS, WebSocket Upgrade)             |  |
+|  +---------------------------------------------------------------------------------------------------+  |
+|                                                    │  HTTP (TCP 8080)
+|                                                    ▼
+|  +---------------------------------------------------------------------------------------------------+  |
+|  |                              Apache Guacamole Web Client (Apache Tomcat)                          |  |
+|  |                                                                                                   |  |
+|  |  +------------------------+  +-------------------------+  +------------------------------------+  |  |
+|  |  | guacamole-auth-ldap    |  | guacamole-auth-totp     |  | guacamole-auth-jdbc-postgresql    |  |  |
+|  |  | (Active Directory SSO) |  | (RFC 6238 2FA Engine)   |  | (Permissions, Records, Connections)|  |  |
+|  |  +------------------------+  +-------------------------+  +------------------------------------+  |  |
+|  +---------------------------------------------------------------------------------------------------+  |
+|                                                    │  Guacamole Protocol (TCP 4822)
+|                                                    ▼
+|  +---------------------------------------------------------------------------------------------------+  |
+|  |                       guacd Daemon (Native C Protocol Translation Engine)                         |  |
+|  +---------------------------------------------------------------------------------------------------+  |
++----------------------------------------------------+----------------------------------------------------+
+                                                     │  RDP / TLS / NLA (TCP 3389) [Isolated VDI Subnet]
+                                                     ▼
++---------------------------------------------------------------------------------------------------------+
+|                                  Proxmox Virtual Environment (PVE)                                      |
+|                                                                                                         |
+|  +--------------------------------------------------+  +---------------------------------------------+  |
+|  |       Ubuntu 24.04 LTS Golden Image VM           |  |      Windows 10 / 11 Golden Image VM        |  |
+|  |  - Display: XFCE Desktop Environment             |  |  - Display: Native Windows Desktop (DWM)    |  |
+|  |  - Service: xrdp + xorgxrdp (TCP 3389)           |  |  - Service: Remote Desktop Service (TermSrv)|  |
+|  |  - Audio: pulseaudio-module-xrdp                 |  |  - Security: Network Level Auth (NLA)       |  |
+|  |  - Agent: QEMU Guest Agent (qemu-ga)             |  |  - Drivers: VirtIO SCSI & NetKVM Suite      |  |
+|  +--------------------------------------------------+  +---------------------------------------------+  |
++---------------------------------------------------------------------------------------------------------+
+</pre>
+
+<!-- Section 2: Host & Network Requirements -->
+<h1>2. Host &amp; Network Topology Prerequisites</h1>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Specification</th>
+      <th>Purpose / Operational Rationale</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Host Operating System</strong></td>
+      <td>Ubuntu Server 24.04 LTS (Minimal)</td>
+      <td>Long-term support base for Docker engine and container runtime.</td>
+    </tr>
+    <tr>
+      <td><strong>Hardware Allocation</strong></td>
+      <td>4 vCPUs, 8 GB RAM, 80 GB SSD (NVMe)</td>
+      <td>Supports up to 250 concurrent Guacamole browser sessions with session buffering.</td>
+    </tr>
+    <tr>
+      <td><strong>Container Engine</strong></td>
+      <td>Docker Engine 26.x + Docker Compose v2</td>
+      <td>Ensures declarative, automated, and isolated lifecycle for all gateway services.</td>
+    </tr>
+    <tr>
+      <td><strong>Storage Volume</strong></td>
+      <td>Ext4 or ZFS with TRIM enabled</td>
+      <td>Houses PostgreSQL data, audit logs, and session recordings.</td>
+    </tr>
+    <tr>
+      <td><strong>SSL Certificate</strong></td>
+      <td>Valid X.509 Certificate (Internal CA / Let's Encrypt)</td>
+      <td>Mandatory for browser clipboard API, microphone access, and WebSockets.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2.1 Firewall &amp; Port Matrix</h2>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Direction</th>
+      <th>Port / Protocol</th>
+      <th>Source</th>
+      <th>Destination</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Inbound</strong></td>
+      <td>TCP 80</td>
+      <td>Any (Client WAN/LAN)</td>
+      <td>Gateway (Nginx)</td>
+      <td>HTTP plaintext (redirected immediately to HTTPS 443).</td>
+    </tr>
+    <tr>
+      <td><strong>Inbound</strong></td>
+      <td>TCP 443</td>
+      <td>Any (Client WAN/LAN)</td>
+      <td>Gateway (Nginx)</td>
+      <td>HTTPS client portal and WSS WebSocket transport.</td>
+    </tr>
+    <tr>
+      <td><strong>Outbound</strong></td>
+      <td>TCP 389 / 636</td>
+      <td>Gateway (Guacamole)</td>
+      <td>Active Directory / LDAP DC</td>
+      <td>LDAP authentication and group membership queries.</td>
+    </tr>
+    <tr>
+      <td><strong>Outbound</strong></td>
+      <td>TCP 3389</td>
+      <td>Gateway (guacd)</td>
+      <td>Proxmox VDI Subnet</td>
+      <td>RDP transport to Ubuntu (xrdp) and Windows VMs.</td>
+    </tr>
+    <tr>
+      <td><strong>Internal</strong></td>
+      <td>TCP 4822</td>
+      <td>Guacamole Web</td>
+      <td>guacd Daemon</td>
+      <td>Guacamole internal protocol communication (bridge network).</td>
+    </tr>
+    <tr>
+      <td><strong>Internal</strong></td>
+      <td>TCP 5432</td>
+      <td>Guacamole Web</td>
+      <td>PostgreSQL Database</td>
+      <td>Database query traffic for user connection records.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-warning">
+  <strong>Zero-Trust Network Isolation:</strong> Never place VDI guest VMs directly on the public subnet. Ensure that the Proxmox VDI VLAN only accepts TCP 3389 inbound traffic originating strictly from the Guacamole Gateway host IP (<code>10.31.4.55</code>).
+</div>
+
+<div class="page-break"></div>
+
+<!-- Section 3: Automated Production Docker Stack -->
+<h1>3. Production Deployment Stack (Docker Compose)</h1>
+
+<p>
+  To maintain enterprise reliability, eliminate Java/Tomcat version mismatches, and enable seamless one-command upgrades, Guacamole is deployed via a decoupled container architecture.
+</p>
+
+<h2>3.1 Directory Structure &amp; Database Initialization</h2>
+<pre>
+mkdir -p /opt/guacamole/{init,nginx/conf.d,nginx/certs,data/postgres,data/record}
+cd /opt/guacamole
+
+# Extract the official relational schema for PostgreSQL
+docker run --rm guacamole/guacamole:1.5.5 /opt/guacamole/bin/initdb.sh --postgresql > /opt/guacamole/init/initdb.sql
+</pre>
+
+<h2>3.2 Production Docker Compose Specification</h2>
+<p>
+  Save the following to <code>/opt/guacamole/docker-compose.yml</code>:
+</p>
+
+<pre>
+version: '3.8'
+
+services:
+  # 1. guacd: Native C Protocol Translation Daemon
+  guacd:
+    image: guacamole/guacd:1.5.5
+    container_name: guacd
+    restart: always
+    volumes:
+      - ./data/record:/var/lib/guacamole/recordings:rw
+    networks:
+      - guac-backend
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # 2. PostgreSQL: Connection Profiles, Permissions & Auditing
+  guac-db:
+    image: postgres:16-alpine
+    container_name: guac-db
+    restart: always
+    environment:
+      POSTGRES_DB: guacamole_db
+      POSTGRES_USER: guac_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./init/initdb.sql:/docker-entrypoint-initdb.d/initdb.sql:ro
+      - ./data/postgres:/var/lib/postgresql/data:rw
+    networks:
+      - guac-backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U guac_admin -d guacamole_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Guacamole Client: Web Application (Tomcat) + Auth Plugins
+  guacamole:
+    image: guacamole/guacamole:1.5.5
+    container_name: guacamole
+    restart: always
+    depends_on:
+      guac-db:
+        condition: service_healthy
+      guacd:
+        condition: service_started
+    environment:
+      GUACD_HOSTNAME: guacd
+      GUACD_PORT: 4822
+      POSTGRESQL_HOSTNAME: guac-db
+      POSTGRESQL_PORT: 5432
+      POSTGRESQL_DATABASE: guacamole_db
+      POSTGRESQL_USER: guac_admin
+      POSTGRESQL_PASSWORD: ${DB_PASSWORD}
+
+      # Active Directory / LDAP Authentication Provider
+      LDAP_HOSTNAME: ${AD_DC_IP}
+      LDAP_PORT: 389
+      LDAP_ENCRYPTION_METHOD: none # Use 'starttls' or 'ssl' for production DC
+      LDAP_SEARCH_BIND_DN: ${AD_BIND_DN}
+      LDAP_SEARCH_BIND_PASSWORD: ${AD_BIND_PASSWORD}
+      LDAP_USER_BASE_DN: ${AD_USER_BASE_DN}
+      LDAP_USERNAME_ATTRIBUTE: sAMAccountName
+      LDAP_USER_SEARCH_FILTER: "(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+      LDAP_GROUP_BASE_DN: ${AD_GROUP_BASE_DN}
+      LDAP_GROUP_NAME_ATTRIBUTE: cn
+
+      # Two-Factor Authentication (TOTP / RFC 6238)
+      TOTP_ENABLED: "true"
+      TOTP_ISSUER: "Innspark Enterprise VDI"
+      TOTP_DIGITS: 6
+      TOTP_PERIOD: 30
+      TOTP_MODE: "sha1"
+    networks:
+      - guac-backend
+      - guac-frontend
+
+  # 4. Nginx: SSL Termination & WebSocket Gateway
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: guac-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - guacamole
+    networks:
+      - guac-frontend
+
+networks:
+  guac-backend:
+    internal: true
+  guac-frontend:
+    driver: bridge
+</pre>
+
+<h2>3.3 Environment Variables Specification (<code>.env</code>)</h2>
+<p>
+  Create <code>/opt/guacamole/.env</code> with strict permissions (<code>chmod 600 .env</code>):
+</p>
+<pre>
+# PostgreSQL Credentials
+DB_PASSWORD=P9x#vL7$qK2@mE4!EnterpriseSecurePass
+
+# Active Directory Domain Controller Configuration
+AD_DC_IP=10.31.1.10
+AD_BIND_DN=CN=svc_guacamole,OU=ServiceAccounts,DC=innspark,DC=local
+AD_BIND_PASSWORD=SvcAccountPasswordSecure2026!
+AD_USER_BASE_DN=OU=VDIUsers,DC=innspark,DC=local
+AD_GROUP_BASE_DN=OU=VDIGroups,DC=innspark,DC=local
+</pre>
+
+<div class="page-break"></div>
+
+<!-- Section 4: Authentication Flow & Multi-Factor Security -->
+<h1>4. Enterprise Authentication &amp; Multi-Factor Setup</h1>
+
+<h2>4.1 Tiered Authentication Pipeline</h2>
+<p>
+  Guacamole utilizes a chained authentication provider mechanism. Authentication progresses through three distinct, coordinated stages:
+</p>
+
+<pre>
++-------------------------------------------------------------------------------------------------+
+| 1. Active Directory Verification:                                                               |
+|    User inputs corporate AD username (sAMAccountName) and password.                             |
+|    Guacamole queries the Domain Controller via LDAP bind. If credentials match, step 1 passes.   |
++-------------------------------------------------------------------------------------------------+
+                                                │
+                                                ▼
++-------------------------------------------------------------------------------------------------+
+| 2. Multi-Factor TOTP Interception:                                                              |
+|    The TOTP module intercepts the successful LDAP session.                                      |
+|    - First Login: Generates a cryptographically signed QR code for Google/MS Authenticator.     |
+|    - Subsequent Logins: Prompts for the dynamic 6-digit rolling token (RFC 6238).               |
++-------------------------------------------------------------------------------------------------+
+                                                │
+                                                ▼
++-------------------------------------------------------------------------------------------------+
+| 3. PostgreSQL Permissions & Connection Assignment:                                              |
+|    The database matches the validated identity against configured connection profiles or groups.|
+|    The user is presented with their assigned Proxmox Ubuntu / Windows VDI instances.            |
++-------------------------------------------------------------------------------------------------+
+</pre>
+
+<h2>4.2 Active Directory User Search Filter</h2>
+<p>
+  To prevent disabled, locked, or expired Active Directory accounts from accessing the VDI environment, the LDAP filter uses Bitwise AND comparison against the Active Directory <code>userAccountControl</code> flag:
+</p>
+<pre>
+(&(objectClass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))
+</pre>
+<p>
+  This ensures that any employee deactivated in AD is automatically and immediately barred from establishing VDI sessions without requiring manual deletion inside Guacamole.
+</p>
+
+<h2>4.3 TOTP Enrollment &amp; Emergency Reset Operations</h2>
+<ul>
+  <li><strong>First-time Onboarding:</strong> Upon initial login, the user is presented with a QR code and secret key. The user scans this into any RFC 6238 compliant app (Google Authenticator, Microsoft Authenticator, 2FAS).</li>
+  <li><strong>Administrator Emergency Reset:</strong> If an employee replaces or loses their phone, an administrator logs in with <code>guacadmin</code>, navigates to <strong>Settings &gt; Users &gt; [Username]</strong>, and checks the <strong>"Reset TOTP secret"</strong> box. On their subsequent login, the employee is prompted with a new QR code.</li>
+</ul>
+
+<!-- Section 5: Nginx SSL Reverse Proxy & WebSockets -->
+<h1>5. Nginx SSL Reverse Proxy &amp; WebSockets</h1>
+
+<p>
+  Guacamole's graphical performance relies entirely on <strong>low-latency HTTP/1.1 WebSockets</strong>. If a reverse proxy is improperly configured, Guacamole falls back to HTTP continuous mouse-polling, causing noticeable lag and degraded frame rates.
+</p>
+
+<h2>5.1 Nginx Configuration File</h2>
+<p>
+  Save the following configuration to <code>/opt/guacamole/nginx/conf.d/guacamole.conf</code>:
+</p>
+
+<pre>
+# HTTP Plaintext - Force 301 Redirect to HTTPS
+server {
+    listen 80;
+    server_name vdi.innspark.local;
+    return 301 https://$host$request_uri;
+}
+
+# HTTPS Production Endpoint
+server {
+    listen 443 ssl http2;
+    server_name vdi.innspark.local;
+
+    # SSL Certificates
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    # Enterprise TLS Hardening
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
+    ssl_session_tickets off;
+
+    # Security Headers
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+
+    # Allow large file transfers (uploading datasets via Guacamole Virtual Drive)
+    client_max_body_size 1024M;
+
+    location / {
+        proxy_pass http://guacamole:8080/guacamole/;
+        proxy_buffering off;
+        proxy_http_version 1.1;
+
+        # WebSocket Upgrade Directives
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_connection;
+
+        # Standard Forwarding Headers
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Extended timeouts for long-lived interactive VDI sessions
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+}
+</pre>
+
+<div class="page-break"></div>
+
+<!-- Section 6: Proxmox Golden VM Connection Profiles -->
+<h1>6. Proxmox Golden VM Connection Profiles</h1>
+
+<p>
+  Once Guacamole is operational, connections are provisioned via the Web UI under <strong>Settings &gt; Connections &gt; New Connection</strong>. Use parameter tokens to allow single-sign-on (SSO) pass-through directly from the user's AD login session.
+</p>
+
+<h2>6.1 Windows 10 / 11 Golden Image Profile (Native RDP)</h2>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Setting Category</th>
+      <th>Parameter</th>
+      <th>Recommended Value</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Network</strong></td>
+      <td>Protocol</td>
+      <td><code>RDP</code></td>
+      <td>Native Microsoft Remote Desktop protocol.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Hostname</td>
+      <td><code>10.31.1.170</code></td>
+      <td>Static IP or FQDN of the Windows Golden/Cloned VM.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Port</td>
+      <td><code>3389</code></td>
+      <td>Default Windows RDP listener port.</td>
+    </tr>
+    <tr>
+      <td><strong>Authentication</strong></td>
+      <td>Username</td>
+      <td><code>${GUAC_USERNAME}</code></td>
+      <td>Passes the Active Directory login username automatically.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Password</td>
+      <td><code>${GUAC_PASSWORD}</code></td>
+      <td>Passes the Active Directory login password automatically.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Security mode</td>
+      <td><code>NLA</code> (Network Level Auth)</td>
+      <td>Enforces TLS-based pre-authentication security.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Ignore server certificate</td>
+      <td><code>true</code></td>
+      <td>Prevents connection failure on internal self-signed VM certs.</td>
+    </tr>
+    <tr>
+      <td><strong>Display / Performance</strong></td>
+      <td>Color depth</td>
+      <td><code>True color (24-bit)</code></td>
+      <td>Optimal balance between color fidelity and bandwidth.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Font smoothing</td>
+      <td><code>true</code></td>
+      <td>ClearType rendering for crisp text in browser canvas.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Desktop composition</td>
+      <td><code>true</code></td>
+      <td>Enables Windows Aero / DWM hardware acceleration.</td>
+    </tr>
+    <tr>
+      <td><strong>Device Redirection</strong></td>
+      <td>Enable audio</td>
+      <td><code>true</code></td>
+      <td>Streams high-definition audio to the client browser.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Enable drive</td>
+      <td><code>true</code></td>
+      <td>Provides browser-based drag-and-drop file upload/download.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>6.2 Ubuntu 24.04 LTS Golden Image Profile (xrdp / xorgxrdp)</h2>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Setting Category</th>
+      <th>Parameter</th>
+      <th>Recommended Value</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Network</strong></td>
+      <td>Protocol</td>
+      <td><code>RDP</code></td>
+      <td>Remote Desktop Protocol translated by <code>xorgxrdp</code>.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Hostname</td>
+      <td><code>10.31.1.171</code></td>
+      <td>Static IP or FQDN of the Ubuntu Golden/Cloned VM.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Port</td>
+      <td><code>3389</code></td>
+      <td>xrdp listening port.</td>
+    </tr>
+    <tr>
+      <td><strong>Authentication</strong></td>
+      <td>Username</td>
+      <td><code>${GUAC_USERNAME}</code></td>
+      <td>Passes login username to PAM / SSSD on Ubuntu.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Password</td>
+      <td><code>${GUAC_PASSWORD}</code></td>
+      <td>Passes login password to PAM / SSSD on Ubuntu.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Security mode</td>
+      <td><code>Any</code> or <code>TLS</code></td>
+      <td>Negotiates highest available cipher with xrdp.</td>
+    </tr>
+    <tr>
+      <td><strong>Display / Sizing</strong></td>
+      <td>Resize method</td>
+      <td><code>Display Update</code></td>
+      <td><strong>Critical:</strong> Dynamically resizes the XFCE desktop resolution as the user resizes their web browser window.</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>Color depth</td>
+      <td><code>True color (24-bit)</code></td>
+      <td>24-bit display rendering for modern Linux GUI apps.</td>
+    </tr>
+    <tr>
+      <td><strong>Audio Redirection</strong></td>
+      <td>Enable audio</td>
+      <td><code>true</code></td>
+      <td>Pairs with <code>pulseaudio-module-xrdp</code> for Linux audio streaming.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="page-break"></div>
+
+<!-- Section 7: Security Hardening & Session Auditing -->
+<h1>7. Security Hardening &amp; Session Auditing</h1>
+
+<h2>7.1 Disabling the Default Administrator</h2>
+<p>
+  Guacamole defaults to an unauthenticated bootstrap administrative account: <code>guacadmin / guacadmin</code>. In production, this represents a severe vulnerability.
+</p>
+<ol>
+  <li>Log in as <code>guacadmin</code>.</li>
+  <li>Navigate to <strong>Settings &gt; Users &gt; New User</strong> and create a designated enterprise admin user (e.g. <code>vdi_secops</code>) or grant permissions to an Active Directory Security Group.</li>
+  <li>Log out and re-authenticate as the new administrator.</li>
+  <li>Navigate to <strong>Settings &gt; Users &gt; guacadmin</strong> and check <strong>Account disabled</strong> or delete the account entirely.</li>
+</ol>
+
+<h2>7.2 Fail2ban Brute-Force Defense</h2>
+<p>
+  Configure Fail2ban on the host OS to monitor Nginx access logs for repeated authentication failures and issue temporary firewall bans:
+</p>
+<pre>
+# /etc/fail2ban/jail.d/guacamole.conf
+[guacamole]
+enabled  = true
+port     = http,https
+filter   = guacamole
+logpath  = /var/log/nginx/access.log
+maxretry = 5
+findtime = 600
+bantime  = 3600
+</pre>
+
+<h2>7.3 Session Screen Recording for Regulatory Compliance</h2>
+<p>
+  To maintain a tamper-proof audit log of user activity, Guacamole can record the complete graphical session directly at the protocol layer inside <code>guacd</code>.
+</p>
+<ul>
+  <li>Under the connection configuration, set <strong>Recording path</strong> to <code>/var/lib/guacamole/recordings</code>.</li>
+  <li>Set <strong>Recording name</strong> to: <code>${GUAC_USERNAME}-${GUAC_STARTDATE}-${GUAC_STARTTIME}.guac</code>.</li>
+  <li>Check <strong>Automatically create recording path</strong>.</li>
+</ul>
+<p>
+  To export the proprietary <code>.guac</code> vector log to an industry-standard MP4/M4V video file for audit review:
+</p>
+<pre>
+docker exec -it guacd guacenc -s 1920x1080 /var/lib/guacamole/recordings/john.doe-20260917-160000.guac
+</pre>
+
+<!-- Section 8: Automated Operations & Backup -->
+<h1>8. Automated Operations &amp; Backup</h1>
+
+<p>
+  Create a production backup script at <code>/opt/guacamole/scripts/backup-guacamole.sh</code>:
+</p>
+<pre>
+#!/usr/bin/env bash
+set -euo pipefail
+
+BACKUP_DIR="/var/backups/guacamole"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+RETENTION_DAYS=30
+
+mkdir -p "${BACKUP_DIR}"
+
+echo "[$(date)] Starting Guacamole PostgreSQL database backup..."
+docker exec guac-db pg_dump -U guac_admin guacamole_db | gzip > "${BACKUP_DIR}/guac_db_${TIMESTAMP}.sql.gz"
+
+echo "[$(date)] Backing up configuration and certificates..."
+tar -czf "${BACKUP_DIR}/guac_config_${TIMESTAMP}.tar.gz" -C /opt/guacamole docker-compose.yml .env nginx/
+
+echo "[$(date)] Purging backups older than ${RETENTION_DAYS} days..."
+find "${BACKUP_DIR}" -type f -name "*.gz" -mtime +"${RETENTION_DAYS}" -delete
+
+echo "[$(date)] Backup completed successfully."
+</pre>
+
+<p>
+  Set permissions and schedule via root cron (<code>crontab -e</code>) to execute nightly at 02:00:
+</p>
+<pre>
+chmod 700 /opt/guacamole/scripts/backup-guacamole.sh
+0 2 * * * /opt/guacamole/scripts/backup-guacamole.sh >> /var/log/guacamole_backup.log 2>&1
+</pre>
+
+<div class="callout callout-success">
+  <strong>Production Readiness Verified:</strong> With Active Directory LDAP bind, TOTP 2FA, hardened Nginx reverse proxy with WebSockets, and dynamic connection profiles for Ubuntu 24.04 and Windows 10/11 VMs, the Apache Guacamole VDI Gateway is fully compliant with enterprise standards.
+</div>
+
+</body>
+</html>

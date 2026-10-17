@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INNCCTV | 24-Camera Surveillance Operations Center (SOC)</title>
+  <meta name="description" content="Centralized 24 IP Camera Surveillance Operations Center for 4-Floor Facility with Low-Latency WebRTC Streaming, 2D Floor Plan, and PTZ Controls.">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📹</text></svg>">
+</head>
+<body>
+
+  <!-- ========================================================================
+       TOP HEADER / SOC TELEMETRY COMMAND BAR
+       ======================================================================== -->
+  <header class="soc-header">
+    <div class="brand-section">
+      <a href="/index.html" class="brand-logo" style="display:flex; align-items:center; gap:14px; text-decoration:none;">
+        <img src="assets/innspark-logo.png" alt="Innspark Logo" style="height: 34px; width: auto; object-fit: contain;">
+        <span class="brand-title" style="font-size: 1.2rem; font-weight: 700; letter-spacing: 0.02em;">Delhi Office</span>
+      </a>
+    </div>
+
+    <!-- Live Telemetry Badges -->
+    <div class="telemetry-bar">
+      <div class="telemetry-chip">
+        <span class="pulse-dot"></span>
+        <span class="label">ONLINE:</span>
+        <span class="val" id="valOnlineCams">24/24</span>
+      </div>
+
+      <div class="telemetry-chip">
+        <span class="pulse-dot recording"></span>
+        <span class="label">REC:</span>
+        <span class="val" id="valRecCams">24/24</span>
+      </div>
+
+      <div class="telemetry-chip">
+        <span class="label">CPU:</span>
+        <span class="val" id="valCpu">14%</span>
+      </div>
+
+      <div class="telemetry-chip">
+        <span class="label">THROUGHPUT:</span>
+        <span class="val" id="valNet">48.2 Mb/s</span>
+      </div>
+
+      <div class="telemetry-chip">
+        <span class="label">STREAM FPS:</span>
+        <span class="val" id="valFps">30.0 FPS</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons & Clock -->
+    <div class="header-actions">
+      <div class="clock-display" id="liveClock">-- IST</div>
+
+      <button class="btn btn-primary" onclick="openConfigModal()">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        Add Camera
+      </button>
+
+      <button class="btn" onclick="openBatchModal()" title="Batch Configure IP range or credentials">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Batch Setup
+      </button>
+
+      <a href="/Innspark_CCTV_Deployment_Manual.pdf" download="Innspark_CCTV_Deployment_Manual.pdf" class="btn" title="Download Server Deployment & VAPT Manual PDF" style="text-decoration:none;">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        PDF Manual
+      </a>
+
+      <button class="btn btn-icon" id="btnPatrol" onclick="togglePatrolMode()" title="Patrol Tour (Auto-cycle floors every 7s)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      </button>
+
+      <button class="btn btn-icon" id="btnToggleDrawer" title="Toggle Incident Alert Log">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+
+      <!-- User Profile & Logout -->
+      <div class="user-profile-chip" style="display:flex; align-items:center; gap:8px; background:rgba(22, 31, 54, 0.7); border:1px solid rgba(255,255,255,0.08); padding:4px 10px; border-radius:6px; font-size:0.75rem;">
+        <span class="pulse-dot" style="width:6px; height:6px;"></span>
+        <span id="officerName" style="color:#f1f5f9; font-weight:600;">Security Admin</span>
+        <span id="officerRole" style="font-size:0.65rem; color:#94a3b8; background:rgba(255,255,255,0.06); padding:2px 5px; border-radius:3px;">SOC Lead</span>
+      </div>
+
+      <button class="btn btn-icon" onclick="logout()" title="Logout from SOC Terminal" style="color:var(--accent-red); border-color:rgba(239,68,68,0.3);">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       FLOOR SELECTOR & VIEW CONTROLS SUB-HEADER
+       ======================================================================== -->
+  <nav class="sub-header">
+    <!-- 4 Floors Switcher -->
+    <div class="floor-tabs">
+      <button class="floor-tab active" data-floor="all">
+        All Floors <span class="floor-badge">24 CAMS</span>
+      </button>
+      <button class="floor-tab" data-floor="1">
+        Floor 1 - Ground <span class="floor-badge">6 CAMS</span>
+      </button>
+      <button class="floor-tab" data-floor="2">
+        Floor 2 - Offices <span class="floor-badge">6 CAMS</span>
+      </button>
+      <button class="floor-tab" data-floor="3">
+        Floor 3 - R&D Labs <span class="floor-badge">6 CAMS</span>
+      </button>
+      <button class="floor-tab" data-floor="4">
+        Floor 4 - Executive <span class="floor-badge">6 CAMS</span>
+      </button>
+    </div>
+
+    <!-- View & Grid Controls -->
+    <div class="view-controls">
+      <!-- Search Filter -->
+      <div class="search-wrapper">
+        <svg class="search-icon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="cameraSearch" class="search-input" placeholder="Search camera or zone...">
+      </div>
+
+      <!-- Mode Toggle: Video Grid vs 2D Floor Plan -->
+      <div class="mode-toggle-group">
+        <button class="mode-btn active" data-mode="grid">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Live Grid
+        </button>
+        <button class="mode-btn" data-mode="map">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          2D Floor Map
+        </button>
+      </div>
+
+      <!-- Grid Matrix Density Selector -->
+      <div class="grid-select-group">
+        <button class="grid-btn" data-grid="grid-1x1" title="1x1 Single Focus">1x1</button>
+        <button class="grid-btn" data-grid="grid-2x2" title="2x2 Quad">2x2</button>
+        <button class="grid-btn" data-grid="grid-3x3" title="3x3 Matrix">3x3</button>
+        <button class="grid-btn" data-grid="grid-4x4" title="4x4 Matrix">4x4</button>
+        <button class="grid-btn active" data-grid="grid-6-floor" title="6-Camera Floor View">Floor (6)</button>
+        <button class="grid-btn" data-grid="grid-24-matrix" title="Full 24 Matrix">Full (24)</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ========================================================================
+       MAIN DASHBOARD WORKSPACE
+       ======================================================================== -->
+  <main class="main-workspace">
+    <div class="viewport-container">
+      <!-- Live Video Grid Matrix -->
+      <div id="cameraMatrix" class="camera-matrix grid-6-floor"></div>
+
+      <!-- 2D Interactive Floor Plan Map View -->
+      <div id="floormapWrapper" class="floormap-wrapper">
+        <div id="floormapCanvasContainer" class="floormap-canvas-container"></div>
+      </div>
+    </div>
+
+    <!-- Slide-out Incident & Motion Alert Log Drawer -->
+    <aside id="incidentDrawer" class="incident-drawer">
+      <div class="drawer-header">
+        <span>SECURITY INCIDENT LOG</span>
+        <span class="count-badge" id="incidentCountBadge">LIVE</span>
+      </div>
+      <div id="incidentList" class="drawer-list">
+        <!-- Live event cards populate here via WebSockets -->
+      </div>
+    </aside>
+  </main>
+
+  <!-- ========================================================================
+       MODAL: FULLSCREEN SINGLE CAMERA FOCUS & PTZ
+       ======================================================================== -->
+  <div id="fullscreenModal" class="modal-overlay">
+    <div class="modal-dialog fullscreen-dialog">
+      <div class="modal-header">
+        <h3 id="fullscreenModalTitle">[CAM-101] Camera Focus</h3>
+        <button class="btn btn-icon" onclick="closeFullscreenModal()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="fullscreen-video-wrap">
+        <div id="fullscreenVideoStage" class="video-stage"></div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div style="display:flex; gap:10px;">
+          <button class="btn" onclick="triggerPTZAction('left')">◀ Pan Left</button>
+          <button class="btn" onclick="triggerPTZAction('up')">▲ Tilt Up</button>
+          <button class="btn" onclick="triggerPTZAction('down')">▼ Tilt Down</button>
+          <button class="btn" onclick="triggerPTZAction('right')">▶ Pan Right</button>
+          <button class="btn" onclick="triggerPTZAction('zoomIn')">Zoom In (+)</button>
+          <button class="btn" onclick="triggerPTZAction('zoomOut')">Zoom Out (-)</button>
+          <button class="btn" onclick="triggerPTZAction('reset')">Reset PTZ</button>
+        </div>
+        <div>
+          <button class="btn btn-primary" onclick="if(AppState.focusedCamera) triggerSnapshot(AppState.focusedCamera.id)">
+            Capture Full Snapshot
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: DIGITAL PTZ CONTROLS
+       ======================================================================== -->
+  <div id="ptzModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 360px;">
+      <div class="modal-header">
+        <h3 id="ptzModalTitle">Digital PTZ Controller</h3>
+        <button class="btn btn-icon" onclick="closePTZModal()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="align-items: center;">
+        <div class="ptz-pad">
+          <div></div>
+          <button class="ptz-btn" onclick="triggerPTZAction('up')">▲</button>
+          <div></div>
+          <button class="ptz-btn" onclick="triggerPTZAction('left')">◀</button>
+          <button class="ptz-btn" onclick="triggerPTZAction('reset')" style="font-size:0.7rem;font-weight:bold;">RESET</button>
+          <button class="ptz-btn" onclick="triggerPTZAction('right')">▶</button>
+          <div></div>
+          <button class="ptz-btn" onclick="triggerPTZAction('down')">▼</button>
+          <div></div>
+        </div>
+
+        <div style="display:flex; gap:12px; margin-top:16px;">
+          <button class="btn" onclick="triggerPTZAction('zoomIn')">Zoom + (1.25x)</button>
+          <button class="btn" onclick="triggerPTZAction('zoomOut')">Zoom - (0.8x)</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closePTZModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: ADD / EDIT CAMERA CONFIGURATION
+       ======================================================================== -->
+  <div id="configModal" class="modal-overlay">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="configModalTitle">Configure IP Camera</h3>
+        <button class="btn btn-icon" onclick="closeConfigModal()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="cameraConfigForm">
+        <input type="hidden" id="cfgCamId">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Camera Name</label>
+              <input type="text" id="cfgName" class="form-control" required placeholder="e.g. Main Lobby Entrance">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Floor Assignment</label>
+              <select id="cfgFloor" class="form-control">
+                <option value="1">Floor 1 - Ground Floor</option>
+                <option value="2">Floor 2 - Offices & Workstations</option>
+                <option value="3">Floor 3 - R&D Labs & Security</option>
+                <option value="4">Floor 4 - Executive & NOC Plant</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Zone / Area</label>
+              <input type="text" id="cfgZone" class="form-control" placeholder="e.g. Public Access / Server Room">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Camera Type</label>
+              <select id="cfgType" class="form-control">
+                <option value="Dome">Dome</option>
+                <option value="Bullet">Bullet</option>
+                <option value="PTZ">PTZ (Pan-Tilt-Zoom)</option>
+                <option value="Turret">Turret</option>
+                <option value="Thermal">Thermal Sensor</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Camera IP Address</label>
+              <input type="text" id="cfgIp" class="form-control font-mono" required placeholder="192.168.1.101">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">RTSP Port</label>
+              <input type="number" id="cfgPort" class="form-control font-mono" value="554">
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">Complete RTSP Stream URL</label>
+              <input type="text" id="cfgRtspUrl" class="form-control font-mono" required placeholder="rtsp://admin:password@192.168.1.101:554/h264Preview_01_main">
+              <span style="font-size:0.72rem; color:var(--text-dim); margin-top:4px;">
+                MediaMTX automatically ingests this RTSP stream and serves it as zero-latency WebRTC (WHEP) to the browser.
+              </span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Resolution & Framerate</label>
+              <input type="text" id="cfgResolution" class="form-control font-mono" value="1920x1080 @ 30fps">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Video Codec</label>
+              <select id="cfgCodec" class="form-control">
+                <option value="H.264">H.264 (Standard)</option>
+                <option value="H.265">H.265 (HEVC)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Connection Test Box -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px; background:rgba(0,0,0,0.3); padding:10px 14px; border-radius:6px; border:1px solid rgba(255,255,255,0.06);">
+            <div>
+              <div style="font-size:0.78rem; font-weight:600; color:#fff;">Connection Reachability Test</div>
+              <div style="font-size:0.7rem; color:var(--text-dim);">Verify if IP camera responds on TCP/RTSP port</div>
+            </div>
+            <button type="button" class="btn" onclick="testCameraConnection()">Test Connection</button>
+          </div>
+          <div id="pingResultBox" style="display:none; font-family:var(--font-mono); font-size:0.75rem; padding:8px 12px; border-radius:4px; background:#161f36;"></div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button type="button" id="btnDeleteInModal" class="btn" style="color:var(--accent-red); border-color:rgba(239,68,68,0.35); display:none;" onclick="deleteCameraFromModal()">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+            Remove Camera
+          </button>
+          <div style="display:flex; gap:10px; margin-left:auto;">
+            <button type="button" class="btn" onclick="closeConfigModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Camera</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       MODAL: BATCH IP ASSIGNMENT ACROSS FLOOR
+       ======================================================================== -->
+  <div id="batchModal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Batch Configure Floor Cameras</h3>
+        <button class="btn btn-icon" onclick="closeBatchModal()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="batchConfigForm">
+        <div class="modal-body">
+          <p style="font-size:0.8rem; color:var(--text-muted);">
+            Quickly assign an IP prefix and RTSP credentials across an entire floor's cameras in one click.
+          </p>
+          <div class="form-group" style="margin-top:10px;">
+            <label class="form-label">Target Floor</label>
+            <select id="batchFloor" class="form-control">
+              <option value="all">All 4 Floors (All 24 Cameras)</option>
+              <option value="1">Floor 1 Only</option>
+              <option value="2">Floor 2 Only</option>
+              <option value="3">Floor 3 Only</option>
+              <option value="4">Floor 4 Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Base IP Subnet Prefix</label>
+            <input type="text" id="batchIpPrefix" class="form-control font-mono" placeholder="192.168.1." value="192.168.1.">
+            <span style="font-size:0.7rem; color:var(--text-dim);">Cameras will be mapped to .101, .102, .103, etc.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Camera Username</label>
+            <input type="text" id="batchUser" class="form-control" placeholder="admin" value="admin">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Camera Password</label>
+            <input type="password" id="batchPass" class="form-control" placeholder="admin123" value="admin123">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" onclick="closeBatchModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Apply to Cameras</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/streamPlayer.js"></script>
+  <script src="js/floorMap.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

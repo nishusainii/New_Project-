@@ -1,0 +1,72 @@
+Name: Nishu Saini
+Date: 28/09/2026
+Login Time: 09:19 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:19 AM to 10:15 AM
+
+Juniper TAC Case Escalation, Asset Compliance & Entitlement Review (Case #2026-0923-938239)
+
+- Re-engaged with Juniper Customer Support (Agent: Adrian A) to follow up on Case Reference ID `2026-0923-938239` for the Juniper EX2300-C compact switch (Serial Number: `HV0217520242`).
+- Addressed compliance and asset ownership verification:
+  * Formally established the operational relationship between Amrita Vishwa Vidyapeetham (Asset Owner) and Innspark Solutions Pvt. Ltd. (Authorized On-Site IT Infrastructure Management Partner, Amritapuri Campus).
+  * Clarified hardware legacy status and absence of archival purchase paperwork; confirmed physical hardware custody on-site and offered physical chassis serial/barcode photos for validation.
+  * Emphasized hardware entitlement eligibility under Juniper's Enhanced Limited Lifetime Warranty (ELLW).
+- Information successfully documented and forwarded to Angelica and the Juniper Compliance/Entitlement Team for immediate case processing.
+- Configured case resolution updates to be routed directly to `itsupport@innspark.in`.
+- Status: In Progress / Actively Tracking Compliance Approval for Junos ARM 32-bit Recovery Image Download.
+
+10:15 AM to 10:40 AM
+
+Ceph Storage Cluster Telemetry Audit & Proxmox Auditor API Token Provisioning
+
+- Analyzed real-time Ceph storage manager (`mgr.prox24`) and monitor (`mon.prox24`) operational logs and placement group telemetry:
+  * Verified 100% cluster health (`HEALTH_OK`) across 218 TiB raw storage with all 33 PGs running in `active+clean` state and 0 degraded objects.
+  * Monitored automated background data integrity scrubs (`osd.10 scrub starts` -> `osd.10 scrub ok`), confirming 0 bitrot, read, or checksum errors.
+- Formulated and documented the implementation architecture for Proxmox cluster auditing and monitoring service accounts:
+  * Defined least-privilege security model using the native `PVEAuditor` role assigned at root cluster path (`/`).
+  * Documented both CLI (`pveum user add`, `pveum acl modify`, `pveum user token add`) and Web GUI deployment workflows for generating dedicated API tokens (`auditor@pve!audit-token`).
+
+10:40 AM to 11:30 AM
+
+Proxmox REST API Token Live Verification & Ceph RBD vs CephFS Architecture Analysis
+
+- Proxmox REST API Live Authentication:
+  * Authenticated and tested the newly provisioned read-only auditor API token (`auditor@pve!audit-token`) against `https://10.31.6.172:8006/api2/json/cluster/status`.
+  * Resolved Bash character escaping issues with the `!` history expansion operator using single-quoted authorization headers (`Authorization: PVEAPIToken=...`).
+  * Successfully retrieved real-time JSON cluster telemetry confirming all 3 nodes (`prox22`, `prox23`, `prox24`) online with active quorum.
+- Ceph RBD vs. CephFS Storage Assessment:
+  * Verified that the cluster currently operates with zero active CephFS filesystems or running MDS daemons (`ceph mds stat` -> `No filesystems enabled`).
+  * Formulated technical comparative analysis between Ceph RBD (Virtual Machine Block Disks) and CephFS (Shared Multi-Node POSIX Folders with Metadata Server).
+  * Confirmed that Ceph RBD operates without needing an MDS daemon, eliminating CPU/RAM overhead while providing maximum block throughput, thin provisioning, and zero-downtime VM live migration.
+
+11:30 AM to 01:40 PM
+
+Squid Proxy Upstream Connectivity Diagnostics, ACL Group Path Migration & UI Harmonization
+
+- Investigated recurring client connection errors when routing traffic through Squid proxy on port 8085 (Proxy Node 2 - 10.31.212.14: curl -x http://10.31.212.14:8085).
+- Analyzed HTTP response headers returning HTTP/1.1 503 Service Unavailable with X-Squid-Error: ERR_CONNECT_FAIL 110.
+- Performed network diagnostics and target isolation across multiple external cloud destinations (3.21.193.9, 18.222.140.241, 13.235.72.170); confirmed Squid proxy received and parsed requests properly (Cache-Status: detail=match) without local ACL rejection, isolating root cause to upstream gateway routing / network timeouts on outbound port 80.
+- Restructured and standardized user group definition file paths across all Squid configurations:
+  * Updated configuration in config.py setting SQUID_ACL_USERS_DIR = "/etc/squid/acl".
+  * Updated backend group discovery logic in squid_manager.py to manage groups directly under /etc/squid/acl/.
+  * Updated all frontend badge labels, statistics banners, directory paths, and modals in templates/index.html and static/js/app.js to reference /etc/squid/acl/.
+  * Verified live user group membership rendering, editing, and live ACL validation.
+
+01:40 PM to 02:10 PM
+
+Lunch Break
+
+02:10 PM to 06:30 PM
+
+Palo Alto NGFW Architecture Training, Core Engine Operations & Security Zone Design
+
+- Conducted deep-dive technical study into Palo Alto Next-Generation Firewall (NGFW) architectural principles, PAN-OS operations, and enterprise deployment models:
+  * Analyzed Single-Pass Parallel Processing (SP3) architecture vs. legacy Multi-Pass UTM processing, evaluating how unified signature evaluation eliminates latency and throughput bottlenecks.
+  * Examined physical separation of Control Plane (Management Plane) and Data Plane (Datapath), validating how administrative tasks, reporting, and management logging do not impact line-rate packet forwarding.
+  * Evaluated core inspection pillars: App-ID (Layer 7 application identification independent of port/protocol), User-ID (Active Directory / LDAP user-to-IP mapping), Content-ID (unified Antivirus, Anti-Spyware, Vulnerability Protection, File Blocking, URL Filtering), and WildFire zero-day cloud sandboxing.
+  * Studied PAN-OS configuration lifecycle: Candidate Configuration vs. Running Configuration validation and Commit engine mechanics.
+  * Analyzed Zero-Trust Security Zone policy defaults (Inter-zone Deny vs. Intra-zone Allow) and interface deployment modes (Layer 3 Routed, Layer 2 Bridged, Virtual Wire / V-Wire transparent inline, TAP mode, and High Availability clustering).
+- Synthesized training concepts with physical PA-500 hardware operations and GNS3 virtual topology (`PA-VM-1`).

@@ -1,0 +1,21 @@
+[Unit]
+Description=Innspark SSL VPN Web Management Portal
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/nishusaini/Desktop/Innspark/Vs-code/testing
+ExecStart=/usr/bin/python3 /home/nishusaini/Desktop/Innspark/Vs-code/testing/vpn_web_gui.py --host 0.0.0.0 --port 8080
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/nishusaini/Desktop/Innspark/Vs-code/testing/gui.log
+StandardError=append:/home/nishusaini/Desktop/Innspark/Vs-code/testing/gui.log
+
+# Production security sandboxing
+PrivateTmp=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

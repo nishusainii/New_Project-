@@ -1,0 +1,47 @@
+Namah Shivaya,
+
+Date: 13/08/2026
+Login: 09:06 AM
+Logout: 10:43 PM
+
+Work Completed for the Day
+
+*09:00 AM - 09:30 AM
+
+-Checked my pending tickets.
+
+*09:30 AM - 12:00 PM
+
+-Configured a new VLAN on the Brocade core switch.
+-Checked the VLAN splitting process.
+-Created an interface for the newly configured VLAN.
+
+*12:00 PM - 01:20 PM
+
+-Checked the ACL rules for VLAN 17.
+-Ensured that VLAN 25 was properly configured.
+-Verified that the interface for VLAN 25 was properly configured.
+
+*01:20 PM - 02:10 PM
+
+-Lunch break.
+
+*02:10 PM - 03:30 PM
+
+-Added purchase items to the Krishna Building purchase sheet.
+-Added switch details.
+-Added patch panel details.
+-Added cable organizer details.
+-Added rack details to the sheet.
+
+*03:30 PM - 06:00 PM
+
+-Went to Innspark North with Akash to relocate two staff members from the new building and check the network issue in the 2C staff area.
+-Checked the hub in the 2C area to identify any loose connections.
+-Replaced the uplink cable connected to the hub.
+
+*06:00 PM - 06:30 PM
+
+-Brought the Cisco switch from the Innspark new building to CISAI.
+
+ Thank you.

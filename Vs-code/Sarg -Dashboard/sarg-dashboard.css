@@ -1,0 +1,401 @@
+/* ============================================================
+   CISAI · Proxy Network Intelligence Dashboard — SARG report pages
+   ------------------------------------------------------------
+   Styles the RAW sarg-generated pages (Top users, Top sites,
+   Sites & Users, Downloads, Denied, Auth failures, per-user
+   pages, graphs, date/time reports) so they match the
+   "NOC Command Center" dashboard.
+
+   Pure CSS · no external libraries · fully offline
+   Companion to dashboard.css (same design tokens).
+   ============================================================ */
+
+:root{
+  --bg:#050914;
+  --bg2:#0a1226;
+  --panel:rgba(148,190,233,.055);
+  --panel2:rgba(148,190,233,.10);
+  --brd:rgba(148,185,255,.13);
+  --brd2:rgba(148,185,255,.24);
+  --brd3:rgba(148,185,255,.40);
+
+  --txt:#eef4ff;
+  --muted:#93a7c7;
+  --faint:#5d7296;
+
+  --cyan:#22d3ee;
+  --cyan2:#7dd3fc;
+  --indigo:#818cf8;
+  --violet:#c084fc;
+  --good:#34d399;
+  --warn:#fbbf24;
+  --bad:#fb7185;
+
+  --grad:linear-gradient(135deg,#3b82f6 0%,#6366f1 50%,#a855f7 100%);
+  --grad-soft:linear-gradient(120deg,#60a5fa,#a78bfa);
+  --shadow:0 20px 55px rgba(2,6,20,.6);
+  --glow:0 0 26px rgba(99,102,241,.25);
+
+  --font:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  --mono:'JetBrains Mono','Cascadia Code',ui-monospace,'Courier New',monospace;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth}
+
+body{
+  margin:0; padding:26px 0 44px;
+  min-height:100vh;
+  font-family:var(--font);
+  font-size:14px;
+  line-height:1.5;
+  color:var(--txt);
+  background:
+    radial-gradient(1100px 640px at 88% -12%,#10294e 0%,transparent 58%),
+    radial-gradient(900px 620px at -12% 108%,#0c2142 0%,transparent 55%),
+    radial-gradient(700px 420px at 70% 85%,#101c44 0%,transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+/* ---------- custom scrollbar ---------- */
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:#070c1c}
+::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg,#1c3d63,#0e2a4a);
+  border-radius:8px;border:2px solid #070c1c}
+::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg,#2c5d94,#16406a)}
+*{scrollbar-width:thin;scrollbar-color:#1c3d63 #070c1c}
+::selection{background:rgba(34,211,238,.28);color:#fff}
+
+a{color:var(--cyan2);text-decoration:none;transition:color .18s ease}
+a:hover{color:#fff}
+
+/* ============================================================
+   TOP BAR — the sarg "logo" line
+   ============================================================ */
+.logo{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:12px;
+  width:min(1180px,96%);
+  margin:0 auto 18px;
+  padding:10px 18px;
+  border:1px solid var(--brd);
+  border-radius:14px;
+  background:rgba(8,14,32,.78);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 8px 26px rgba(2,6,20,.45);
+  font-size:11px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);
+}
+/* company logo pulled relative to this CSS file (../company-logo.jpg
+   sits next to sarg-dashboard.css at the output root) */
+.logo a{display:inline-flex;align-items:center;gap:10px;color:inherit}
+.logo a::before{
+  content:"";
+  width:104px;height:26px;
+  background:url("company-logo.jpg") left center/contain no-repeat;
+  border-radius:6px;
+}
+/* the stock sarg.png icon may be missing -> hide the broken image */
+.logo a img{display:none}
+/* blue/purple pulse dot */
+.logo::before{
+  content:"";flex:0 0 auto;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--grad);
+  box-shadow:0 0 12px rgba(96,165,250,.9),0 0 30px rgba(139,92,246,.5);
+  animation:pulse 2.6s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+
+/* ============================================================
+   TITLE BANNER  (Period / User / Sort / section name)
+   ============================================================ */
+.title{
+  width:min(1180px,96%);
+  margin:0 auto 22px;
+  padding:22px 26px;
+  border:1px solid var(--brd);
+  border-radius:18px;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  backdrop-filter:blur(10px);
+  box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.title::before{
+  content:"";position:absolute;inset:0 auto 0 0;width:4px;
+  background:var(--grad);
+  box-shadow:0 0 18px rgba(56,189,248,.55);
+}
+.title table{border-collapse:collapse;margin:0 auto}
+th.title_c{
+  font-size:clamp(20px,3.2vw,30px);
+  font-weight:800;letter-spacing:.02em;
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;color:transparent;
+  padding:2px 10px 8px;
+  text-align:center;
+}
+.title td.header_c{
+  text-align:center;
+  color:var(--muted);
+  font-size:12.5px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 10px;
+}
+/* the section label row ("Top users", "User report", ...) */
+.title th.header_c{
+  text-align:center;
+  font-size:12px;font-weight:800;
+  letter-spacing:.26em;text-transform:uppercase;
+  color:var(--cyan);
+  padding:10px 18px 2px;
+  text-shadow:0 0 18px rgba(56,189,248,.45);
+}
+
+/* ============================================================
+   NAV MENU  (Top sites / Sites & Users / Downloads / ...)
+   Rendered HORIZONTALLY as one centered, wrapping pill bar.
+   SARG emits each link as its own <tr><td class="link"> inside
+   a single table, so that table's row group becomes a flex row
+   and every tr/td collapses to plain block boxes hugging its
+   pill. (Uses :has() — supported by all modern browsers.)
+   ============================================================ */
+.report table:has(td.link){width:100%}
+.report table:has(td.link)>tbody{
+  display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
+}
+.report table:has(td.link)>tbody>tr{display:block;padding:0}
+/* sarg adds a trailing empty row after the menu — hide it so it
+   doesn't claim a stray slot in the pill bar */
+.report table:has(td.link) tr:has(>td:empty){display:none}
+/* keep the generic data-table paint (zebra/hover/borders) out of
+   the pill bar — the td is just a transparent wrapper around the
+   pill <a>. Higher specificity than the .report zebra rules. */
+.report table:has(td.link) tr:nth-child(n) td:nth-child(n),
+.report table:has(td.link) tr:hover td{background:none;border:0}
+
+.report td.link{display:block;padding:0;background:none;border:0}
+.report td.link a{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  border:1px solid var(--brd);
+  border-radius:999px;
+  background:var(--panel);
+  color:var(--txt);
+  font-weight:700;font-size:13.5px;letter-spacing:.04em;
+  white-space:nowrap;
+  transition:transform .16s ease,border-color .16s ease,
+             background .16s ease,box-shadow .16s ease;
+}
+.report td.link a::before{
+  content:"";flex:0 0 auto;
+  width:9px;height:9px;border-radius:50%;
+  background:var(--grad);
+  box-shadow:0 0 10px rgba(56,189,248,.6);
+}
+.report td.link a::after{
+  content:"→";
+  color:var(--faint);font-weight:700;
+  transition:transform .16s ease,color .16s ease;
+}
+.report td.link a:hover{
+  transform:translateY(-2px);
+  border-color:var(--brd3);
+  background:var(--panel2);
+  box-shadow:var(--glow);
+  color:#fff;
+}
+.report td.link a:hover::after{transform:translateX(3px);color:var(--cyan)}
+/* stray empty cells in the OTHER (non-menu) report tables */
+.report table:not(:has(td.link)) tr td:empty:not([class]):not([colspan]){
+  padding:0;border-bottom:0;height:6px;line-height:6px;
+}
+
+/* ============================================================
+   REPORT PANELS  (.report wrapping each table)
+   ============================================================ */
+.report{width:min(1180px,96%);margin:0 auto 22px}
+div.report,table.report{
+  border:1px solid var(--brd);
+  border-radius:18px;
+  background:linear-gradient(180deg,rgba(13,24,48,.72),rgba(8,15,32,.72));
+  backdrop-filter:blur(10px);
+  box-shadow:var(--shadow);
+}
+div.report{padding:14px;overflow-x:auto}
+table.report{padding:14px}                 /* graph pages: <table class="report"> */
+
+/* ---------- data tables ---------- */
+.report table{
+  width:100%;
+  border-collapse:separate;border-spacing:0;
+  font-variant-numeric:tabular-nums;
+}
+.report table table{width:auto}
+
+/* header row */
+.report thead{display:table-header-group}
+.report th{
+  position:sticky;top:0;z-index:5;
+  background:#0b1730;
+  color:var(--cyan2);
+  font-size:11px;font-weight:800;
+  letter-spacing:.14em;text-transform:uppercase;
+  padding:11px 10px;text-align:center;white-space:nowrap;
+  border-bottom:1px solid var(--brd3);
+  box-shadow:0 1px 0 0 rgba(2,6,20,.4);
+}
+.report th.sorttable_nosort{width:34px}
+
+/* body cells */
+.report td{
+  padding:9px 10px;
+  border-bottom:1px solid var(--brd);
+  color:var(--txt);
+  vertical-align:middle;
+}
+td.data{
+  text-align:center;
+  font-family:var(--mono);font-size:12.8px;
+  color:#c8d9f2;white-space:nowrap;
+}
+td.data2{
+  text-align:left;
+  font-family:var(--mono);font-size:12.8px;
+  max-width:420px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+}
+td.data2 a{color:var(--cyan2)}
+td.data2 a:hover{color:#fff;text-shadow:0 0 14px rgba(56,189,248,.5)}
+
+/* zebra striping + hover */
+.report table tr:nth-child(even) td:nth-child(n){background:rgba(148,190,233,.035)}
+.report table tr:hover td,
+.report table tr:hover td a{background:rgba(34,211,238,.07)}
+.report table tr:hover td:first-child{color:var(--cyan)}
+
+/* rank column (first col = NUM on top lists) */
+td.data:first-child{
+  font-weight:800;color:var(--faint);
+  border-right:1px solid var(--brd);
+}
+.report table tr:nth-child(1) td.data:first-child{color:#ffd76a}
+.report table tr:nth-child(2) td.data:first-child{color:#d7e5f7}
+.report table tr:nth-child(3) td.data:first-child{color:#e8a06b}
+
+/* ---------- G / T action icons ----------
+   The stock icon images ship with sarg's images/ dir, which is often
+   missing -> we hide the images entirely and draw clean glyph buttons
+   instead, so the page never shows broken-image boxes.
+   (Uses :has() — supported by all modern browsers.) */
+td:has(a img){white-space:nowrap;text-align:center}
+td img{display:none}
+td a:has(img){
+  display:inline-grid;place-items:center;
+  width:26px;height:26px;margin:0 2px;
+  border:1px solid var(--brd);border-radius:8px;
+  background:var(--panel2);
+  font-size:14px;line-height:1;
+  vertical-align:middle;
+  transition:border-color .15s ease,box-shadow .15s ease,transform .15s ease;
+}
+td a:has(img):hover{
+  border-color:var(--brd3);box-shadow:var(--glow);transform:translateY(-1px);
+}
+td a:has(img)[href*="graph.html"]::before{content:"\1F4C8"}
+td a:has(img):not([href*="graph.html"])::before{content:"\1F552"}
+
+/* TOTAL / AVERAGE footer rows */
+.report tfoot th{
+  position:static;
+  background:rgba(34,211,238,.06);
+  color:var(--violet);
+  border-top:2px solid var(--brd3);border-bottom:0;
+  font-size:11.5px;letter-spacing:.12em;
+}
+.report tfoot tr:first-child th{
+  color:var(--txt);
+  background:rgba(129,140,248,.10);
+}
+
+/* "... more entries not shown" notes */
+td.data2.more,td.more{
+  color:var(--warn);font-style:italic;
+  font-family:var(--font);font-size:12.5px;
+  text-align:center;letter-spacing:.04em;
+}
+
+/* tt (date/time detail) table section rows */
+tr.tt td,.tt td{
+  background:rgba(129,140,248,.12);
+  border-top:1px solid var(--brd3);
+  color:var(--txt);font-weight:700;
+  font-family:var(--font);letter-spacing:.03em;
+}
+tr.tt a,.tt a{color:var(--cyan)}
+
+/* ============================================================
+   GRAPH PAGES  (table class="report" holding chart PNGs)
+   ============================================================ */
+table.report td{text-align:center;padding:16px}
+table.report img{
+  display:inline-block;
+  max-width:min(860px,92vw);height:auto;
+  border:1px solid var(--brd);border-radius:14px;
+  background:#0b1526;padding:10px;
+  box-shadow:var(--shadow);
+}
+
+/* ============================================================
+   FOOTER  ("Generated by sarg-2.4.0 ...")
+   ============================================================ */
+.info{
+  width:min(1180px,96%);
+  margin:26px auto 0;
+  padding:14px;
+  text-align:center;
+  color:var(--faint);
+  font-size:11px;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.info a{color:var(--muted)}
+.info a:hover{color:var(--cyan2)}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:760px){
+  body{padding-top:14px}
+  .logo,.title,.report,.info{width:97%}
+  .title{padding:16px 14px}
+  td.data,td.data2{font-size:11.8px}
+  .report th{padding:9px 6px}
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print{
+  body{background:#fff;color:#111}
+  .logo{position:static}
+  .logo,.title,.report,div.report,table.report{box-shadow:none;background:#fff}
+  .report td,.report th{color:#111;border-color:#ccc}
+  td.link a{box-shadow:none}
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}

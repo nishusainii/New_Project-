@@ -1,0 +1,699 @@
+Below is the detailed CLI-only sequence for building a three-node Proxmox VE cluster with Ceph shared storage and HA. It follows the same major phases as your SOP, but replaces GUI operations with shell commands. Your internal SOP also recommends adding nodes and OSDs incrementally and validating health after each change.
+
+Important: Replace every value inside < > with your actual hostname, IP address, network, storage ID, disk, or VM ID. Perform destructive disk commands only after checking the disk model and serial number.
+
+1. Creating the Proxmox Cluster
+Step 1: Prepare all three nodes
+
+Example design:
+
+pve01  Management: 10.31.1.11  Corosync: 10.31.10.11
+pve02  Management: 10.31.1.12  Corosync: 10.31.10.12
+pve03  Management: 10.31.1.13  Corosync: 10.31.10.13
+
+
+Run on every node:
+
+hostnamectl
+hostname -f
+pveversion -v
+ip -br address
+ip route
+timedatectl
+cat /etc/hosts
+
+
+Make sure name resolution works:
+
+getent hosts pve01
+getent hosts pve02
+getent hosts pve03
+
+
+Test connectivity:
+
+ping -c 4 10.31.1.11
+ping -c 4 10.31.1.12
+ping -c 4 10.31.1.13
+
+
+Update each node, one at a time:
+
+apt update
+apt full-upgrade -y
+
+
+Reboot if kernel or critical packages were upgraded:
+
+reboot
+
+Step 2: Create the cluster on pve01
+
+Run only on pve01:
+
+pvecm create PVE-CLUSTER --link0 10.31.10.11
+
+
+If you are using the management network for Corosync:
+
+pvecm create PVE-CLUSTER --link0 10.31.1.11
+
+
+Verify:
+
+pvecm status
+pvecm nodes
+
+
+The official pvecm command supports pvecm create for generating the cluster configuration and --link0 for specifying the Corosync link address.
+
+Step 3: Join pve02
+
+Run on pve02:
+
+pvecm add 10.31.1.11 --link0 10.31.10.12
+
+
+Enter the root password of pve01 and verify the certificate fingerprint when prompted.
+
+Validate on pve02:
+
+pvecm status
+pvecm nodes
+
+Step 4: Join pve03
+
+Run on pve03:
+
+pvecm add 10.31.1.11 --link0 10.31.10.13
+
+
+Validate:
+
+pvecm status
+pvecm nodes
+
+Step 5: Confirm cluster health
+
+Run on any node:
+
+pvecm status
+pvecm nodes
+systemctl --no-pager --full status corosync
+systemctl --no-pager --full status pve-cluster
+
+
+For troubleshooting:
+
+journalctl -u corosync -n 100 --no-pager
+journalctl -u pve-cluster -n 100 --no-pager
+
+
+Expected result:
+
+Three nodes listed
+Quorate: Yes
+Corosync and pve-cluster active
+No communication errors
+
+pvecm add is the documented CLI operation for adding the current node to an existing cluster.
+
+2. Installing and Configuring Ceph
+
+Assume:
+
+Ceph public network:  10.31.20.0/24
+Ceph cluster network: 10.31.30.0/24
+
+
+The public network is used for Ceph client and monitor communication. The separate cluster network, when configured, carries OSD replication, recovery, and heartbeat traffic.
+
+Step 1: Check available CLI options
+
+Run first:
+
+pveceph install --help
+pveceph init --help
+pveceph mon create --help
+pveceph mgr create --help
+pveceph osd create --help
+pveceph pool create --help
+
+
+This is important because available Ceph versions and repository options depend on the installed Proxmox release.
+
+Step 2: Install Ceph on all nodes
+
+Run on pve01, then pve02, then pve03:
+
+pveceph install --repository no-subscription
+
+
+If your organization uses the enterprise repository:
+
+pveceph install --repository enterprise
+
+
+Verify package installation:
+
+ceph --version
+pveceph version
+
+
+If pveceph version is unavailable on your release, use:
+
+ceph versions
+
+
+The official pveceph install operation installs Ceph-related packages and supports repository and Ceph-version options.
+
+Step 3: Initialize Ceph once
+
+Run only on pve01:
+
+pveceph init \
+  --network 10.31.20.0/24 \
+  --cluster-network 10.31.30.0/24 \
+  --size 3 \
+  --min_size 2
+
+
+If you do not have a separate Ceph backend network:
+
+pveceph init \
+  --network 10.31.20.0/24 \
+  --size 3 \
+  --min_size 2
+
+
+Do not run pveceph init independently on every node. The command creates the initial shared Ceph configuration. The documented defaults are replica size 3 and minimum size 2.
+
+3. Adding Ceph Monitors and Managers
+
+Although your original order places monitors after pool creation, the practical order is:
+
+Initialize Ceph
+Create monitors and managers
+Create OSDs
+Create the pool
+
+A working monitor quorum and active manager should be established before storage deployment.
+
+Step 1: Create the first monitor on pve01
+
+Run on pve01:
+
+pveceph mon create --mon-address 10.31.20.11
+
+
+The first monitor creation automatically creates an initial manager according to the pveceph command documentation.
+
+Check:
+
+ceph -s
+ceph mon dump
+ceph mgr dump
+
+Step 2: Create a monitor on pve02
+
+Run on pve02:
+
+pveceph mon create --mon-address 10.31.20.12
+
+
+Create a manager on this node if needed:
+
+pveceph mgr create
+
+Step 3: Create a monitor on pve03
+
+Run on pve03:
+
+pveceph mon create --mon-address 10.31.20.13
+
+
+Create a manager:
+
+pveceph mgr create
+
+Step 4: Validate monitor quorum
+
+Run on any node:
+
+ceph -s
+ceph mon dump
+ceph quorum_status --format json-pretty
+ceph mgr dump
+
+
+Check specifically:
+
+ceph quorum_status --format json-pretty | grep quorum_names
+
+
+Expected conditions:
+
+pve01, pve02, and pve03 monitors are listed
+Monitor quorum is established
+One manager is active
+Additional managers may appear as standby
+
+The monitor-create command accepts --mon-address, which must be within the configured Ceph public network.
+
+4. Configuring OSDs
+
+An OSD normally consumes one physical storage disk. The official Proxmox guidance recommends one OSD per physical disk.
+
+Step 1: Identify the disk on each node
+
+Run on each node:
+
+lsblk -e7 -o NAME,PATH,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL
+
+
+Check stable disk names:
+
+ls -l /dev/disk/by-id/
+
+
+Check whether the disk is already used:
+
+pvs
+vgs
+lvs
+mount | column -t
+cat /proc/mdstat
+zpool status 2>/dev/null
+
+
+Check signatures without erasing anything:
+
+wipefs -n /dev/sdX
+
+
+Check disk health:
+
+smartctl -H /dev/sdX
+smartctl -a /dev/sdX
+
+
+Prefer a stable disk path:
+
+OSD_DISK="/dev/disk/by-id/<confirmed-disk-id>"
+readlink -f "$OSD_DISK"
+lsblk -f "$OSD_DISK"
+wipefs -n "$OSD_DISK"
+
+Step 2: Clean the disk only if signatures exist
+
+Warning: The following commands permanently erase the selected disk. Verify the disk model, serial number, and path first.
+
+If the disk was previously used as an OSD, ZFS disk, LVM disk, or another storage device:
+
+ceph-volume lvm zap "$OSD_DISK" --destroy
+
+
+If additional signatures remain:
+
+wipefs --all "$OSD_DISK"
+sgdisk --zap-all "$OSD_DISK"
+partprobe "$OSD_DISK"
+
+
+Verify:
+
+wipefs -n "$OSD_DISK"
+lsblk -f "$OSD_DISK"
+
+
+Proxmox documents ceph-volume lvm zap /dev/sdX --destroy for removing earlier OSD, partition-table, ZFS, and storage metadata, and warns that it destroys the disk’s data.
+
+Step 3: Create the first OSD on pve01
+
+Run on pve01:
+
+pveceph osd create "$OSD_DISK"
+
+
+Verify immediately:
+
+ceph -s
+ceph osd tree
+ceph osd df tree
+ceph health detail
+
+
+The documented basic OSD command is:
+
+pveceph osd create /dev/sdX
+
+Step 4: Add one OSD on pve02
+
+After checking and preparing the disk on pve02:
+
+OSD_DISK="/dev/disk/by-id/<pve02-disk-id>"
+pveceph osd create "$OSD_DISK"
+
+
+Validate:
+
+ceph -s
+ceph osd tree
+ceph osd df tree
+
+Step 5: Add one OSD on pve03
+
+Run on pve03:
+
+OSD_DISK="/dev/disk/by-id/<pve03-disk-id>"
+pveceph osd create "$OSD_DISK"
+
+
+Validate:
+
+ceph -s
+ceph osd tree
+ceph osd df tree
+ceph health detail
+
+Step 6: Add remaining disks incrementally
+
+For every additional disk:
+
+OSD_DISK="/dev/disk/by-id/<confirmed-next-disk-id>"
+
+readlink -f "$OSD_DISK"
+lsblk -f "$OSD_DISK"
+wipefs -n "$OSD_DISK"
+smartctl -H "$OSD_DISK"
+
+pveceph osd create "$OSD_DISK"
+
+ceph -s
+ceph osd tree
+ceph osd df tree
+
+
+Do not create the next OSD until the current OSD appears as:
+
+up
+in
+
+
+This incremental approach matches the safety guidance recorded in Proxmox_Ceph_HA_Cluster_Step_by_Step_SOP.docx.
+
+5. Creating a Ceph Pool
+
+Create the pool only after:
+
+Monitor quorum is working
+A manager is active
+OSDs are up and in
+No unexplained critical health condition exists
+Step 1: Create an RBD pool
+
+Run on any one node:
+
+pveceph pool create PVE-storage \
+  --application rbd \
+  --size 3 \
+  --min_size 2 \
+  --pg_autoscale_mode on \
+  --add_storages 1
+
+
+The option is --add_storages, with an underscore and plural storages.
+
+This creates the pool and registers it as Proxmox storage.
+
+The Proxmox command documentation describes pveceph pool create, the default RBD application, --size, --min_size, PG autoscaling, and --add_storages. It specifically warns against using min_size 1 because that can permit I/O with only one replica.
+
+Step 2: Verify the pool
+pveceph pool ls
+ceph osd pool ls detail
+ceph osd pool application get PVE-storage
+ceph df
+
+
+Verify that Proxmox storage was added:
+
+pvesm status
+cat /etc/pve/storage.cfg
+
+
+If the pool application was not enabled:
+
+ceph osd pool application enable PVE-storage rbd
+
+Step 3: Test RBD access
+
+List RBD images:
+
+rbd pool ls
+rbd ls -p PVE-storage
+
+
+After VM disks are present:
+
+rbd du -p PVE-storage
+
+
+Proxmox VE documents Ceph/RBD as shared block storage that supports snapshots and clones. Shared storage also allows cluster nodes to access VM disk images for live migration.
+
+6. High Availability Configuration and Demonstration
+Step 1: Select and back up a test VM
+
+List VMs:
+
+qm list
+
+
+Inspect the selected VM:
+
+qm config <VMID>
+qm status <VMID>
+
+
+Create a backup before moving its disk:
+
+vzdump <VMID> \
+  --storage <BACKUP_STORAGE_ID> \
+  --mode snapshot \
+  --compress zstd
+
+
+Use a non-critical VM for the first HA test.
+
+Step 2: Move the VM disk to Ceph
+
+Identify the disk key:
+
+qm config <VMID>
+
+
+Example disk keys:
+
+scsi0
+virtio0
+sata0
+
+
+Move the disk:
+
+qm move-disk <VMID> <DISK_KEY> PVE-storage --delete 1
+
+
+Example:
+
+qm move-disk 100 scsi0 PVE-storage --delete 1
+
+
+Verify:
+
+qm config 100
+pvesm list PVE-storage --vmid 100
+rbd ls -p PVE-storage
+
+
+For the safest first transfer, omit --delete 1, verify the Ceph copy, and remove the unused source disk only after validation.
+
+Step 3: Add the VM to HA
+
+Check the locally installed command options:
+
+ha-manager help
+ha-manager add --help
+
+
+Add the VM:
+
+ha-manager add vm:<VMID> \
+  --state started \
+  --max_restart 2 \
+  --max_relocate 1
+
+
+Example:
+
+ha-manager add vm:100 \
+  --state started \
+  --max_restart 2 \
+  --max_relocate 1
+
+
+Verify:
+
+ha-manager config
+ha-manager status
+
+
+Expected state:
+
+service vm:100
+state started
+
+Step 4: Test online migration
+
+Check the VM’s current node:
+
+qm status <VMID>
+ha-manager status
+
+
+Migrate it to another node:
+
+qm migrate <VMID> <TARGET_NODE> --online
+
+
+Example:
+
+qm migrate 100 pve02 --online
+
+
+Monitor from another terminal:
+
+watch -n 2 'ha-manager status'
+
+
+Monitor the guest from another system:
+
+ping <GUEST_IP>
+
+
+If it provides a web service:
+
+curl -kI https://<GUEST_IP>:<PORT>
+
+
+After migration:
+
+qm status <VMID>
+ha-manager status
+ceph -s
+pvecm status
+
+
+The qm command is Proxmox’s command-line manager for QEMU/KVM virtual machines, and its documented operations include VM configuration and management.
+
+Step 5: Perform a controlled HA failover test
+
+Before testing:
+
+pvecm status
+ceph -s
+ceph health detail
+ha-manager status
+qm status <VMID>
+
+
+Make sure:
+
+The cluster is quorate
+Ceph storage is available
+The VM is registered with HA
+Alternate nodes have adequate CPU and memory
+A current backup exists
+You have remote console or physical access
+
+On the node currently hosting the test VM, perform a controlled shutdown:
+
+shutdown -h now
+
+
+From a surviving node, monitor HA:
+
+watch -n 2 'ha-manager status'
+
+
+Also monitor:
+
+pvecm status
+ceph -s
+ceph health detail
+
+
+Verify the VM from the surviving node:
+
+ha-manager status
+qm status <VMID>
+
+
+Test guest connectivity:
+
+ping <GUEST_IP>
+
+Step 6: Return the failed node to service
+
+Power it on through your approved console, iDRAC, iLO, IPMI, or physical controls.
+
+After the node boots:
+
+pvecm status
+pvecm nodes
+ceph -s
+ceph osd tree
+ceph health detail
+ha-manager status
+systemctl --failed
+
+
+Do not perform further storage changes while Ceph is recovering or backfilling.
+
+Final validation
+
+Run on a healthy cluster node:
+
+pvecm status
+pvecm nodes
+
+ceph -s
+ceph health detail
+ceph mon dump
+ceph quorum_status --format json-pretty
+ceph mgr dump
+ceph osd tree
+ceph osd df tree
+ceph df
+
+pveceph pool ls
+pvesm status
+
+ha-manager config
+ha-manager status
+
+qm config <VMID>
+qm status <VMID>
+
+
+Your deployment is complete when:
+
+All three nodes are listed and quorate
+Ceph monitor quorum is established
+A Ceph manager is active
+All intended OSDs are up and in
+The RBD pool appears in pvesm status
+The test VM disk is stored on Ceph
+Online migration succeeds
+HA restarts or relocates the test VM after the controlled node shutdown
+The returned node rejoins successfully
+Ceph returns to an acceptable health state

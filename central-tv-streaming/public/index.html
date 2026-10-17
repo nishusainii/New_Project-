@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central TV Streaming & Display System</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .hero-portal {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      text-align: center;
+    }
+    .portal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      width: 100%;
+      max-width: 1000px;
+      margin-top: 40px;
+    }
+    .portal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 32px 24px;
+      text-decoration: none;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .portal-card:hover {
+      border-color: var(--accent-blue);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+    .portal-icon {
+      font-size: 56px;
+      margin-bottom: 16px;
+    }
+    .portal-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .portal-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div style="background: #ffffff; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+          <img src="/logo.png" alt="CiSAI" style="height: 32px; display: block;">
+        </div>
+        <div>
+          <h1>CiSAI TV Streaming Network</h1>
+          <span>LAN & Site-to-Site VPN</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="hero-portal">
+      <div style="font-size: 16px; color: var(--accent-cyan); font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">
+        Enterprise Multi-Site TV Management
+      </div>
+      <h2 style="font-size: 36px; font-weight: 800; max-width: 750px;">
+        Centrally Orchestrate Live Video & Digital Displays Across All Offices
+      </h2>
+      <p style="color: var(--text-muted); font-size: 16px; margin-top: 12px; max-width: 600px;">
+        Stream laptop screens, town halls, and announcements with sub-300ms latency across Headquarters and remote branch locations.
+      </p>
+
+      <div class="portal-grid">
+        <a href="/admin.html" class="portal-card">
+          <div class="portal-title">Admin Management Console</div>
+          <div class="portal-desc">Manage all connected TVs, organize by site, trigger 1-click broadcasts, and monitor online status.</div>
+        </a>
+
+        <a href="/presenter.html" class="portal-card">
+          <div class="portal-title">Presenter Live Studio</div>
+          <div class="portal-desc">1-Click screen sharing from your laptop directly to all TVs across the VPN with automatic screen takeover.</div>
+        </a>
+
+        <a href="/player.html" target="_blank" class="portal-card">
+          <div class="portal-title">TV Kiosk Player</div>
+          <div class="portal-desc">Launch this full-screen player on any Raspberry Pi or Laptop connected to a TV via HDMI.</div>
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

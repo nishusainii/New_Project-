@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Innspark Squid & LDAP Management Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand-header">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
+                    <div class="logo-text">
+                        <h2>INNSPIARK</h2>
+                        <span>SECURE PROXY PORTAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="tab-overview" id="nav-overview">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="tab-users" id="nav-users">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>LDAP Users</span>
+                </button>
+                <button class="nav-item" data-tab="tab-acls" id="nav-acls">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Domain ACLs</span>
+                </button>
+                <button class="nav-item" data-tab="tab-logs" id="nav-logs">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                    <span>Live Traffic</span>
+                </button>
+                <button class="nav-item" data-tab="tab-sarg" id="nav-sarg">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>SARG Reports</span>
+                </button>
+                <button class="nav-item" data-tab="tab-system" id="nav-system">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>System & Health</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="footer-badge">
+                    <span class="badge-dot"></span>
+                    <span class="footer-domain">{{ domain }}</span>
+                </div>
+                <p class="footer-version">v2.4 Enterprise Portal</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top App Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h1 id="page-title">Dashboard Overview</h1>
+                    <p class="subtitle">Real-time status & management for Squid Proxy & OpenLDAP</p>
+                </div>
+                <div class="top-bar-right">
+                    <div class="status-pill" id="squid-status-pill">
+                        <span class="status-indicator loading"></span>
+                        <span class="status-label">Squid: Checking...</span>
+                    </div>
+                    <div class="status-pill" id="ldap-status-pill">
+                        <span class="status-indicator loading"></span>
+                        <span class="status-label">LDAP: Checking...</span>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" id="btn-quick-reload">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg>
+                        Reload Squid
+                    </button>
+                    <div class="user-profile-badge" id="user-profile-badge">
+                        <div class="user-avatar-circle">{{ (display_name or current_user or 'A')[:1].upper() }}</div>
+                        <div class="user-info-text">
+                            <span class="user-name">{{ display_name or current_user or 'Administrator' }}</span>
+                            <span class="user-role-tag">{{ user_role or 'Administrator' }}</span>
+                        </div>
+                        <a href="/logout" class="btn-logout" id="btn-logout" title="Sign Out">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            <span>Logout</span>
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB 1: OVERVIEW -->
+            <section class="tab-pane active" id="tab-overview">
+                <!-- Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="card metric-card">
+                        <div class="metric-icon users-icon">👥</div>
+                        <div class="metric-content">
+                            <span class="metric-label">LDAP Users</span>
+                            <h3 class="metric-value" id="metric-users-count">-</h3>
+                            <span class="metric-sub">in ou=people,{{ base_dn }}</span>
+                        </div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-icon whitelist-icon">🛡️</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Whitelisted Domains</span>
+                            <h3 class="metric-value" id="metric-whitelist-count">-</h3>
+                            <span class="metric-sub">Always permitted</span>
+                        </div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-icon blacklist-icon">🚫</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Blacklisted Domains</span>
+                            <h3 class="metric-value" id="metric-blacklist-count">-</h3>
+                            <span class="metric-sub">Access restricted</span>
+                        </div>
+                    </div>
+                    <div class="card metric-card">
+                        <div class="metric-icon traffic-icon">📊</div>
+                        <div class="metric-content">
+                            <span class="metric-label">Access Log Size</span>
+                            <h3 class="metric-value" id="metric-log-size">-</h3>
+                            <span class="metric-sub">/var/log/squid/access.log</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions & Architecture Banner -->
+                <div class="overview-split">
+                    <div class="card banner-card">
+                        <h3>Domain Architecture Active</h3>
+                        <p>Enterprise proxy service authenticates all inbound requests via OpenLDAP Server at <code>{{ ldap_host }}</code> and logs traffic formatted for SARG reports.</p>
+                        <div class="badge-row">
+                            <span class="tag">Base DN: {{ base_dn }}</span>
+                            <span class="tag">Proxy Port: 3128</span>
+                            <span class="tag">SARG Port: 8080</span>
+                        </div>
+                    </div>
+                    <div class="card quick-actions-card">
+                        <h3>Quick Administration</h3>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" id="btn-quick-add-user">+ Add LDAP User</button>
+                            <button class="btn btn-secondary" id="btn-quick-sarg">⚡ Run SARG Report</button>
+                            <button class="btn btn-secondary" id="btn-quick-view-logs">🔍 View Live Logs</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: LDAP USERS -->
+            <section class="tab-pane" id="tab-users">
+                <div class="section-toolbar">
+                    <div class="search-box">
+                        <input type="text" id="user-search-input" placeholder="Search by username, full name, or email...">
+                    </div>
+                    <button class="btn btn-primary" id="btn-open-create-user-modal">+ Create New User</button>
+                </div>
+
+                <div class="card table-card">
+                    <table class="data-table" id="users-table">
+                        <thead>
+                            <tr>
+                                <th>Username (UID)</th>
+                                <th>Full Name</th>
+                                <th>Corporate Email</th>
+                                <th>Proxy Access Group</th>
+                                <th>Admin Privileges</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body">
+                            <tr>
+                                <td colspan="6" class="text-center loading-row">Loading LDAP users from {{ ldap_host }}...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: DOMAIN ACLS -->
+            <section class="tab-pane" id="tab-acls">
+                <div class="acl-grid">
+                    <!-- Whitelist Column -->
+                    <div class="card acl-card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Whitelisted Domains</h3>
+                                <p class="card-desc">Domains that bypass blocking policies</p>
+                            </div>
+                            <span class="counter-badge" id="whitelist-count-badge">0</span>
+                        </div>
+                        <div class="add-tag-box">
+                            <input type="text" id="input-new-whitelist" placeholder="e.g. google.com or .innspark.in">
+                            <button class="btn btn-secondary btn-sm" id="btn-add-whitelist">Add</button>
+                        </div>
+                        <div class="tags-container" id="whitelist-tags-box">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Blacklist Column -->
+                    <div class="card acl-card">
+                        <div class="card-header">
+                            <div>
+                                <h3>Blacklisted Domains</h3>
+                                <p class="card-desc">Domains strictly forbidden for clients</p>
+                            </div>
+                            <span class="counter-badge badge-danger" id="blacklist-count-badge">0</span>
+                        </div>
+                        <div class="add-tag-box">
+                            <input type="text" id="input-new-blacklist" placeholder="e.g. tiktok.com or .gambling.com">
+                            <button class="btn btn-secondary btn-sm" id="btn-add-blacklist">Add</button>
+                        </div>
+                        <div class="tags-container" id="blacklist-tags-box">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="acl-save-bar">
+                    <button class="btn btn-primary btn-lg" id="btn-save-acls">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        Save Rules & Reload Squid
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 4: LIVE LOGS -->
+            <section class="tab-pane" id="tab-logs">
+                <div class="logs-toolbar">
+                    <div class="search-box">
+                        <input type="text" id="logs-filter-input" placeholder="Filter by IP, username, status code, or domain...">
+                    </div>
+                    <div class="toolbar-controls">
+                        <select id="logs-limit-select">
+                            <option value="50">Last 50 records</option>
+                            <option value="100">Last 100 records</option>
+                            <option value="200">Last 200 records</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" id="btn-toggle-log-refresh">
+                            <span id="log-refresh-text">Pause Stream</span>
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="btn-manual-refresh-logs">Refresh</button>
+                    </div>
+                </div>
+
+                <div class="card table-card log-table-card">
+                    <table class="data-table mono-table" id="logs-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Client IP</th>
+                                <th>Status</th>
+                                <th>Method</th>
+                                <th>Requested URL</th>
+                                <th>Authenticated User</th>
+                                <th>Size</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body">
+                            <tr>
+                                <td colspan="7" class="text-center loading-row">Awaiting Squid log stream...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 5: SARG REPORTS -->
+            <section class="tab-pane" id="tab-sarg">
+                <div class="section-toolbar">
+                    <div>
+                        <h3>Squid Analysis Report Generator (SARG)</h3>
+                        <p class="subtitle">Visual consumption reports, top sites, top users, and denied traffic</p>
+                    </div>
+                    <div class="toolbar-controls">
+                        <button class="btn btn-primary" id="btn-trigger-sarg">⚡ Generate Report Now</button>
+                        <a href="{{ sarg_url }}" target="_blank" class="btn btn-secondary">
+                            Open Fullscreen
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card sarg-frame-card">
+                    <iframe src="{{ sarg_url }}" id="sarg-iframe" title="SARG Reports"></iframe>
+                </div>
+            </section>
+
+            <!-- TAB 6: SYSTEM & HEALTH -->
+            <section class="tab-pane" id="tab-system">
+                <div class="system-grid">
+                    <div class="card">
+                        <h3>Squid Service Details</h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Service Status:</span>
+                                <span class="info-value" id="sys-squid-status">-</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Port:</span>
+                                <span class="info-value">3128 TCP</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Configuration File:</span>
+                                <span class="info-value">/etc/squid/squid.conf</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Access Log:</span>
+                                <span class="info-value">/var/log/squid/access.log</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>LDAP Integration Details</h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">Server 1 Host:</span>
+                                <span class="info-value">{{ ldap_host }}:389</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Base DN:</span>
+                                <span class="info-value">{{ base_dn }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">User Container:</span>
+                                <span class="info-value">ou=people,{{ base_dn }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Groups Container:</span>
+                                <span class="info-value">ou=groups,{{ base_dn }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal: Create New LDAP User -->
+    <div class="modal-backdrop" id="create-user-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Create New LDAP Proxy User</h3>
+                <button class="btn-close" id="btn-close-modal">&times;</button>
+            </div>
+            <form id="create-user-form">
+                <div class="form-group">
+                    <label for="input-username">Username (UID) *</label>
+                    <input type="text" id="input-username" required placeholder="e.g. john.doe">
+                    <small>Used by the client to log in at the proxy prompt</small>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="input-first-name">First Name</label>
+                        <input type="text" id="input-first-name" placeholder="John">
+                    </div>
+                    <div class="form-group">
+                        <label for="input-last-name">Last Name</label>
+                        <input type="text" id="input-last-name" placeholder="Doe">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="input-email">Corporate Email</label>
+                    <input type="email" id="input-email" placeholder="john.doe@innspark.in">
+                </div>
+                <div class="form-group">
+                    <label for="input-password">Initial Password *</label>
+                    <input type="password" id="input-password" required placeholder="Strong password">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check-proxy-user" checked>
+                        <span>Add to <strong>proxy_users</strong> (Permits internet browsing)</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="check-proxy-admin">
+                        <span>Add to <strong>proxy_admins</strong> (Elevated bypass privileges)</span>
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-user">Save User to LDAP</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

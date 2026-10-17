@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CiSOI · Internet Usage Dashboard — 29 Aug 2026</title>
+<style>
+:root{
+  --bg:#070d1a; --card:rgba(148,190,233,.06); --card2:rgba(148,190,233,.10);
+  --brd:rgba(125,190,240,.14); --brd2:rgba(125,190,240,.25);
+  --txt:#eaf4fd; --muted:#8ea9c4; --faint:#5c7590;
+  --cyan:#3fb9ef; --cyan2:#7fe0f4; --good:#3ddc97; --warn:#ffc857; --bad:#ff5d73;
+  --grad:linear-gradient(120deg,#37b6f2 0%,#54d6e6 100%);
+  --shadow:0 18px 50px rgba(2,8,20,.55);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',sans-serif;
+  background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+.bg-orbs{position:fixed;inset:0;z-index:-2;overflow:hidden;
+  background:radial-gradient(1200px 700px at 85% -10%,#0d2140 0%,transparent 60%),
+             radial-gradient(900px 600px at -10% 110%,#0a1c33 0%,transparent 55%),var(--bg)}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:drift 22s ease-in-out infinite alternate}
+.orb.o1{width:520px;height:520px;background:#123f66;top:-160px;right:-120px}
+.orb.o2{width:420px;height:420px;background:#0e5f74;bottom:-140px;left:-120px;animation-delay:-8s}
+.orb.o3{width:260px;height:260px;background:#1a72a8;top:38%;left:44%;opacity:.28;animation-delay:-14s}
+.gridlines{position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:linear-gradient(rgba(120,180,230,.045) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(120,180,230,.045) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,#000 30%,transparent 100%);
+          mask-image:radial-gradient(ellipse 90% 70% at 50% 0%,#000 30%,transparent 100%)}
+@keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.08)}}
+@keyframes pulse{50%{opacity:.35}}
+@keyframes shine{from{background-position:185% 0}to{background-position:-40% 0}}
+.wrap{max-width:1320px;margin:0 auto;padding:28px 26px 60px}
+header{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:20px 26px;
+  border:1px solid var(--brd);border-radius:22px;
+  background:linear-gradient(135deg,rgba(20,44,74,.55),rgba(9,20,38,.55));
+  backdrop-filter:blur(14px);box-shadow:var(--shadow);position:relative;overflow:hidden}
+header::after{content:"";position:absolute;top:0;left:8%;right:8%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(140,220,250,.6),transparent)}
+.logo-pill{background:#fff;padding:10px 22px;border-radius:16px;display:flex;align-items:center;flex:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.4),0 0 34px rgba(90,200,245,.35)}
+.logo-pill img{height:44px;display:block}
+.head-mid{flex:1;min-width:240px}
+h1{font-size:clamp(22px,2.6vw,32px);font-weight:700;letter-spacing:.5px}
+h1 .grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--muted);font-size:13px;margin-top:4px;letter-spacing:.4px}
+.head-badges{display:flex;gap:10px;flex-wrap:wrap}
+.badge{border:1px solid var(--brd2);border-radius:12px;padding:8px 14px;font-size:12.5px;color:var(--cyan2);
+  background:rgba(30,90,140,.18);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.badge b{color:#fff;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 10px var(--good);animation:pulse 2s infinite}
+section{margin-top:26px}
+.sec-title{display:flex;align-items:center;gap:12px;margin:4px 2px 16px}
+.sec-title h2{font-size:17px;letter-spacing:2.5px;text-transform:uppercase;color:#cfe6f7;font-weight:600}
+.sec-title::before{content:"";width:26px;height:3px;border-radius:2px;background:var(--grad)}
+.sec-title .line{flex:1;height:1px;background:linear-gradient(90deg,var(--brd2),transparent)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:16px}
+.kpi{position:relative;overflow:hidden;border:1px solid var(--brd);border-radius:18px;padding:18px;
+  background:linear-gradient(160deg,var(--card2),var(--card));backdrop-filter:blur(10px);
+  transition:transform .35s cubic-bezier(.2,.9,.3,1.4),border-color .3s,box-shadow .3s}
+.kpi:hover{transform:translateY(-5px);border-color:var(--brd2);box-shadow:0 14px 34px rgba(20,120,190,.18)}
+.kpi .ring{position:absolute;right:-34px;top:-34px;width:110px;height:110px;border-radius:50%;border:14px solid rgba(90,190,240,.08)}
+.kpi .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:12px;
+  background:rgba(60,170,235,.14);border:1px solid rgba(90,190,240,.25)}
+.kpi .ic svg{width:20px;height:20px;stroke:var(--cyan2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.kpi .num{font-size:clamp(24px,2.4vw,31px);font-weight:700;letter-spacing:.5px}
+.kpi .num small{font-size:15px;color:var(--cyan2);font-weight:600;margin-left:3px}
+.kpi .lbl{color:var(--muted);font-size:12.5px;text-transform:uppercase;letter-spacing:1.4px;margin-top:5px}
+.kpi .foot{font-size:11.5px;color:var(--faint);margin-top:9px}
+.kpi.bad .ic{background:rgba(255,93,115,.12);border-color:rgba(255,93,115,.3)}
+.kpi.bad .ic svg{stroke:#ff8fa0}
+.kpi.bad .num{color:#ff96a6}
+.kpi.warn .ic{background:rgba(255,200,87,.12);border-color:rgba(255,200,87,.3)}
+.kpi.warn .ic svg{stroke:var(--warn)}
+.kpi.warn .num{color:#ffd98a}
+.kpi.good .num{color:#7defc0}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:18px}
+.card{border:1px solid var(--brd);border-radius:20px;padding:22px;position:relative;overflow:hidden;
+  background:linear-gradient(165deg,var(--card2),var(--card));backdrop-filter:blur(12px)}
+.card:hover{border-color:var(--brd2)}
+.card h3{font-size:15.5px;font-weight:600;letter-spacing:.6px;display:flex;align-items:center;gap:9px}
+.card h3 .tagi{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;
+  background:rgba(60,170,235,.13);border:1px solid rgba(90,190,240,.25)}
+.card h3 .tagi svg{width:15px;height:15px;stroke:var(--cyan2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.card .hint{color:var(--faint);font-size:12px;margin:4px 0 16px}
+.span4{grid-column:span 4}.span5{grid-column:span 5}.span6{grid-column:span 6}.span7{grid-column:span 7}
+.bar-row{display:grid;grid-template-columns:112px 1fr 92px;align-items:center;gap:12px;padding:7px 0}
+.bar-row .who{font-size:13px;color:#d7e9f7;font-family:Consolas,Menlo,monospace;display:flex;align-items:center;gap:8px}
+.rank{width:21px;height:21px;border-radius:7px;font-size:11px;display:inline-grid;place-items:center;flex:none;font-family:inherit;
+  background:rgba(90,180,240,.13);color:var(--cyan2);border:1px solid rgba(90,180,240,.22)}
+.rank.r1{background:linear-gradient(135deg,#37b6f2,#54d6e6);color:#04263b;font-weight:700;border:none}
+.rank.r2{background:rgba(84,214,230,.2);color:#9beeff;border-color:rgba(84,214,230,.4)}
+.rank.r3{background:rgba(84,214,230,.1);color:#7fe0f4}
+.track{height:15px;border-radius:8px;background:rgba(120,180,230,.08);overflow:hidden}
+.fill{height:100%;width:0;border-radius:8px;background:var(--grad);position:relative;
+  transition:width 1.3s cubic-bezier(.25,.9,.3,1)}
+.fill::after{content:"";position:absolute;inset:0;border-radius:8px;
+  background:linear-gradient(90deg,transparent 42%,rgba(255,255,255,.35) 50%,transparent 58%);
+  background-size:220% 100%;animation:shine 2.6s linear infinite}
+.val{text-align:right;font-size:12.5px;color:var(--cyan2);font-weight:600;white-space:nowrap}
+.val .pc{display:block;color:var(--faint);font-weight:400;font-size:11px}
+.donut-flex{display:flex;align-items:center;gap:26px;flex-wrap:wrap}
+.donut{position:relative;width:212px;height:212px;flex:none}
+.donut svg{transform:rotate(-90deg);display:block}
+.donut .seg{fill:none;stroke-width:22;transition:stroke-dasharray 1.2s ease,opacity .25s;cursor:pointer}
+.donut .seg:hover{opacity:.78}
+.donut .hole{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.donut .hole .big{font-size:29px;font-weight:700}
+.donut .hole .sm{font-size:11px;color:var(--muted);letter-spacing:1.3px;text-transform:uppercase;margin-top:2px}
+.legend{flex:1;min-width:210px;display:flex;flex-direction:column;gap:6px}
+.leg{display:flex;align-items:center;gap:10px;font-size:13px;color:#cfe2f2;padding:6px 10px;border-radius:10px;transition:background .2s;cursor:default}
+.leg:hover{background:rgba(120,190,240,.07)}
+.leg .sw{width:12px;height:12px;border-radius:4px;flex:none;box-shadow:0 0 8px rgba(120,200,250,.3)}
+.leg .nm{flex:1}
+.leg .nv{color:var(--cyan2);font-weight:600}
+.leg .np{color:var(--faint);font-size:11.5px;width:54px;text-align:right}
+.cache-stats{display:flex;flex-direction:column;gap:12px;flex:1;min-width:210px}
+.cstat{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:11px 14px;border-radius:12px;
+  background:rgba(120,180,230,.05);border:1px solid rgba(125,190,240,.1)}
+.cstat .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.cstat .v{font-size:16px;font-weight:700;color:var(--cyan2)}
+.cstat .v.g{color:#7defc0}.cstat .v.w{color:#ffd98a}
+.site{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;padding:9px 4px;border-bottom:1px dashed rgba(125,190,240,.1)}
+.site:last-child{border-bottom:none}
+.site .nm{font-size:13px;color:#dcecf9;font-family:Consolas,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.site .meta{font-size:11px;color:var(--faint)}
+.site .b{text-align:right}
+.site .b .v{font-size:13px;color:var(--cyan2);font-weight:600}
+.site .b .s{font-size:11px;color:var(--faint)}
+.chips{display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.chip{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:12px;
+  background:rgba(255,93,115,.07);border:1px solid rgba(255,93,115,.22);font-size:12.5px}
+.chip .cn{flex:1;font-family:Consolas,Menlo,monospace;color:#ffd3da;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .cv{font-weight:700;color:#ff96a6;flex:none}
+.chip.cy{background:rgba(255,200,87,.06);border-color:rgba(255,200,87,.25)}
+.chip.cy .cn{color:#ffe6b0}.chip.cy .cv{color:#ffd98a}
+.alert{padding:15px 17px;border-radius:14px;font-size:13px;line-height:1.55;border:1px solid;display:flex;gap:12px}
+.alert .ai{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center}
+.alert .ai svg{width:17px;height:17px;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.alert b{font-weight:700}
+.alert.bad{background:rgba(255,93,115,.09);border-color:rgba(255,93,115,.35);color:#ffd8dd}
+.alert.bad .ai{background:rgba(255,93,115,.16)}.alert.bad .ai svg{stroke:#ff8fa0}
+.alert.warn{background:rgba(255,200,87,.07);border-color:rgba(255,200,87,.3);color:#ffedc4}
+.alert.warn .ai{background:rgba(255,200,87,.14)}.alert.warn .ai svg{stroke:var(--warn)}
+.alert.info{background:rgba(63,185,239,.08);border-color:rgba(63,185,239,.3);color:#d4effd}
+.alert.info .ai{background:rgba(63,185,239,.15)}.alert.info .ai svg{stroke:var(--cyan2)}
+.insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:15px}
+.ins{border:1px solid var(--brd);border-left:3px solid var(--cyan);border-radius:14px;padding:15px 17px;
+  background:linear-gradient(150deg,var(--card2),transparent);font-size:13px;line-height:1.6;color:#d5e7f5;
+  transition:transform .3s}
+.ins:hover{transform:translateX(4px)}
+.ins b{color:#fff}
+.ins .hl{color:var(--cyan2);font-weight:700}
+.ins.green{border-left-color:var(--good)}
+.ins.red{border-left-color:var(--bad)}
+.ins.amber{border-left-color:var(--warn)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--brd);border-radius:18px;
+  background:linear-gradient(165deg,var(--card2),var(--card))}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:12px 16px;text-align:left;font-size:13px}
+thead th{background:rgba(30,80,130,.22);color:#a9cbe8;font-size:11px;text-transform:uppercase;letter-spacing:1.4px;font-weight:600;white-space:nowrap}
+tbody tr{border-top:1px solid rgba(125,190,240,.08);transition:background .2s}
+tbody tr:hover{background:rgba(80,170,235,.07)}
+td.mono{font-family:Consolas,Menlo,monospace;color:#d7e9f7}
+td .mini{height:7px;width:130px;border-radius:5px;background:rgba(120,180,230,.1);overflow:hidden}
+td .mini i{display:block;height:100%;width:0;background:var(--grad);border-radius:5px;transition:width 1.2s ease}
+.numcell{color:var(--cyan2);font-weight:600;white-space:nowrap}
+tfoot td{background:rgba(30,80,130,.16);font-weight:700;color:#cfe6f7;border-top:1px solid var(--brd2)}
+footer{margin-top:34px;text-align:center;color:var(--faint);font-size:12px;line-height:2}
+footer .flinks a{color:var(--cyan);text-decoration:none;margin:0 8px;border-bottom:1px dotted rgba(63,185,239,.4)}
+footer .flinks a:hover{color:var(--cyan2)}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+@media(max-width:1020px){.span4,.span5,.span6,.span7{grid-column:span 12}}
+@media(max-width:560px){.wrap{padding:16px 14px 44px}.bar-row{grid-template-columns:98px 1fr 80px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="bg-orbs"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+<div class="gridlines"></div>
+<div class="wrap">
+
+<header class="reveal">
+  <div class="logo-pill"><img src="../company-logo.jpg" alt="CiSOI company logo"></div>
+  <div class="head-mid">
+    <h1>Internet Usage <span class="grad">Intelligence Dashboard</span></h1>
+    <div class="sub" id="head-sub">Squid proxy traffic analysis · Generated by SARG 2.4.0 · loading data…</div>
+  </div>
+  <div class="head-badges">
+    <span class="badge"><span class="dot"></span>Report Period: <b id="badge-period">…</b></span>
+    <span class="badge">Report generated <b id="badge-time">…</b></span>
+  </div>
+</header>
+
+<!-- ======== KPI STRIP ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>Network at a Glance</h2><span class="line"></span></div>
+  <div class="kpis">
+    <div class="kpi">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-8"/><path d="M2 21h20"/></svg></div>
+      <div class="num" id="kpi-bw" data-count="0" data-dec="2" data-suffix="T">0</div>
+      <div class="lbl">Total Bandwidth</div>
+      <div class="foot" id="foot-bw">loading…</div>
+    </div>
+    <div class="kpi">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5z"/></svg></div>
+      <div class="num" id="kpi-conn" data-count="0" data-dec="2" data-suffix="M">0</div>
+      <div class="lbl">Connections</div>
+      <div class="foot" id="foot-conn">loading…</div>
+    </div>
+    <div class="kpi">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.9-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.6c2.1.3 3.6 1.8 4 4.4"/></svg></div>
+      <div class="num" id="kpi-users" data-count="0" data-dec="0">0</div>
+      <div class="lbl">Active Users</div>
+      <div class="foot" id="foot-users">loading…</div>
+    </div>
+    <div class="kpi good">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.3"/><path d="m8.5 12 2.4 2.4L16 9.5"/></svg></div>
+      <div class="num" id="kpi-cache" data-count="0" data-dec="2" data-suffix="%">0</div>
+      <div class="lbl">Cache Hit Ratio</div>
+      <div class="foot" id="foot-cache">loading…</div>
+    </div>
+    <div class="kpi warn">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg></div>
+      <div class="num" id="kpi-denied" data-count="0" data-dec="0">0</div>
+      <div class="lbl">Denied Requests</div>
+      <div class="foot" id="foot-denied">loading…</div>
+    </div>
+    <div class="kpi bad">
+      <span class="ring"></span>
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 4.6 3.2 8.4 7.5 10 4.3-1.6 7.5-5.4 7.5-10V6z"/><path d="M12 10v3.5"/><circle cx="12" cy="16.4" r=".4"/></svg></div>
+      <div class="num" id="kpi-auth" data-count="0" data-dec="0">0</div>
+      <div class="lbl">Auth Failures</div>
+      <div class="foot" id="foot-auth">loading…</div>
+    </div>
+  </div>
+</section>
+<!-- ======== TRAFFIC BREAKDOWN ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>Traffic Breakdown</h2><span class="line"></span></div>
+  <div class="grid">
+    <div class="card span7">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M4 19V9m6 10V5m6 14v-8"/></svg></span>Top Bandwidth Consumers</h3>
+      <div class="hint">Bytes downloaded per host · share of total traffic</div>
+      <div id="userBars"></div>
+    </div>
+    <div class="card span5">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l6.5-6.5"/></svg></span>Traffic Mix by Platform</h3>
+      <div class="hint">Estimated bytes grouped by service family</div>
+      <div class="donut-flex">
+        <div class="donut" id="mixDonut"></div>
+        <div class="legend" id="mixLegend"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== SITES + CACHE ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>Destinations &amp; Cache</h2><span class="line"></span></div>
+  <div class="grid">
+    <div class="card span7">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 2.7 4 5.7 4 9s-1.3 6.3-4 9c-2.7-2.7-4-5.7-4-9s1.3-6.3 4-9z"/></svg></span>Top Destinations</h3>
+      <div class="hint">From the Top-Sites report · by number of connections</div>
+      <div id="siteList"></div>
+    </div>
+    <div class="card span5">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5H11L9.5 22 19 9.5h-6.5z"/></svg></span>Cache Efficiency</h3>
+      <div class="hint">How much bandwidth the Squid cache saved</div>
+      <div class="donut-flex">
+        <div class="donut" id="cacheDonut"></div>
+        <div class="cache-stats">
+          <div class="cstat"><span class="k">In-cache bytes</span><span class="v g" id="stat-incache">…</span></div>
+          <div class="cstat"><span class="k">Out-of-cache</span><span class="v w" id="stat-outcache">…</span></div>
+          <div class="cstat"><span class="k">Total bytes</span><span class="v" id="stat-total">…</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- ======== SECURITY ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>Security &amp; Policy Events</h2><span class="line"></span></div>
+  <div class="grid">
+    <div class="card span6">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg></span>Denied Access Hotspots</h3>
+      <div class="hint" id="denied-hint">blocked requests · most-targeted blocked destinations</div>
+      <div class="chips">
+        <div class="chip"><span class="cn">example.com:443 — probe loop from 10.31.1.202</span><span class="cv">≈4,185 hits</span></div>
+        <div class="chip"><span class="cn">mtalk.google.com:5228 — Google push msg · 4 hosts</span><span class="cv">≈466 hits</span></div>
+        <div class="chip"><span class="cn">dl.google.com / download.docker.com / deb.nodesource.com</span><span class="cv">≈133 hits</span></div>
+        <div class="chip cy"><span class="cn">esm.ubuntu.com &amp; in.archive.ubuntu.com mirrors</span><span class="cv">≈20 hits</span></div>
+        <div class="chip cy"><span class="cn">web.whatsapp.com:5222 · feddy.federal.bank.in:8443</span><span class="cv">4 hits</span></div>
+      </div>
+    </div>
+    <div class="card span6">
+      <h3><span class="tagi"><svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5c0 4.6 3.2 8.4 7.5 10 4.3-1.6 7.5-5.4 7.5-10V6z"/><path d="M12 10v3.5"/></svg></span>Analyst Alerts</h3>
+      <div class="hint">Auto-generated findings worth reviewing</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="alert bad">
+          <span class="ai"><svg viewBox="0 0 24 24"><path d="M12 9v4m0 3.2v.3M10.3 4.1 3 17.2A2 2 0 0 0 4.8 20h14.4a2 2 0 0 0 1.7-2.8L13.7 4.1a2 2 0 0 0-3.4 0z"/></svg></span>
+          <div><b>96,282 authentication failures</b> were logged from 28 hosts. One host alone — <b>10.31.5.112 hammering pypi.org:443</b> — accounts for <b>76,683 (~80%)</b> of them, at a near-constant rate all day: a pip/CI job running without proxy credentials. 10.31.5.173 (portal:8080) adds 6,481 more.</div>
+        </div>
+        <div class="alert warn">
+          <span class="ai"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5m0 3.2v.3"/></svg></span>
+          <div><b>10.31.4.66</b> (top user) shows <b>557K connections / 166 GB</b> with an effective session time of 64 days in 24 h — consistent with an automated sync or long-lived streaming workload.</div>
+        </div>
+        <div class="alert info">
+          <span class="ai"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8.2v-.3"/></svg></span>
+          <div><b>Speed-test loop detected:</b> 10.31.4.162 downloaded <b>10MB.zip from speedtest.tele2.net</b> dozens of times overnight — likely a bandwidth-monitoring script.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== INSIGHTS ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>Key Insights</h2><span class="line"></span></div>
+  <div class="insights">
+    <div class="ins"><b>Social media dominates:</b> Twitter/X + Meta properties account for roughly <span class="hl">86% of all bytes</span> (~976 GB of 1.13 TB). pbs.twimg.com alone moved <span class="hl">494 GB</span>.</div>
+    <div class="ins green"><b>Cache is working hard:</b> a <span class="hl">99.74% hit ratio</span> means only 2.98 GB actually left to the internet — the proxy is highly effective at deduplicating content.</div>
+    <div class="ins amber"><b>Concentration risk:</b> the top 5 of 58 users consumed <span class="hl">52% of bandwidth</span> (592 GB combined). Consider per-user quotas for heavy streaming endpoints.</div>
+    <div class="ins"><b>Heavy hitters cluster in 10.31.4.x:</b> 7 of the top 10 consumers live on the 10.31.4.0 subnet — the busiest segment by far.</div>
+    <div class="ins red"><b>Policy enforcement is active:</b> <span class="hl">4,816 denials</span>, dominated by an example.com:443 probe loop from 10.31.1.202 (≈4,185), followed by Google push-messaging (mtalk:5228) and Ubuntu repo mirrors on blocked ports/paths.</div>
+    <div class="ins"><b>Long tail is tiny:</b> 29 of 58 users used under 1 GB each — the network is driven by a small power-user core.</div>
+  </div>
+</section>
+<!-- ======== FULL TABLE ======== -->
+<section class="reveal">
+  <div class="sec-title"><h2>All Users · Bandwidth Leaderboard</h2><span class="line"></span></div>
+  <div class="tbl-wrap">
+    <table id="userTable">
+      <thead><tr>
+        <th>#</th><th>User / IP</th><th>Connections</th><th>Bytes</th><th>% of Total</th><th>Cache In / Out</th><th>Usage</th>
+      </tr></thead>
+      <tbody></tbody>
+      <tfoot><tr>
+        <td></td><td><b>TOTAL</b></td><td>7.32M</td><td class="numcell">1.13 TB</td><td>100%</td><td>99.74% / 0.26%</td><td></td>
+      </tr></tfoot>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <div class="flinks">
+    <a href="index.html">Top Users</a>·
+    <a href="topsites.html">Top Sites</a>·
+    <a href="siteuser.html">Sites &amp; Users</a>·
+    <a href="download.html">Downloads</a>·
+    <a href="denied.html">Denied</a>·
+    <a href="authfail.html">Auth Failures</a>
+  </div>
+  <div>Dashboard crafted for <b style="color:#7fe0f4">CiSOI</b> · Source data: Squid Analysis Report Generator (sarg-2.4.0 Jan-16-2020) · Period 29 Aug 2026</div>
+</footer>
+</div>
+<script>
+/* ===== Data extracted from the SARG report (29 Aug 2026) ===== */
+const USERS = [
+  ["10.31.4.66","557.22K",166.12,14.61],["10.31.4.226","1.65M",114.35,10.05],
+  ["10.31.7.86","1.56M",108.82,9.57],["10.31.5.217","28.09K",107.55,9.46],
+  ["10.31.4.225","1.35M",95.05,8.36],["10.31.7.252","3.97K",87.51,7.69],
+  ["10.31.4.153","10.66K",74.20,6.52],["10.31.4.22","7.20K",71.69,6.30],
+  ["10.31.4.218","917.02K",66.73,5.87],["10.31.4.162","836.98K",61.39,5.40],
+  ["10.31.4.11","7.83K",30.47,2.68],["10.31.4.34","3.92K",28.38,2.50],
+  ["10.31.4.166","7.08K",19.67,1.73],["10.31.4.147","2.66K",18.97,1.67],
+  ["10.31.4.121","20.16K",15.54,1.37],["10.31.7.232","44.84K",9.11,0.80],
+  ["10.31.4.221","1.42K",8.84,0.78],["10.31.4.120","2.20K",7.50,0.66],
+  ["10.31.5.247","53.12K",7.15,0.63],["10.31.4.126","10.33K",5.37,0.47],
+  ["10.31.4.220","3.38K",4.98,0.44],["10.31.4.174","1.72K",4.93,0.43],
+  ["10.31.1.63","4.14K",4.48,0.39],["10.31.4.149","23.31K",3.86,0.34],
+  ["10.31.5.127","7.58K",3.48,0.31],["10.31.0.85","5.09K",1.41,0.12],
+  ["10.31.4.172","1.14K",1.38,0.12],["10.31.4.227","5.05K",1.26,0.11],
+  ["10.31.0.11","9.17K",1.23,0.11],["10.31.88.198","1.83K",0.93,0.08],
+  ["10.31.5.172","2.55K",0.87,0.08],["10.31.0.173","3.10K",0.85,0.08],
+  ["10.31.4.133","18",0.76,0.07],["10.31.6.201","34.49K",0.73,0.06],
+  ["10.31.4.177","29.86K",0.38,0.03],["10.31.88.191","2.13K",0.26,0.02],
+  ["10.31.4.29","76.37K",0.25,0.02],["10.31.6.85","5.21K",0.23,0.02],
+];
+
+const SITES = [
+  ["pbs.twimg.com:443","6.61M","494.10 GB",20],["abs.twimg.com:443","75.69K","82.70 GB",19],
+  ["instagram.fcok9-1.fna.fbcdn.net:443","73.19K","35.82 GB",10],["raw.githubusercontent.com:443","44.56K","4.69 GB",7],
+  ["scontent.fcok9-1.fna.fbcdn.net:443","31.97K","59.96 GB",9],["www.google.com:443","28.74K","587.72 MB",37],
+  ["www.googleapis.com:443","27.16K","206.39 MB",4],["example.com:443","18.56K","14.99 MB",4],
+  ["x.com:443","16.81K","4.75 GB",18],["files.mastodon.social:443","15.75K","10.82 GB",2],
+  ["gateway.facebook.com:443","12.97K","162.35 MB",6],["styles.redditmedia.com:443","12.73K","989.26 MB",6],
+];
+
+const MIX = [
+  {n:"Twitter / X", v:881.6, c:"#3fb9ef"},
+  {n:"Meta (FB/IG/WhatsApp)", v:94.4, c:"#7c9ff7"},
+  {n:"Google services", v:2.1, c:"#3ddc97"},
+  {n:"Dev / tools (GitHub…)", v:5.4, c:"#ffc857"},
+  {n:"Everything else", v:153.9, c:"#46637f"},
+];
+</script>
+<script>
+/* ===== KPI count-up animation ===== */
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+function countUp(el){
+  const end = parseFloat(el.dataset.count), dec = +el.dataset.dec || 0, suf = el.dataset.suffix || "";
+  const dur = 1400, t0 = performance.now();
+  (function tick(t){
+    const p = Math.min((t - t0) / dur, 1);
+    const v = end * easeOut(p);
+    el.innerHTML = (dec ? v.toFixed(dec) : Math.round(v).toLocaleString("en-US")) +
+                   (suf ? `<small>${suf}</small>` : "");
+    if (p < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+
+/* ===== Top-users bars ===== */
+const maxGB = USERS[0][2];
+document.getElementById("userBars").innerHTML = USERS.slice(0, 10).map((u, i) => `
+  <div class="bar-row">
+    <span class="who"><span class="rank r${i+1}">${i+1}</span>${u[0]}</span>
+    <span class="track"><span class="fill" data-w="${(u[2]/maxGB*100).toFixed(1)}"></span></span>
+    <span class="val">${u[2]} GB<span class="pc">${u[3]}% of total</span></span>
+  </div>`).join("");
+
+/* ===== Sites list ===== */
+document.getElementById("siteList").innerHTML = SITES.map((s, i) => `
+  <div class="site">
+    <span class="rank r${i+1}">${i+1}</span>
+    <span style="min-width:0"><span class="nm">${s[0]}</span><br><span class="meta">${s[1]} connections · ${s[3]} users</span></span>
+    <span class="b"><span class="v">${s[2]}</span><br><span class="s">transferred</span></span>
+  </div>`).join("");
+
+/* ===== Donut builder (pure SVG, no library) ===== */
+function buildDonut(id, parts, centerBig, centerSm){
+  const R = 84, C = 2 * Math.PI * R, total = parts.reduce((a, p) => a + p.v, 0);
+  let acc = 0;
+  const segs = parts.map(p => {
+    const frac = p.v / total, off = acc; acc += frac;
+    return `<circle class="seg" cx="106" cy="106" r="${R}" stroke="${p.c}"
+      stroke-dasharray="0 ${C}" data-da="${(frac*C).toFixed(2)} ${C}"
+      stroke-dashoffset="${(-off*C).toFixed(2)}"><title>${p.n}: ${p.v} GB (${(frac*100).toFixed(1)}%)</title></circle>`;
+  }).join("");
+  document.getElementById(id).innerHTML =
+    `<svg width="212" height="212" viewBox="0 0 212 212">${segs}</svg>
+     <div class="hole"><div><div class="big">${centerBig}</div><div class="sm">${centerSm}</div></div></div>`;
+}
+document.addEventListener("DOMContentLoaded", () => {
+  buildDonut("mixDonut", MIX, "1.13 TB", "total bytes");
+  buildDonut("cacheDonut",
+    [{n:"In-cache", v:99.74, c:"#3ddc97"},{n:"Out-of-cache", v:0.26, c:"#ffc857"}],
+    "99.7%", "cache hits");
+  document.getElementById("mixLegend").innerHTML = MIX.map(p => `
+    <div class="leg"><span class="sw" style="background:${p.c}"></span>
+      <span class="nm">${p.n}</span><span class="nv">${p.v} GB</span>
+      <span class="np">${(p.v/1137.4*100).toFixed(1)}%</span></div>`).join("");
+
+  /* ===== Full leaderboard table ===== */
+  document.querySelector("#userTable tbody").innerHTML = USERS.map((u, i) => `
+    <tr><td><span class="rank r${i+1}">${i+1}</span></td>
+      <td class="mono">${u[0]}</td><td>${u[1]}</td>
+      <td class="numcell">${u[2] >= 1 ? u[2] + " GB" : (u[2]*1024).toFixed(0) + " MB"}</td>
+      <td>${u[3]}%</td><td>100% / 0%</td>
+      <td><span class="mini"><i data-w="${(u[2]/maxGB*100).toFixed(1)}"></i></span></td></tr>`).join("");
+
+  /* ===== Reveal-on-scroll + trigger animations ===== */
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add("in");
+    e.target.querySelectorAll(".num[data-count]").forEach(countUp);
+    e.target.querySelectorAll(".fill,.mini i").forEach(f => setTimeout(() => f.style.width = f.dataset.w + "%", 150));
+    e.target.querySelectorAll(".seg").forEach(s => setTimeout(() => s.style.strokeDasharray = s.dataset.da, 200));
+    io.unobserve(e.target);
+  }), {threshold:.15});
+  document.querySelectorAll(".reveal").forEach(el => io.observe(el));
+});
+</script>
+</body>
+</html>

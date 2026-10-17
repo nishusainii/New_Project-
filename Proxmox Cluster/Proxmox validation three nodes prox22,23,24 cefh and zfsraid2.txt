@@ -1,0 +1,840 @@
+
+
+1. Work Summary
+Validated the three-node Proxmox cluster and confirmed quorum.
+Verified Ceph health, MON quorum, MGR availability, OSD state, PG state, capacity, utilization, and latency indicators.
+Validated node-local seven-disk ZFS RAIDZ2 pools.
+Generated production audit PDF reports for Proxmox, Ceph, and ZFS validation.
+Created Ubuntu Server test VM 9001 on Ceph storage.
+Successfully tested live migration of VM 9001 across all three Proxmox nodes.
+Added VM 9001 to Proxmox HA and tested HA-managed migration.
+Created test VM 9002 for ZFS RAIDZ2 storage testing.
+Tested controlled offline ZFS-to-ZFS VM migration.
+Standardized the local ZFS pools to the common name zfs-ha.
+Created a common Proxmox storage ID for local ZFS replication.
+Configured and validated Proxmox ZFS replication for VM 9002.
+Added VM 9002 to Proxmox HA.
+Prepared a production script for controlled three-node ZFS HA migration.
+Did not perform physical node shutdown, fencing, or unexpected node-loss simulation.
+2. Proxmox Cluster Validation
+Commands used
+pvecm status
+
+pvecm nodes
+
+systemctl is-active pve-cluster
+systemctl is-active corosync
+
+journalctl -u corosync \
+  --since "24 hours ago" \
+  --priority warning
+
+pveversion -v
+
+timedatectl show \
+  --property=Timezone \
+  --property=NTPSynchronized
+
+df -h /
+
+Confirmed results
+Cluster name: cisai-pve
+Cluster nodes: prox22, prox23, prox24
+Expected votes: 3
+Total votes: 3
+Quorum requirement: 2
+Cluster status: Quorate: Yes
+pve-cluster: active
+corosync: active
+Recent Corosync warnings/errors: none
+Time synchronization: enabled
+Root filesystem utilization: approximately 10%
+3. Ceph Cluster Validation
+Commands used
+ceph -s
+
+ceph health
+
+ceph health detail
+
+ceph quorum_status -f json-pretty
+
+ceph mgr dump -f json-pretty
+
+ceph osd tree
+
+ceph osd df tree
+
+ceph osd perf
+
+ceph df detail
+
+pvesm status
+
+Confirmed results
+Ceph health: HEALTH_OK
+MON daemons: 3
+MON quorum members:
+prox24
+prox22
+prox23
+Active MGR: prox23
+Standby MGRs: prox24, prox22
+OSDs: 12 total
+OSDs up: 12
+OSDs in: 12
+OSD distribution: 4 per node
+Placement groups: 33
+PG state: active+clean
+Raw Ceph capacity: approximately 218 TiB
+Ceph RBD storage ID: ceph
+Ceph storage status: active
+4. Ceph RADOS Benchmark Testing
+Dedicated test-pool commands
+ceph osd pool create "$TEST_POOL" 32
+
+ceph osd pool application enable "$TEST_POOL" rados
+
+Write benchmark
+rados --pool "$TEST_POOL" \
+  bench 60 write \
+  --no-cleanup \
+  --concurrent-ios 16 \
+  --show-time
+
+Sequential-read benchmark
+rados --pool "$TEST_POOL" \
+  bench 60 seq \
+  --concurrent-ios 16 \
+  --show-time
+
+Random-read benchmark
+rados --pool "$TEST_POOL" \
+  bench 60 rand \
+  --concurrent-ios 16 \
+  --show-time
+
+Object-integrity verification
+printf 'Ceph validation %s\n' \
+  "$(date --iso-8601=seconds)" \
+  > /root/ceph-validation.txt
+
+rados --pool "$TEST_POOL" \
+  put validation-object \
+  /root/ceph-validation.txt
+
+rados --pool "$TEST_POOL" \
+  get validation-object \
+  /root/ceph-validation-readback.txt
+
+cmp \
+  /root/ceph-validation.txt \
+  /root/ceph-validation-readback.txt
+
+sha256sum \
+  /root/ceph-validation.txt \
+  /root/ceph-validation-readback.txt
+
+Cleanup
+rados --pool "$TEST_POOL" cleanup
+
+rados --pool "$TEST_POOL" \
+  rm validation-object
+
+ceph osd pool delete \
+  "$TEST_POOL" \
+  "$TEST_POOL" \
+  --yes-i-really-really-mean-it
+
+Confirmed result
+Ceph write benchmark: completed
+Sequential-read benchmark: completed
+Random-read benchmark: completed
+Object write/read comparison: successful
+SHA-256 verification: matching
+Ceph remained HEALTH_OK
+Temporary benchmark pools: removed
+Mandatory benchmark checks: passed
+5. Initial ZFS RAIDZ2 Validation
+
+The original pools were:
+
+prox22: local-zfs-prox22
+prox23: local-zfs-prox23
+prox24: local-zfs-prox24
+
+Pool-health commands
+zpool status -v local-zfs-prox22
+
+zpool status -v local-zfs-prox23
+
+zpool status -v local-zfs-prox24
+
+Capacity and dataset commands
+zpool list \
+  -o name,size,alloc,free,cap,frag,dedup,health
+
+zfs list -r \
+  -o name,used,avail,refer,mountpoint
+
+I/O monitoring
+zpool iostat -vly local-zfs-prox24 2
+
+Scrub commands
+zpool scrub local-zfs-prox24
+
+watch -n 10 \
+  'zpool status local-zfs-prox24'
+
+SMART validation
+smartctl -H -A /dev/sde1
+smartctl -H -A /dev/sdf1
+smartctl -H -A /dev/sdg1
+smartctl -H -A /dev/sdh1
+smartctl -H -A /dev/sdi1
+smartctl -H -A /dev/sdj1
+smartctl -H -A /dev/sdk1
+
+Confirmed ZFS results
+RAID level: RAIDZ2
+Member disks per pool: 7
+Pool state: ONLINE
+Member-disk state: ONLINE
+READ errors: 0
+WRITE errors: 0
+CKSUM errors: 0
+Known data errors: none
+Fragmentation: 0%
+SMART health: OK
+Grown defect list: 0
+Compression: lz4
+Sector alignment: ashift=12
+6. ZFS Validation Script Corrections
+Property-name correction
+
+Incorrect property:
+
+logicalrefer
+
+
+Correct property:
+
+logicalreferenced
+
+Commands used
+sudo sed -i \
+  's/logicalrefer,/logicalreferenced,/' \
+  /usr/local/sbin/zfs-raidz2-complete-production-test
+
+sudo sed -i \
+  's/VERSION="2.0"/VERSION="2.1"/' \
+  /usr/local/sbin/zfs-raidz2-complete-production-test
+
+sudo bash -n \
+  /usr/local/sbin/zfs-raidz2-complete-production-test
+
+Error-counter parsing correction
+
+The script was updated to use tab-separated fields:
+
+IFS=$'\t' read -r \
+  READ_ERR WRITE_ERR CKSUM_ERR \
+  <<< "$ERROR_SUM"
+
+Validation command
+sudo /usr/local/sbin/zfs-raidz2-complete-production-test \
+  --pool local-zfs-prox22 \
+  --expected-disks 7
+
+
+Equivalent commands were used for prox23 and prox24.
+
+7. Combined ZFS Report Creation
+Commands used
+cd /var/log/zfs-validation
+
+{
+  echo "ZFS RAIDZ2 COMBINED VALIDATION REPORT"
+  echo "Node: $(hostname)"
+  echo "Generated: $(date --iso-8601=seconds)"
+  echo "============================================================"
+
+  for file in zfs_raidz2_complete_prox24_*.log; do
+    echo
+    echo "############################################################"
+    echo "SOURCE FILE: $file"
+    echo "############################################################"
+    cat "$file"
+  done
+} > zfs_raidz2_combined_prox24.log
+
+sha256sum zfs_raidz2_combined_prox24.log \
+  | tee zfs_raidz2_combined_prox24.log.sha256
+
+
+Similar combined reports were created for prox22 and prox23.
+
+8. Ubuntu ISO Inventory
+Commands used
+pvesm status
+
+pvesm list local --content iso
+
+ISO identified
+local:iso/ubuntu-22.04.4-live-server-amd64.iso
+
+Variables used
+ISO_STORAGE="local"
+ISO_FILE="ubuntu-22.04.4-live-server-amd64.iso"
+ISO="${ISO_STORAGE}:iso/${ISO_FILE}"
+
+ISO verification
+pvesm path "$ISO"
+
+9. Ceph Test VM 9001 Creation
+VM parameters
+VMID=9001
+VMNAME="ha-test-ceph-ubuntu2204"
+
+VM creation command
+qm create "$VMID" \
+  --name "$VMNAME" \
+  --description "Ubuntu 22.04 Ceph HA validation VM" \
+  --ostype l26 \
+  --machine q35 \
+  --bios ovmf \
+  --cpu host \
+  --sockets 1 \
+  --cores 2 \
+  --memory 4096 \
+  --balloon 2048 \
+  --scsihw virtio-scsi-single \
+  --scsi0 ceph:32,discard=on,iothread=1 \
+  --efidisk0 ceph:1,efitype=4m,pre-enrolled-keys=1 \
+  --ide2 "$ISO",media=cdrom \
+  --net0 virtio,bridge=vmbr0,firewall=1 \
+  --agent enabled=1,fstrim_cloned_disks=1 \
+  --boot order=ide2\;scsi0 \
+  --onboot 0
+
+VM verification
+qm config 9001
+
+qm start 9001
+
+qm status 9001
+
+ISO removal after installation
+qm stop 9001
+
+qm set 9001 \
+  --ide2 none,media=cdrom
+
+qm set 9001 \
+  --boot order=scsi0
+
+qm start 9001
+
+10. Guest-Level Continuity Test
+
+Commands used inside Ubuntu VM:
+
+sudo mkdir -p /var/lib/ha-validation
+
+printf 'VM=%s\nStorage=Ceph\nCreated=%s\n' \
+  "$(hostname)" \
+  "$(date --iso-8601=seconds)" |
+sudo tee /var/lib/ha-validation/continuity.txt
+
+cd /var/lib/ha-validation
+
+sudo sha256sum continuity.txt |
+sudo tee continuity.sha256
+
+sudo sha256sum -c continuity.sha256
+
+
+Expected result:
+
+continuity.txt: OK
+
+11. VM 9001 Standard Ceph Live Migration
+Migration commands used
+qm migrate 9001 prox23 --online 1
+
+qm migrate 9001 prox22 --online 1
+
+qm migrate 9001 prox24 --online 1
+
+Completed route
+prox24 -> prox23 -> prox22 -> prox24
+
+Observed results
+Each migration completed successfully.
+Migration duration: approximately 16 seconds per migration.
+Average migration speed: approximately 411.7 MiB/s.
+Recorded downtime:
+prox24 to prox23: 9 ms
+prox23 to prox22: 11 ms
+prox22 to prox24: 13 ms
+Approximately 1.1 GiB of VM state transferred per migration.
+Conntrack-state migration warning was observed.
+VM remained operational at the Proxmox level.
+12. VM 9001 HA Registration and HA Migration
+Add VM to HA
+ha-manager add vm:9001 \
+  --state started \
+  --max_restart 1 \
+  --max_relocate 1
+
+Validate HA
+ha-manager config
+
+ha-manager status
+
+ha-manager status |
+grep 'vm:9001'
+
+HA migration commands
+ha-manager migrate vm:9001 prox23
+
+ha-manager migrate vm:9001 prox22
+
+ha-manager migrate vm:9001 prox24
+
+HA migration script command
+sudo /usr/local/sbin/proxmox-ceph-vm-live-migration-test \
+  --vmid 9001 \
+  --route prox24,prox23,prox22,prox24 \
+  --ceph-storage ceph \
+  --allow-ha-managed \
+  --execute
+
+Final result
+VM location : prox24
+PASS        : 36
+WARN        : 10
+FAIL        : 0
+OVERALL RESULT: PASS WITH WARNINGS
+
+Evidence
+/var/log/proxmox-ha-validation/vm9001_ceph_live_migration_20260905_115008.log
+
+e53fd8e3d60fb79869801e003f03fd0733f3d9d5206ec650bd6422e83774c530
+
+
+The warnings related to optional guest ping and HTTP checks not being configured.
+
+13. ZFS Test VM 9002 Creation and Integrity Testing
+VM parameters
+VMID=9002
+VMNAME="zfs-test-prox24-ubuntu2204"
+ZFS_STORAGE="local-zfs-prox24"
+
+VM storage verification
+qm config 9002 |
+grep -E '^(scsi|sata|virtio|efidisk|tpmstate)[0-9]+:'
+
+Guest-level 1 GiB test
+
+Commands used inside VM 9002:
+
+sudo mkdir -p /var/lib/zfs-vm-test
+
+sudo dd \
+  if=/dev/urandom \
+  of=/var/lib/zfs-vm-test/test-1g.bin \
+  bs=1M \
+  count=1024 \
+  conv=fsync \
+  status=progress
+
+cd /var/lib/zfs-vm-test
+
+sudo sha256sum test-1g.bin |
+sudo tee test-1g.sha256
+
+sudo sha256sum -c test-1g.sha256
+
+
+Expected result:
+
+test-1g.bin: OK
+
+Direct read test
+sudo dd \
+  if=/var/lib/zfs-vm-test/test-1g.bin \
+  of=/dev/null \
+  bs=1M \
+  iflag=direct \
+  status=progress
+
+14. Controlled ZFS-to-ZFS Migration
+Read-only validation command
+sudo /usr/local/sbin/proxmox-zfs-vm-migration-ha-readiness-test \
+  --vmid 9002 \
+  --source-node prox23 \
+  --target-node prox24 \
+  --source-storage local-zfs-prox23 \
+  --target-storage local-zfs-prox24
+
+Execution command
+sudo /usr/local/sbin/proxmox-zfs-vm-migration-ha-readiness-test \
+  --vmid 9002 \
+  --source-node prox23 \
+  --target-node prox24 \
+  --source-storage local-zfs-prox23 \
+  --target-storage local-zfs-prox24 \
+  --execute
+
+Confirmed result
+VM stopped cleanly.
+System disk transferred using ZFS send/receive.
+EFI disk transferred successfully.
+Approximately 4.42 GiB transferred.
+Migration duration: approximately 45 seconds.
+Destination volumes were imported successfully.
+VM restarted on prox24.
+Final VM state: running.
+Final VM storage: local-zfs-prox24.
+Mandatory checks: 26 passed.
+Failures: 0.
+Evidence
+/var/log/proxmox-zfs-vm-validation/vm9002_zfs_migration_prox23_to_prox24_20260905_130437.log
+
+81ece6ded27aecd81766d064c236e0b16a8b4fc96ede28d548c871211077aa79
+
+15. Standardization of ZFS Pool Names
+
+The node-specific ZFS pools were standardized to:
+
+zfs-ha
+
+Pool-health and dataset verification
+for node in prox22 prox23 prox24; do
+  echo "===== $node ====="
+
+  ssh root@"$node" '
+    zpool status -x zfs-ha
+    zfs list -r \
+      -o name,mountpoint,compression,atime \
+      zfs-ha
+  '
+done
+
+Confirmed common structure
+zfs-ha
+zfs-ha/pve
+
+
+Additional dataset observed:
+
+zfs-ha/zfs-ha
+
+
+This additional dataset requires retention or removal based on whether it contains data, snapshots, children, or clones.
+
+Dataset-property commands
+for node in prox22 prox23 prox24; do
+  ssh root@"$node" '
+    zfs set compression=lz4 zfs-ha/pve
+    zfs set checksum=on zfs-ha/pve
+    zfs set atime=off zfs-ha/pve
+    zfs set xattr=sa zfs-ha/pve
+    zfs set mountpoint=none zfs-ha/pve
+    zfs set sync=standard zfs-ha/pve
+  '
+done
+
+16. Common Proxmox ZFS Storage ID
+Common storage definition
+pvesm add zfspool zfs-ha \
+  --pool zfs-ha/pve \
+  --content images,rootdir \
+  --nodes prox22,prox23,prox24 \
+  --sparse 1
+
+
+The storage was intentionally configured as non-shared.
+
+Verification commands
+pvesm config zfs-ha
+
+for node in prox22 prox23 prox24; do
+  echo "===== $node ====="
+
+  pvesh get "/nodes/${node}/storage/zfs-ha/status" \
+    --output-format json-pretty
+done
+
+for node in prox22 prox23 prox24; do
+  echo -n "$node: "
+
+  ssh root@"$node" \
+    'zpool get -H -o value guid zfs-ha'
+done
+
+Confirmed status
+Storage ID: zfs-ha
+Pool path: zfs-ha/pve
+Nodes: prox22, prox23, prox24
+Storage type: zfspool
+Shared: no
+Active on all participating nodes
+Underlying pools are independent local pools
+17. Moving VM 9002 Between Ceph and zfs-ha
+Move system disk to ZFS
+qm move_disk 9002 scsi0 zfs-ha \
+  --delete 1
+
+Move EFI disk to ZFS
+qm move_disk 9002 efidisk0 zfs-ha \
+  --delete 1
+
+Verification
+qm config 9002 |
+grep -E '^(scsi0|efidisk0):'
+
+
+Expected:
+
+scsi0: zfs-ha:...
+efidisk0: zfs-ha:...
+
+ZFS volume verification
+zfs list -t volume \
+  -o name,used,refer,volsize,volblocksize |
+grep 'vm-9002-'
+
+18. Proxmox ZFS Replication Configuration
+Replication inventory
+pvesr list
+
+pvesr status
+
+Replication job identified
+Job ID: 9002-0
+Target: local/prox23
+Schedule: */30
+Enabled: yes
+
+Manual replication commands
+
+Initial execution:
+
+pvesr run --id 9002-0
+
+
+Verbose execution:
+
+pvesr run \
+  --id 9002-0 \
+  --verbose 1
+
+Confirmed replication result
+VM 9002 replicated while running.
+Replicated volumes:
+zfs-ha:vm-9002-disk-0
+zfs-ha:vm-9002-disk-1
+Incremental snapshot created.
+Approximately 1.38 MiB of changed VM-disk data transferred.
+Approximately 624 bytes of EFI changes transferred.
+Volumes imported successfully on the target.
+Previous replication snapshots removed.
+Replication completed without a reported error.
+19. Guest Replication Marker
+
+Commands used inside Ubuntu VM 9002:
+
+sudo mkdir -p /var/lib/ha-validation
+
+printf 'VM=%s\nTimestamp=%s\nTest=ZFS-HA-replication\n' \
+  "$(hostname)" \
+  "$(date --iso-8601=seconds)" |
+sudo tee /var/lib/ha-validation/replication-marker.txt
+
+cd /var/lib/ha-validation
+
+sudo sha256sum replication-marker.txt |
+sudo tee replication-marker.sha256
+
+sudo sha256sum -c replication-marker.sha256
+
+
+Expected result:
+
+replication-marker.txt: OK
+
+20. VM 9002 HA Configuration
+HA registration
+ha-manager add vm:9002 \
+  --state started \
+  --max_restart 1 \
+  --max_relocate 1
+
+HA validation
+ha-manager config |
+grep 'vm:9002'
+
+ha-manager status |
+grep 'vm:9002'
+
+Confirmed state
+service vm:9002 (prox24, started)
+
+
+This confirms VM 9002 is HA-managed and stable on prox24.
+
+21. Controlled ZFS HA Migration Commands
+Migration to prox23
+ha-manager migrate vm:9002 prox23
+
+Migration to prox22
+ha-manager migrate vm:9002 prox22
+
+Return to prox24
+ha-manager migrate vm:9002 prox24
+
+Monitoring command
+watch -n 2 '
+ha-manager status | grep "vm:9002"
+echo
+pvesh get /cluster/resources --type vm |
+grep -E "9002|zfs-test"
+'
+
+Status verification through cluster API
+pvesh get /nodes/prox23/qemu/9002/status/current \
+  --output-format json-pretty |
+grep -E '"status"|"qmpstatus"'
+
+VM disk verification through cluster API
+pvesh get /nodes/prox23/qemu/9002/config \
+  --output-format json-pretty |
+grep -E '"(scsi0|efidisk0)"'
+
+22. Three-Node ZFS HA Migration Script
+Installation
+sudo install -m 750 \
+  proxmox-zfs-ha-three-node-migration-test.sh \
+  /usr/local/sbin/proxmox-zfs-ha-three-node-migration-test
+
+Syntax validation
+sudo bash -n \
+  /usr/local/sbin/proxmox-zfs-ha-three-node-migration-test
+
+Read-only validation
+sudo /usr/local/sbin/proxmox-zfs-ha-three-node-migration-test \
+  --vmid 9002 \
+  --route prox24,prox23,prox22,prox24 \
+  --storage zfs-ha
+
+Full controlled execution
+sudo /usr/local/sbin/proxmox-zfs-ha-three-node-migration-test \
+  --vmid 9002 \
+  --route prox24,prox23,prox22,prox24 \
+  --storage zfs-ha \
+  --execute
+
+With guest ping validation
+sudo /usr/local/sbin/proxmox-zfs-ha-three-node-migration-test \
+  --vmid 9002 \
+  --route prox24,prox23,prox22,prox24 \
+  --storage zfs-ha \
+  --ping-ip <VM-IP> \
+  --execute
+
+23. Audit Reports Created
+
+The following production audit reports were created:
+
+Proxmox cluster validation audit report
+Ceph production benchmark audit report
+ZFS RAIDZ2 production audit report
+Combined Proxmox, Ceph, and ZFS infrastructure audit report
+
+The reports included:
+
+Executive summary
+Technical evidence
+PASS/WARN/FAIL assessment
+Storage-health analysis
+Replication and migration evidence
+Open test scope
+Evidence traceability
+Sign-off fields
+Source-log checksums
+24. Final Status
+Proxmox cluster
+Status: PASS
+Quorum: Healthy
+Nodes: 3
+Core services: Active
+
+Ceph
+Status: PASS
+Health: HEALTH_OK
+OSDs: 12 up, 12 in
+PGs: active+clean
+Ceph benchmark: Passed
+Ceph HA VM migration: Passed
+
+ZFS RAIDZ2
+Status: PASS
+Common pool name: zfs-ha
+Pools healthy: prox22, prox23, prox24
+Replication: Working
+Controlled ZFS migration: Passed
+VM 9002 HA registration: Completed
+
+Open test scope
+Three-node controlled ZFS HA route:
+Script prepared; full final script output should be retained after execution.
+
+Unexpected node-loss recovery:
+Not tested.
+
+Physical power-off test:
+Not tested.
+
+Fencing recovery:
+Not tested.
+
+Guest network continuity:
+Not tested where no VM IP was supplied.
+
+25. Evidence Locations
+Proxmox validation
+/var/log/proxmox-validation/
+
+Ceph benchmark
+/var/log/ceph-benchmark/
+
+ZFS RAIDZ2 validation
+/var/log/zfs-validation/
+
+Ceph VM HA migration
+/var/log/proxmox-ha-validation/
+
+ZFS VM migration
+/var/log/proxmox-zfs-vm-validation/
+
+Three-node ZFS HA validation
+/var/log/proxmox-zfs-ha-validation/
+
+26. Overall Daily Result
+
+Overall result: Successful with remaining disruptive tests excluded
+
+The three-node Proxmox cluster, Ceph storage, ZFS RAIDZ2 storage, Ceph-backed VM migration, controlled ZFS storage migration, common ZFS storage configuration, ZFS replication, and HA resource configuration were validated within the tested scope.
+
+No confirmed infrastructure failure was recorded.
+
+The only remaining high-risk activity is unexpected physical node-loss and fencing recovery testing. That test should be performed separately using VM 9002, confirmed replication to all eligible target nodes, verified watchdog/fencing, out-of-band access, and a documented rollback procedure.
+
+Report quality improvements
+Organized the work into audit-ready technical sections.
+Separated successful tests from untested disruptive scenarios.
+Preserved the commands used for reproducibility.
+Included VM IDs, storage IDs, routes, log paths, and checksums.
+Distinguished Ceph shared-storage HA from ZFS replication-based HA.

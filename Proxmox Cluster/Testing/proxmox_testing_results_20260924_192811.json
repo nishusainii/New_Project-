@@ -1,0 +1,47 @@
+{
+  "cluster_name": "cisai-pve",
+  "nodes": {
+    "prox22": {
+      "id": "2",
+      "mgmt_ip": "10.31.6.172",
+      "cluster_ip": "192.168.10.22",
+      "bmc_ip": "10.31.5.78",
+      "role": "CRM Master Leader",
+      "is_leader": true
+    },
+    "prox23": {
+      "id": "3",
+      "mgmt_ip": "10.31.6.173",
+      "cluster_ip": "192.168.10.23",
+      "bmc_ip": "10.31.5.61",
+      "role": "Member Node",
+      "is_leader": false
+    },
+    "prox24": {
+      "id": "1",
+      "mgmt_ip": "10.31.6.174",
+      "cluster_ip": "192.168.10.24",
+      "bmc_ip": "10.31.5.62",
+      "role": "Member Node",
+      "is_leader": false
+    }
+  },
+  "execution_date": "2026-09-24 19:28:11",
+  "total_tests": 1,
+  "passed": 1,
+  "warned": 0,
+  "failed": 0,
+  "results": [
+    {
+      "tc_id": "PRE-01",
+      "title": "Cluster Baseline Pre-Flight Health Audit",
+      "category": "Pre-Flight",
+      "target_node": "prox22",
+      "status": "PASS",
+      "duration_sec": 7.44,
+      "timestamp": "2026-09-24 19:28:11",
+      "physical_action": null,
+      "details": "=== Corosync Quorum Check (prox22) ===\nCluster information\n-------------------\nName:             cisai-pve\nConfig Version:   4\nTransport:        knet\nSecure auth:      on\n\nQuorum information\n------------------\nDate:             Thu Sep 24 19:28:04 2026\nQuorum provider:  corosync_votequorum\nNodes:            3\nNode ID:          0x00000002\nRing ID:          1.c7\nQuorate:          Yes\n\nVotequorum information\n----------------------\nExpected votes:   3\nHighest expected: 3\nTotal votes:      3\nQuorum:           2  \nFlags:            Quorate \n\nMembership information\n----------------------\n    Nodeid      Votes Name\n0x00000001          1 10.31.6.174\n0x00000002          1 10.31.6.172 (local)\n0x00000003          1 10.31.6.173\n\n=== Ceph Storage Health ===\ncluster:\n    id:     bcddd50d-c91b-4f6c-b255-19c78e15564f\n    health: HEALTH_OK\n \n  services:\n    mon: 3 daemons, quorum prox24,prox23,prox22 (age 2h) [leader: prox24]\n    mgr: prox24(active, since 2h), standbys: prox23, prox22\n    osd: 12 osds: 12 up (since 2h), 12 in (since 2h)\n \n  data:\n    pools:   2 pools, 33 pgs\n    objects: 2.40k objects, 9.0 GiB\n    usage:   28 GiB used, 218 TiB / 218 TiB avail\n    pgs:     33 active+clean\n \n  io:\n    client:   2.3 KiB/s wr, 0 op/s rd, 0 op/s wr\n\n=== Proxmox HA Manager State ===\nquorum OK\nmaster prox23 (active, Thu Sep 24 19:28:02 2026)\nfencing armed (CRM watchdog active)\nlrm prox22 (active, watchdog active, Thu Sep 24 19:27:56 2026)\nlrm prox23 (active, watchdog active, Thu Sep 24 19:28:04 2026)\nlrm prox24 (active, watchdog active, Thu Sep 24 19:27:56 2026)\nservice vm:9001 (prox22, started)\nservice vm:9002 (prox24, started)\nservice vm:9003 (prox22, started)\nservice vm:9004 (prox23, started)\n\n=== 10G DAC Fabric Ping Matrix ===\nprox22 -> prox23 (192.168.10.23): OK\nprox22 -> prox24 (192.168.10.24): OK\nprox23 -> prox22 (192.168.10.22): OK\nprox23 -> prox24 (192.168.10.24): OK\nprox24 -> prox22 (192.168.10.22): OK\nprox24 -> prox23 (192.168.10.23): OK\n\n=== Dedicated BMC IPMI Reachability ===\nprox22 BMC (10.31.5.78): REACHABLE\nprox23 BMC (10.31.5.61): REACHABLE\nprox24 BMC (10.31.5.62): REACHABLE\n"
+    }
+  ]
+}

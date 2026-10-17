@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# ============================================================
+#  sarg  — wrapper to install on the SERVER at:
+#              /usr/local/bin/sarg
+#
+#  Why:  plain `sudo sarg` will then AUTOMATICALLY deploy the
+#        CiSOI dashboard.  /usr/local/bin comes before /usr/bin
+#        in the default PATH (also in sudo's secure_path), so
+#        this script is found instead of the real sarg binary.
+#
+#  What it does:
+#     1. Runs the REAL sarg binary (/usr/bin/sarg) with all args.
+#     2. Deploys dashboard.html + logo into the newest report.
+#
+#  Install on server (one-time):
+#     sudo install -m 755 sarg /usr/local/bin/sarg
+#
+#  Adjust SARG_BIN / OUTPUT_DIR if yours differ.
+# ============================================================
+set -euo pipefail
+
+SARG_BIN="${SARG_BIN:-/usr/bin/sarg}"          # real sarg binary
+OUTPUT_DIR="${OUTPUT_DIR:-/var/www/sarg}"       # SARG output_dir root
+RUNNER="${RUNNER:-/var/www/sarg/run-sarg-dashboard.sh}"
+
+# 1) Run the real report generator with all original arguments
+rc=0
+"$SARG_BIN" "$@" || rc=$?
+if [[ "$rc" -ne 0 ]]; then
+    echo "sarg exited with code $rc" >&2
+    exit "$rc"
+fi
+
+# 2) Deploy the dashboard into the freshly generated report
+if [[ -x "$RUNNER" || -f "$RUNNER" ]]; then
+    OUTPUT_DIR="$OUTPUT_DIR" bash "$RUNNER" --deploy-only
+else
+    echo "dashboard runner not found at $RUNNER (skipping deploy)" >&2
+fi

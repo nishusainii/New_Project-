@@ -1,0 +1,9 @@
+SIEM stands for Security Information and Event Management. It is a software tool that collects log and security data from your entire network, cloud, and devices, analyzes the information in real time, and alerts teams to potential cyber threats.  
+Core Functions of a SIEM 
+
+• Log Collection: Gathers data from servers, firewalls, and endpoints into one central place. 
+• Normalization: Sorts and standardizes different log formats so they match. 
+• Event Correlation: Links separate events together to spot hidden attack patterns. 
+• Alerting: Warns security staff when suspicious behavior happens. 
+• Compliance: Creates reports to help pass audits and meet rules.
+

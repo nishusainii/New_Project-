@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Innspark Squid Management Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-body">
+  <div class="glow-sphere sphere-1"></div>
+  <div class="glow-sphere sphere-2"></div>
+  <div class="glow-sphere sphere-3"></div>
+
+  <div class="login-wrapper">
+    <div class="login-card glass-panel">
+      <div class="login-header">
+        <div class="brand-badge">
+          <div class="pulse-indicator online"></div>
+          <span>PRODUCTION NODE {{ server_ip }}</span>
+        </div>
+        <div class="logo-container">
+          <img src="/static/img/cisai_logo.png" alt="CiSai Logo" class="login-logo-img" />
+        </div>
+        <p class="login-sub">Squid Proxy Gateway Management Console</p>
+      </div>
+
+      {% if error %}
+      <div class="alert-box alert-danger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>{{ error }}</span>
+      </div>
+      {% endif %}
+
+      <form method="POST" action="/login" class="login-form">
+        <div class="form-group">
+          <label for="username">Administrator Username</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <input type="text" id="username" name="username" placeholder="Username" required autofocus autocomplete="username" value="admin">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Security Password</label>
+          <div class="input-wrapper">
+            <span class="input-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="btn-toggle-pass" id="btnTogglePass" title="Toggle password view">
+              <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit-login">
+          <span>Authenticate & Access Console</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </form>
+
+      <div class="login-footer">
+        <div class="security-meta">
+          <span class="dot-secure"></span>
+          <span>Zero-Disruption Production Guard Active</span>
+        </div>
+        <p class="copyright">© 2026 Innspark Solutions. All rights reserved.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const toggleBtn = document.getElementById('btnTogglePass');
+    const passInput = document.getElementById('password');
+    if (toggleBtn && passInput) {
+      toggleBtn.addEventListener('click', () => {
+        const isPass = passInput.getAttribute('type') === 'password';
+        passInput.setAttribute('type', isPass ? 'text' : 'password');
+        toggleBtn.style.color = isPass ? 'var(--cyan-neon)' : 'var(--text-muted)';
+      });
+    }
+  </script>
+</body>
+</html>

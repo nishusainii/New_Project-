@@ -1,0 +1,4 @@
+# Blacklisted Domains (Blocked)
+.tiktok.com
+.bet365.com
+.gambling.com

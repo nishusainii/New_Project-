@@ -1,0 +1,174 @@
+For Zabbix, the best practice is to create a dedicated read-only Proxmox user and API token, then use that token with the official**"Proxmox VE by HTTP"** template. The token allows Zabbix to query cluster, node, VM, container, and storage information through the Proxmox REST API without using a login password.
+
+Step 1: Create a Monitoring User in Proxmox
+
+In the Proxmox Web UI:
+
+Datacenter
+ └── Permissions
+      └── Users
+           └── Add
+
+
+Example:
+
+Username : zabbix-monitor
+Realm    : Proxmox VE authentication server (PVE)
+
+
+The Proxmox documentation and API-token guides recommend using a dedicated service account instead of root@pam for monitoring integrations.
+
+Step 2: Assign Read-Only Permissions
+
+For Zabbix monitoring, assign the built-in:
+
+PVEAuditor
+
+
+role at:
+
+/
+
+
+(path root)
+
+This role provides read access suitable for monitoring and is commonly used for the official Zabbix integration.
+
+GUI Method
+Datacenter
+ └── Permissions
+      └── Add
+
+
+Configure:
+
+Path : /
+User : zabbix-monitor@pve
+Role : PVEAuditor
+
+Step 3: Create an API Token
+
+Navigate to:
+
+Datacenter
+ └── Permissions
+      └── API Tokens
+
+
+Click Add and configure:
+
+User     : zabbix-monitor@pve
+Token ID : zabbix
+
+
+Example token identity:
+
+zabbix-monitor@pve!zabbix
+
+
+When you create the token, Proxmox displays a Token Secret only once. Save it immediately because it cannot be retrieved later.
+
+Step 4: Privilege Separation
+
+You will see:
+
+Privilege Separation
+
+Recommended
+
+For Zabbix, many administrators disable privilege separation because it is simpler:
+
+Privilege Separation = No
+
+
+Then the token inherits the user's permissions.
+
+If enabled:
+
+Privilege Separation = Yes
+
+
+You must grant ACL permissions directly to the token as well. The token's effective permissions are limited according to the ACLs assigned to it.
+
+Step 5: Test the Token
+
+From your Zabbix server:
+
+curl -k \
+-H "Authorization: PVEAPIToken=zabbix-monitor@pve!zabbix=YOUR_SECRET" \
+https://PVE-IP:8006/api2/json/cluster/status
+
+
+Expected response:
+
+{
+  "data": [...]
+}
+
+
+The Proxmox API documentation shows API-token authentication using the PVEAPIToken= authorization header.
+
+Step 6: Create the Zabbix Host
+
+In Zabbix:
+
+Data Collection
+ └── Hosts
+      └── Create Host
+
+
+Example:
+
+Host Name : Proxmox-Cluster
+Group     : Hypervisors
+
+Step 7: Attach the Official Template
+
+Attach:
+
+Proxmox VE by HTTP
+
+
+The official template supports API-based monitoring and automatic discovery of nodes, VMs, containers, and storage resources.
+
+Step 8: Configure Host Macros
+
+Set the template macros:
+
+{$PVE.URL.HOST}
+{$PVE.URL.PORT}
+{$PVE.TOKEN.ID}
+{$PVE.TOKEN.SECRET}
+
+
+Example:
+
+{$PVE.URL.HOST}=10.31.212.100
+{$PVE.URL.PORT}=8006
+
+{$PVE.TOKEN.ID}=zabbix-monitor@pve!zabbix
+{$PVE.TOKEN.SECRET}=xxxxxxxxxxxxxxxx
+
+
+The official Zabbix Proxmox integration documentation specifically states that the Token ID and Secret should be stored in these host macros.
+
+Recommended Setup for Your Environment
+
+Since you're running infrastructure services and likely have multiple Proxmox nodes:
+
+Proxmox Cluster
+├── pve01
+├── pve02
+├── pve03
+└── Zabbix Monitoring
+
+
+Use:
+
+✅ Proxmox API Token + Official HTTP Template
+ ✅ Zabbix Agent on each Proxmox node
+ ✅ ICMP checks between nodes
+ ✅ Storage monitoring (ZFS/Ceph if used)
+ ✅ Telegram/Email alerts for node failure, quorum loss, storage issues
+
+This gives both cluster-wide visibility via the API and deep OS-level visibility via agents.

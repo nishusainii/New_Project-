@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Proxmox VE Enterprise Cluster & Dual-Storage (Ceph + ZFS RAIDZ2) Implementation Handbook</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 1.0cm 1.0cm 0.9cm 1.0cm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #1e293b;
+      background: #ffffff;
+      line-height: 1.36;
+      font-size: 8.8pt;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    .page {
+      page-break-after: always;
+      position: relative;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    /* Header Banner */
+    .header-banner {
+      border-bottom: 2px solid #2563eb;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .header-banner h1 {
+      font-size: 14pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      line-height: 1.18;
+    }
+
+    .header-banner .subtitle {
+      font-size: 8.5pt;
+      color: #475569;
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 7.5pt;
+      color: #64748b;
+      line-height: 1.35;
+    }
+
+    .meta-box strong {
+      color: #0f172a;
+    }
+
+    .badge-doc {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 700;
+      font-size: 8pt;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Headings */
+    h2 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-left: 3px solid #2563eb;
+      padding-left: 6px;
+      margin-top: 8px;
+      margin-bottom: 3px;
+      page-break-after: avoid;
+    }
+
+    h3 {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #1e293b;
+      margin-top: 5px;
+      margin-bottom: 2px;
+      page-break-after: avoid;
+    }
+
+    p {
+      color: #334155;
+      margin-bottom: 4px;
+      font-size: 8pt;
+    }
+
+    ul, ol {
+      margin-left: 16px;
+      margin-bottom: 5px;
+      font-size: 8pt;
+      color: #334155;
+    }
+
+    li {
+      margin-bottom: 2px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      margin-bottom: 8px;
+      font-size: 7.2pt;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 3.5px 6px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 7.2pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.2pt;
+    }
+
+    /* Code Blocks */
+    .cmd-block {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin: 4px 0 6px 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.9pt;
+      line-height: 1.32;
+      page-break-inside: avoid;
+    }
+
+    .cmd-title {
+      color: #38bdf8;
+      font-weight: 700;
+      margin-bottom: 3px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 2px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 6.6pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .cmd-line {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .cmd-out {
+      color: #94a3b8;
+      white-space: pre-wrap;
+      margin-top: 1px;
+    }
+
+    .cmd-comment {
+      color: #64748b;
+      font-style: italic;
+    }
+
+    /* Alerts / Callouts */
+    .alert {
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin: 5px 0;
+      font-size: 7.4pt;
+      line-height: 1.32;
+      page-break-inside: avoid;
+    }
+
+    .alert-note {
+      background: #eff6ff;
+      border-left: 3.5px solid #3b82f6;
+      color: #1e3a8a;
+    }
+
+    .alert-important {
+      background: #f0fdf4;
+      border-left: 3.5px solid #22c55e;
+      color: #14532d;
+    }
+
+    .alert-warning {
+      background: #fffbeb;
+      border-left: 3.5px solid #f59e0b;
+      color: #78350f;
+    }
+
+    .alert-caution {
+      background: #fef2f2;
+      border-left: 3.5px solid #ef4444;
+      color: #7f1d1d;
+    }
+
+    .alert strong {
+      font-weight: 700;
+    }
+
+    /* Highlight badges */
+    .highlight-pass {
+      color: #166534;
+      font-weight: 700;
+      background: #dcfce7;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .highlight-warn {
+      color: #854d0e;
+      font-weight: 700;
+      background: #fef9c3;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .footer-note {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+      font-size: 7.2pt;
+      color: #94a3b8;
+    }
+
+    /* Architecture grid */
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 8px 0;
+    }
+
+    .arch-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      padding: 8px;
+    }
+
+    .arch-card-title {
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #2563eb;
+      margin-bottom: 4px;
+    }
+
+    .arch-card-body {
+      font-size: 7.5pt;
+      color: #475569;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+  <div class="page">
+    <div class="header-banner">
+      <div>
+        <span class="badge-doc">Enterprise Standard Operating Procedure (SOP)</span>
+        <h1>Proxmox VE Cluster & Dual-Storage Implementation Guide</h1>
+        <div class="subtitle">Complete Bare-Metal to 5-Node Scaled Production Deployment (Ceph + ZFS RAIDZ2 + HA)</div>
+      </div>
+      <div class="meta-box">
+        <div><strong>Document Version:</strong> 2.0-Enterprise</div>
+        <div><strong>Cluster Blueprint:</strong> 3 to 5 Physical Nodes</div>
+        <div><strong>Author:</strong> Infrastructure Engineering</div>
+        <div><strong>Release Date:</strong> September 18, 2026</div>
+      </div>
+    </div>
+
+    <h2>1. Executive Summary & 5-Node Architectural Blueprint</h2>
+    <p>
+      This handbook provides the authoritative, end-to-end engineering blueprint for deploying a high-performance, fault-tolerant enterprise virtualization infrastructure on Proxmox Virtual Environment (PVE 8/9). The architecture incorporates two distinct, complementary storage tiers running concurrently across Dell PowerEdge / AMD EPYC servers with 10G/25G optical fabrics:
+    </p>
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-card-title">Shared Tier: Ceph RBD</div>
+        <div class="arch-card-body">
+          • <strong>4 Disks / Node</strong> (20 OSDs across 5 nodes)<br>
+          • 3x distributed replication<br>
+          • Zero-downtime VM live migration<br>
+          • Automated self-healing & rebalancing
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-title">Local Tier: ZFS RAIDZ2</div>
+        <div class="arch-card-body">
+          • <strong>7 Disks / Node</strong> (RAIDZ2 per node)<br>
+          • Double disk-failure tolerance<br>
+          • Extreme direct NVMe/SAS throughput (4GB/s+)<br>
+          • Cross-node snapshot replication (<code>pvesr</code>)
+        </div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-title">High Availability (HA)</div>
+        <div class="arch-card-body">
+          • Hardware watchdog self-fencing<br>
+          • Active CRM Master & 5 active LRMs<br>
+          • Sub-minute VM automated failover<br>
+          • Dedicated redundant corosync links
+        </div>
+      </div>
+    </div>
+
+    <h2>2. Hardware Bill of Materials (BOM) & Drive Mapping (Per Server)</h2>
+    <p>
+      Each physical node in the 5-node cluster is provisioned identically with 12 enterprise SAS drives (18.2 TB / 20 TB nominal Seagate Exos X20) and a dedicated hardware RAID1 boot pair:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Slot / Drive ID</th>
+          <th>Model / Specs</th>
+          <th>Interface / Speed</th>
+          <th>Assigned Subsystem</th>
+          <th>Redundancy / Allocation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>sdm (PERC H755)</strong></td>
+          <td>2x 960GB Enterprise SATA SSD</td>
+          <td>Hardware RAID1 (BOSS/PERC)</td>
+          <td>Host OS / Proxmox VE</td>
+          <td>ext4 root / 32GB Swap / ISO Repository</td>
+        </tr>
+        <tr>
+          <td><strong>sda, sdb, sdc, sdd</strong></td>
+          <td>4x 18.2 TB Seagate Exos X20 SAS</td>
+          <td>12Gb/s SAS HBA Pass-through</td>
+          <td>Ceph Distributed Pool</td>
+          <td>4x Ceph OSDs (18.2 TB raw each; 3x Replica)</td>
+        </tr>
+        <tr>
+          <td><strong>sde, sdf, sdg, sdh, sdi, sdj, sdk</strong></td>
+          <td>7x 18.2 TB Seagate Exos X20 SAS</td>
+          <td>12Gb/s SAS HBA Pass-through</td>
+          <td>Local ZFS Pool (<code>zfs-ha</code>)</td>
+          <td>7-Disk RAIDZ2 (~91 TB usable; 2 parity disks)</td>
+        </tr>
+        <tr>
+          <td><strong>sdl</strong></td>
+          <td>1x 18.2 TB Seagate Exos X20 SAS</td>
+          <td>12Gb/s SAS HBA Pass-through</td>
+          <td>Global Hot Spare</td>
+          <td>Available for immediate ZFS/Ceph replacement</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>3. Network Architecture & 5-Node IP Allocation Scheme</h2>
+    <p>
+      The architecture implements strict network segmentation. Storage and migration traffic are isolated on dedicated 10G/25G optical interfaces (`nic3`) to prevent latency spikes on corosync heartbeat packets:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Node Name</th>
+          <th>Node ID</th>
+          <th>Management IP (vmbr0 - 1G)</th>
+          <th>Ceph & Migration IP (nic3 - 10G)</th>
+          <th>Corosync Link 0</th>
+          <th>Corosync Link 1</th>
+          <th>Cluster Role</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>prox21</strong></td>
+          <td>1</td>
+          <td class="mono">10.31.6.171/22</td>
+          <td class="mono">192.168.10.21/24</td>
+          <td>192.168.10.21 (Priority 1)</td>
+          <td>10.31.6.171 (Fallback)</td>
+          <td>Expansion Node</td>
+        </tr>
+        <tr>
+          <td><strong>prox22</strong></td>
+          <td>2</td>
+          <td class="mono">10.31.6.172/22</td>
+          <td class="mono">192.168.10.22/24</td>
+          <td>192.168.10.22 (Priority 1)</td>
+          <td>10.31.6.172 (Fallback)</td>
+          <td>Primary Leader / CRM Master</td>
+        </tr>
+        <tr>
+          <td><strong>prox23</strong></td>
+          <td>3</td>
+          <td class="mono">10.31.6.173/22</td>
+          <td class="mono">192.168.10.23/24</td>
+          <td>192.168.10.23 (Priority 1)</td>
+          <td>10.31.6.173 (Fallback)</td>
+          <td>Member Node / Ceph Mon</td>
+        </tr>
+        <tr>
+          <td><strong>prox24</strong></td>
+          <td>4</td>
+          <td class="mono">10.31.6.174/22</td>
+          <td class="mono">192.168.10.24/24</td>
+          <td>192.168.10.24 (Priority 1)</td>
+          <td>10.31.6.174 (Fallback)</td>
+          <td>Member Node / Ceph Mon</td>
+        </tr>
+        <tr>
+          <td><strong>prox25</strong></td>
+          <td>5</td>
+          <td class="mono">10.31.6.175/22</td>
+          <td class="mono">192.168.10.25/24</td>
+          <td>192.168.10.25 (Priority 1)</td>
+          <td>10.31.6.175 (Fallback)</td>
+          <td>Expansion Node</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 1 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page">
+    <h2>4. Phase 1: Bare-Metal Proxmox VE Installation & Hardening</h2>
+
+    <h3>Step 1.1: Server BIOS & Hardware RAID Configuration</h3>
+    <ol>
+      <li><strong>Boot Mode:</strong> Set System BIOS to <code>UEFI Mode</code>. Disable Legacy BIOS.</li>
+      <li><strong>Virtualization Flags:</strong> Enable <code>AMD-V</code>, <code>IOMMU (AMD-Vi)</code>, and <code>SR-IOV</code> in Processor Settings.</li>
+      <li><strong>RAID Controller Mode:</strong>
+        <ul>
+          <li>Configure PERC H755/H740P into <strong>HBA / Enhanced HBA Mode</strong> for drives <code>sda</code> through <code>sdl</code>. Raw SAS disks must be exposed directly to the OS without hardware RAID encapsulation.</li>
+          <li>Configure <code>sdm</code> as a Hardware RAID1 Virtual Disk consisting of two 960GB M.2/SATA SSDs for the Proxmox VE OS.</li>
+        </ul>
+      </li>
+    </ol>
+
+    <div class="alert alert-important">
+      <strong>CRITICAL SAS HBA SETTING:</strong> Never expose disks to ZFS or Ceph as individual RAID0 virtual disks. Disk cache and write barrier controls must be handled natively by the ZFS and Ceph BlueStore drivers to prevent data corruption during unexpected power events.
+    </div>
+
+    <h3>Step 1.2: Proxmox VE OS Installation</h3>
+    <ol>
+      <li>Boot the server via iDRAC Virtual Media with the official Proxmox VE 8.x / 9.x ISO.</li>
+      <li>Select <strong>Install Proxmox VE (Graphical)</strong>.</li>
+      <li><strong>Target Harddisk:</strong> Select <code>/dev/sdm</code> (PERC RAID1 OS volume). Click <em>Options</em> and verify: <code>filesystem: ext4</code>.</li>
+      <li><strong>Time & Keyboard:</strong> Country: <code>India</code>, Time Zone: <code>Asia/Kolkata</code>, Keyboard: <code>U.S. English</code>.</li>
+      <li><strong>Management Network:</strong>
+        <ul>
+          <li>Management Interface: <code>eno1</code> (Primary 1GbE onboard NIC)</li>
+          <li>Hostname: <code>prox22.cisai.local</code> (or appropriate node hostname)</li>
+          <li>IP Address: <code>10.31.6.172/22</code> | Gateway: <code>10.31.4.1</code> | DNS: <code>10.31.6.1</code></li>
+        </ul>
+      </li>
+      <li>Complete the installation and reboot the physical host.</li>
+    </ol>
+
+    <h3>Step 1.3: Network Interfaces Configuration (`/etc/network/interfaces`)</h3>
+    <p>
+      Edit <code>/etc/network/interfaces</code> on each server to define the primary bridge (<code>vmbr0</code>) and configure the 10GbE optical interface (<code>nic3</code>) with an MTU of 9000 (Jumbo Frames) for maximum Ceph and live migration throughput:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>File Configuration: /etc/network/interfaces</span><span>Target: prox22 (Adapt IP for each node)</span></div>
+      <div class="cmd-line">auto lo</div>
+      <div class="cmd-out">iface lo inet loopback
+
+iface eno1 inet manual
+
+auto vmbr0
+iface vmbr0 inet static
+	address 10.31.6.172/22
+	gateway 10.31.4.1
+	bridge-ports eno1
+	bridge-stp off
+	bridge-fd 0
+
+# 10G Optical Interconnect for Ceph & Corosync High-Speed Fabric
+auto nic3
+iface nic3 inet static
+	address 192.168.10.22/24
+	mtu 9000</div>
+      <div class="cmd-line"># Apply networking live without rebooting:</div>
+      <div class="cmd-line">$ ifreload -a && ip a show nic3</div>
+    </div>
+
+    <h3>Step 1.4: Base System Tuning, Chrony NTP & Repositories</h3>
+    <p>
+      Synchronize system clocks across all nodes (essential for Ceph and Corosync quorum) and enable the no-subscription enterprise package channels:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Repositories & Clock Synchronization</span><span>Execute on all nodes</span></div>
+      <div class="cmd-line"># 1. Disable enterprise repo and enable pve-no-subscription</div>
+      <div class="cmd-line">$ rm -f /etc/apt/sources.list.d/pve-enterprise.list</div>
+      <div class="cmd-line">$ echo "deb http://download.proxmox.com/debian/pve bookworm pve-no-subscription" > /etc/apt/sources.list.d/pve-no-sub.list</div>
+      <div class="cmd-line">$ apt update && apt install -y chrony ifupdown2 ethtool sysstat iotop jq</div>
+      <div class="cmd-line"># 2. Configure Chrony for ultra-low drift inter-node time sync</div>
+      <div class="cmd-line">$ echo "server 10.31.6.1 iburst" >> /etc/chrony/chrony.conf && systemctl restart chronyd</div>
+      <div class="cmd-line">$ chronyc tracking</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 2 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page">
+    <h2>5. Phase 2: Cluster Initialization & Multi-Node Join</h2>
+
+    <h3>Step 2.1: Initialize the Cluster on Leader (`prox22`)</h3>
+    <p>
+      Create the cluster on the designated leader node (<code>prox22</code>). Specify <code>link0</code> on the 10GbE network (<code>192.168.10.22</code>) for primary low-latency heartbeats, and <code>link1</code> on the 1GbE management network (<code>10.31.6.172</code>) for automatic failover:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Command: Cluster Creation with Redundant Corosync Links</span><span>Target: prox22</span></div>
+      <div class="cmd-line">$ pvecm create cisai-pve --link0 192.168.10.22 --link1 10.31.6.172</div>
+      <div class="cmd-line">$ pvecm status</div>
+      <div class="cmd-out">Quorum information
+------------------
+Date:             Fri Sep 18 16:30:00 2026
+Quorum provider:  corosync_votequorum
+Nodes:            1
+Node ID:          0x00000002
+Ring ID:          2.1
+Quorate:          Yes</div>
+    </div>
+
+    <h3>Step 2.2: Join Additional Nodes (`prox23`, `prox24`, `prox21`, `prox25`)</h3>
+    <p>
+      Execute the join command from each joining node pointing to the cluster leader IP. Explicitly map both network links:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Joining Cluster Nodes with Dual-Link Binding</span><span>Executed on target nodes</span></div>
+      <div class="cmd-comment"># Join prox23:</div>
+      <div class="cmd-line">prox23$ pvecm add 192.168.10.22 --link0 192.168.10.23 --link1 10.31.6.173</div>
+      <div class="cmd-comment"># Join prox24:</div>
+      <div class="cmd-line">prox24$ pvecm add 192.168.10.22 --link0 192.168.10.24 --link1 10.31.6.174</div>
+      <div class="cmd-comment"># When expanding to 5 nodes (prox21 & prox25):</div>
+      <div class="cmd-line">prox21$ pvecm add 192.168.10.22 --link0 192.168.10.21 --link1 10.31.6.171</div>
+      <div class="cmd-line">prox25$ pvecm add 192.168.10.22 --link0 192.168.10.25 --link1 10.31.6.175</div>
+    </div>
+
+    <h3>Step 2.3: Verify Corosync Quorum & Redundant Links</h3>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Verification Commands: Corosync Quorum & Node Health</span><span>Any Node</span></div>
+      <div class="cmd-line">$ pvecm status</div>
+      <div class="cmd-out">Nodes:            3 (or 5)
+Expected votes:   3 (or 5)
+Total votes:      3 (or 5)
+Quorum:           2 (or 3 for 5 nodes)
+Quorate:          Yes</div>
+      <div class="cmd-line">$ corosync-cfgtool -s</div>
+      <div class="cmd-out">LINK ID 0: addr = 192.168.10.x, status = ring 0 active with no faults
+LINK ID 1: addr = 10.31.6.x,     status = ring 1 active with no faults</div>
+    </div>
+
+    <div class="alert alert-note">
+      <strong>VOTEQUORUM DYNAMICS (3 vs 5 NODES):</strong> In a 3-node cluster, Quorum is maintained with <strong>2 votes</strong> (tolerates 1 node failure). In a 5-node cluster, Quorum is maintained with <strong>3 votes</strong> (tolerates 2 simultaneous node failures without losing cluster state or fencing).
+    </div>
+
+    <h2>6. Phase 3: Ceph Distributed Storage Implementation</h2>
+
+    <h3>Step 3.1: Install Ceph Packages & Initialize Cluster</h3>
+    <p>
+      Install Ceph Quincy/Squid/Tentacle natively on all nodes and bind Ceph daemons strictly to the high-speed 10G optical network (<code>192.168.10.0/24</code>):
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Ceph Installation & Subnet Initialization</span><span>Executed on prox22</span></div>
+      <div class="cmd-line"># 1. Install Ceph binaries across nodes</div>
+      <div class="cmd-line">$ pveceph install --version squid</div>
+      <div class="cmd-line"># 2. Initialize Ceph cluster with dedicated public & cluster network</div>
+      <div class="cmd-line">$ pveceph init --network 192.168.10.0/24 --cluster-network 192.168.10.0/24</div>
+    </div>
+
+    <h3>Step 3.2: Deploy Ceph Monitors & Managers</h3>
+    <p>
+      Deploy Ceph Monitors across an odd number of nodes (3 monitors for a 3-node cluster; 3 or 5 monitors for a 5-node cluster) to preserve consensus:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Monitor & Manager Provisioning</span><span>Executed from prox22</span></div>
+      <div class="cmd-line">$ pveceph mon create --mon-address 192.168.10.22</div>
+      <div class="cmd-line">$ pveceph mon create --mon-address 192.168.10.23</div>
+      <div class="cmd-line">$ pveceph mon create --mon-address 192.168.10.24</div>
+      <div class="cmd-line">$ pveceph mgr create</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 3 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page">
+    <h3>Step 3.3: Disk Discovery & OSD Creation (4 Disks per Node)</h3>
+    <p>
+      Create 4 OSDs per server using the 4 dedicated SAS drives. Always reference persistent <code>/dev/disk/by-id/</code> paths to guarantee consistent device binding across kernel updates and drive re-enumerations:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Identify WWN IDs & Create OSDs</span><span>Executed on each node</span></div>
+      <div class="cmd-line"># 1. Inspect SAS drives by ID</div>
+      <div class="cmd-line">$ ls -l /dev/disk/by-id/ | grep -E 'sd[a-d]$'</div>
+      <div class="cmd-line"># 2. Wipe any legacy partition tables</div>
+      <div class="cmd-line">$ for d in /dev/sda /dev/sdb /dev/sdc /dev/sdd; do wipefs -a $d; sgdisk --zap-all $d; done</div>
+      <div class="cmd-line"># 3. Create OSDs via PVE Ceph CLI</div>
+      <div class="cmd-line">$ pveceph osd create /dev/sda</div>
+      <div class="cmd-line">$ pveceph osd create /dev/sdb</div>
+      <div class="cmd-line">$ pveceph osd create /dev/sdc</div>
+      <div class="cmd-line">$ pveceph osd create /dev/sdd</div>
+    </div>
+
+    <h3>Step 3.4: Configure CRUSH Rules & Create 3x Replicated Pool</h3>
+    <p>
+      Create the primary shared RBD pool named <code>ceph</code> with a size of 3 (3x replica) and min_size of 2 (allows I/O when 1 copy is temporarily down):
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Ceph Pool Creation & PVE Datacenter Binding</span><span>Executed on prox22</span></div>
+      <div class="cmd-line"># Create pool with 3x replication (32 PGs for 12 OSDs, 64 PGs for 20 OSDs)</div>
+      <div class="cmd-line">$ pveceph pool create ceph --size 3 --min_size 2 --pg_num 32 --application rbd</div>
+      <div class="cmd-line"># Enable PG autoscaler for automated capacity rebalancing</div>
+      <div class="cmd-line">$ ceph osd pool set ceph pg_autoscale_mode on</div>
+      <div class="cmd-line"># Verify cluster status</div>
+      <div class="cmd-line">$ ceph -s</div>
+      <div class="cmd-out">cluster: bcddd50d...
+health:  HEALTH_OK
+services: mon: 3 daemons, mgr: active, osd: 12 osds: 12 up, 12 in (or 20 for 5 nodes)
+data:    pools: 2, pgs: 33 active+clean</div>
+    </div>
+
+    <h2>7. Phase 4: ZFS RAIDZ2 Storage Implementation (7 Disks/Node)</h2>
+
+    <h3>Step 4.1: Retrieve Persistent Disk Identifiers</h3>
+    <p>
+      Identify the exact <code>/dev/disk/by-id/</code> WWN paths for drives <code>sde</code> through <code>sdk</code>:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Command: Identifying 7 ZFS SAS Drives by Persistent ID</span><span>Target Node</span></div>
+      <div class="cmd-line">$ ls -l /dev/disk/by-id/ | grep -E 'sd[e-k]$' | awk '{print $9 " -> " $11}'</div>
+    </div>
+
+    <h3>Step 4.2: Create Enterprise ZFS RAIDZ2 Pool (`zfs-ha`)</h3>
+    <p>
+      Create the pool using 4K-aligned sectors (<code>ashift=12</code>), modern Zstandard compression, and POSIX extended attributes for maximum performance:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Command: Optimized ZFS RAIDZ2 Pool Creation</span><span>Executed on each node</span></div>
+      <div class="cmd-line">$ zpool create -f -o ashift=12 \
+    -O compression=zstd \
+    -O atime=off \
+    -O xattr=sa \
+    -O normalization=formD \
+    -O acltype=posixacl \
+    zfs-ha raidz2 /dev/sde /dev/sdf /dev/sdg /dev/sdh /dev/sdi /dev/sdj /dev/sdk</div>
+      <div class="cmd-line">$ zpool status zfs-ha</div>
+      <div class="cmd-out">  pool: zfs-ha
+ state: ONLINE
+ config:
+	NAME        STATE     READ WRITE CKSUM
+	zfs-ha      ONLINE       0     0     0
+	  raidz2-0  ONLINE       0     0     0
+	    sde     ONLINE       0     0     0
+	    sdf     ONLINE       0     0     0
+	    sdg     ONLINE       0     0     0
+	    sdh     ONLINE       0     0     0
+	    sdi     ONLINE       0     0     0
+	    sdj     ONLINE       0     0     0
+	    sdk     ONLINE       0     0     0
+errors: No known data errors</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 4 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 5 ==================== -->
+  <div class="page">
+    <h3>Step 4.3: ZFS ARC Memory Sizing for High-Core Nodes</h3>
+    <p>
+      By default, ZFS allocates up to 50% of host RAM for the Adaptive Replacement Cache (ARC). On servers hosting memory-intensive production VMs, cap the ARC to 32GB to prevent out-of-memory kernel panics:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Configuration: Limiting ZFS ARC Cache (/etc/modprobe.d/zfs.conf)</span><span>All Nodes</span></div>
+      <div class="cmd-line">$ cat << 'EOF' > /etc/modprobe.d/zfs.conf
+# Cap ZFS ARC to 32GB maximum, 8GB minimum
+options zfs zfs_arc_max=34359738368
+options zfs zfs_arc_min=8589934592
+EOF</div>
+      <div class="cmd-line">$ update-initramfs -u</div>
+    </div>
+
+    <h3>Step 4.4: Register ZFS Storage & Configure Automated Replication (`pvesr`)</h3>
+    <p>
+      Register the pool in <code>/etc/pve/storage.cfg</code> and configure scheduled incremental snapshot replication every 30 minutes for sub-30min RPO protection:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Datacenter Registration & Replication Job Configuration</span><span>Target: prox22</span></div>
+      <div class="cmd-line"># 1. Add pool to PVE cluster storage</div>
+      <div class="cmd-line">$ pvesm add zfspool zfs-ha --pool zfs-ha --content images,rootdir --sparse 1</div>
+      <div class="cmd-line"># 2. Configure replication job for VM 9002 to replica node every 30 mins</div>
+      <div class="cmd-line">$ pvesr create-job 9002-0 local/prox22 --schedule "*/30" --type local</div>
+      <div class="cmd-line">$ pvesr status</div>
+      <div class="cmd-out">JobID      Enabled    Target        LastSync             NextSync   Duration  FailCount State
+9002-0     Yes        local/prox22  2026-09-18_16:30:04  17:00:00   5.84s     0         OK</div>
+    </div>
+
+    <h2>8. Phase 5: High Availability (HA) & Live Migration</h2>
+
+    <h3>Step 5.1: Hardware Watchdog Configuration</h3>
+    <p>
+      Proxmox HA requires a hardware watchdog for self-fencing. If a node loses quorum or locks up, the hardware watchdog forcibly resets the node within 60 seconds so other nodes can safely recover its workloads:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Hardware Watchdog Activation</span><span>Executed on all nodes</span></div>
+      <div class="cmd-line"># 1. Load Linux softdog module (or ipmi_watchdog on Dell iDRAC)</div>
+      <div class="cmd-line">$ modprobe softdog</div>
+      <div class="cmd-line">$ echo "softdog" >> /etc/modules</div>
+      <div class="cmd-line"># 2. Verify watchdog active status</div>
+      <div class="cmd-line">$ systemctl restart pve-ha-crm pve-ha-lrm</div>
+      <div class="cmd-line">$ ha-manager status</div>
+      <div class="cmd-out">quorum OK
+master prox22 (active)
+fencing armed (CRM watchdog active)
+lrm prox22 (active, watchdog active)
+lrm prox23 (active, watchdog active)
+lrm prox24 (active, watchdog active)</div>
+    </div>
+
+    <h3>Step 5.2: Configure HA Groups for Priority-Based Failover</h3>
+    <p>
+      Define HA groups to dictate failover precedence across the 5 nodes:
+    </p>
+
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: HA Group Definition & VM Enrollment</span><span>Target: prox22</span></div>
+      <div class="cmd-line"># Create high-priority group for production database workloads</div>
+      <div class="cmd-line">$ ha-manager groupadd prod-group --nodes "prox22:100,prox23:80,prox24:60,prox21:40,prox25:20" --nofailback 1</div>
+      <div class="cmd-line"># Enroll VM 9001 (Ceph shared storage) into HA</div>
+      <div class="cmd-line">$ ha-manager add vm:9001 --group prod-group --max_restart 2 --max_relocate 2</div>
+    </div>
+
+    <h3>Step 5.3: Verify Zero-Downtime Live Migration over 10G</h3>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Command: Trigger Live Migration & Inspect QEMU Telemetry</span><span>Target: prox22</span></div>
+      <div class="cmd-line">$ ha-manager migrate vm:9001 prox23</div>
+      <div class="cmd-line">$ journalctl -u pve-ha-crm -n 15 --no-pager</div>
+      <div class="cmd-out">service 'vm:9001': state changed from 'started' to 'migrate' (target = prox23)
+migration downtime limit: 100 ms | transferred 726.4 MiB VM-state | average speed: 63.3 MiB/s
+migration finished successfully | downtime: 23 ms | status: started</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 5 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 6 ==================== -->
+  <div class="page">
+    <h2>9. Phase 6: Step-by-Step Blueprint: Expanding from 3 to 5 Nodes</h2>
+    <p>
+      Expanding a live 3-node cluster to 5 physical nodes (adding <code>prox21</code> and <code>prox25</code>) must be performed without interrupting existing VMs or degrading storage:
+    </p>
+
+    <h3>Stage 1: Prepare Hardware & Network on Nodes 4 and 5</h3>
+    <ol>
+      <li>Install Proxmox VE base OS on <code>/dev/sdm</code> of <code>prox21</code> and <code>prox25</code>.</li>
+      <li>Configure <code>vmbr0</code> (<code>10.31.6.171</code> and <code>10.31.6.175</code>) and <code>nic3</code> (<code>192.168.10.21</code> and <code>192.168.10.25</code> with MTU 9000).</li>
+      <li>Verify network reachability using <code>ping -c 5 192.168.10.22</code>.</li>
+    </ol>
+
+    <h3>Stage 2: Join Nodes to Live Cluster</h3>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Joining Nodes 4 and 5</span><span>Executed on prox21 & prox25</span></div>
+      <div class="cmd-line">prox21$ pvecm add 192.168.10.22 --link0 192.168.10.21 --link1 10.31.6.171</div>
+      <div class="cmd-line">prox25$ pvecm add 192.168.10.22 --link0 192.168.10.25 --link1 10.31.6.175</div>
+      <div class="cmd-line">prox22$ pvecm status   # Expected votes: 5, Quorum: 3</div>
+    </div>
+
+    <h3>Stage 3: Expand Ceph Storage (Add 8 OSDs to Reach 20 OSDs)</h3>
+    <ol>
+      <li>Install Ceph binaries on new nodes: <code>pveceph install --version squid</code></li>
+      <li>(Optional) Add Ceph Monitors on the new nodes if 5 monitors are desired:
+        <div class="cmd-line">$ pveceph mon create --mon-address 192.168.10.21</div>
+        <div class="cmd-line">$ pveceph mon create --mon-address 192.168.10.25</div>
+      </li>
+      <li>Initialize the 4 SAS drives on <code>prox21</code> and <code>prox25</code> as OSDs:
+        <div class="cmd-line">$ for d in /dev/sda /dev/sdb /dev/sdc /dev/sdd; do pveceph osd create $d; done</div>
+      </li>
+      <li>Ceph will automatically incorporate the 8 new OSDs and rebalance placement groups in the background.</li>
+    </ol>
+
+    <h3>Stage 4: Create ZFS RAIDZ2 Pool on New Nodes</h3>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Commands: Provision zfs-ha on New Nodes</span><span>Executed on prox21 & prox25</span></div>
+      <div class="cmd-line">$ zpool create -f -o ashift=12 -O compression=zstd -O atime=off -O xattr=sa zfs-ha raidz2 /dev/sde /dev/sdf /dev/sdg /dev/sdh /dev/sdi /dev/sdj /dev/sdk</div>
+    </div>
+
+    <h3>Stage 5: Update HA Groups</h3>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Shell Command: Expand HA Groups to 5 Nodes</span><span>Target: prox22</span></div>
+      <div class="cmd-line">$ ha-manager groupset prod-group --nodes "prox22:100,prox23:80,prox24:60,prox21:40,prox25:20"</div>
+    </div>
+
+    <h2>10. Phase 7: Real-World Troubleshooting & Disaster Recovery</h2>
+
+    <div class="alert alert-caution">
+      <strong>DISASTER RECOVERY RULE:</strong> Never power-cycle multiple nodes simultaneously. In an emergency, always check quorum first before attempting storage or VM operations.
+    </div>
+
+    <h3>Playbook A: Ceph OSD Failure & Drive Replacement</h3>
+    <p>
+      <strong>Symptom:</strong> <code>ceph -s</code> reports <code>HEALTH_WARN: 1 osds down</code>. Drive indicator light shows solid amber.
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Playbook: Replace Failed Ceph OSD (e.g., OSD.3)</span><span>Cluster Terminal</span></div>
+      <div class="cmd-line"># 1. Identify physical slot and WWN of failed OSD</div>
+      <div class="cmd-line">$ ceph osd find 3</div>
+      <div class="cmd-line"># 2. Stop and purge the failed OSD safely</div>
+      <div class="cmd-line">$ systemctl stop ceph-osd@3</div>
+      <div class="cmd-line">$ pveceph osd destroy 3 --cleanup 1</div>
+      <div class="cmd-line"># 3. Physically swap the drive with a new 20TB SAS drive</div>
+      <div class="cmd-line"># 4. Recreate the OSD on the new drive (e.g., /dev/sdb)</div>
+      <div class="cmd-line">$ pveceph osd create /dev/sdb</div>
+      <div class="cmd-line">$ ceph -s   # Monitor PG backfill until HEALTH_OK</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 6 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 7 ==================== -->
+  <div class="page">
+    <h3>Playbook B: Corosync Loss of Quorum & Emergency Split-Brain Recovery</h3>
+    <p>
+      <strong>Symptom:</strong> Commands like <code>qm start</code> or <code>pvecm status</code> fail with <code>Cluster not ready - no quorum? (500)</code>. Occurs if 2 nodes fail in a 3-node cluster, or 3 nodes fail in a 5-node cluster.
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Playbook: Emergency Single-Node Quorum Recovery</span><span>Surviving Node</span></div>
+      <div class="cmd-line"># 1. Force the surviving node to consider itself quorate (emergency override)</div>
+      <div class="cmd-line">$ pvecm expected 1</div>
+      <div class="cmd-line"># 2. Inspect Corosync daemon status</div>
+      <div class="cmd-line">$ systemctl status corosync</div>
+      <div class="cmd-line"># 3. Once other physical nodes are repaired and booted, reset expected votes back:</div>
+      <div class="cmd-line">$ pvecm expected 3   # (or 5 for 5-node cluster)</div>
+    </div>
+
+    <h3>Playbook C: ZFS RAIDZ2 Drive Degradation & Replacement</h3>
+    <p>
+      <strong>Symptom:</strong> <code>zpool status zfs-ha</code> reports <code>DEGRADED</code> with read/checksum errors on a drive (e.g., <code>/dev/sdg</code>).
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Playbook: Replace Failed Disk in ZFS RAIDZ2</span><span>Target Node</span></div>
+      <div class="cmd-line"># 1. Locate physical drive slot via perccli</div>
+      <div class="cmd-line">$ /usr/local/sbin/perccli64 /c0 /eall /sall show | grep -E 'Failed|Degraded|Offline'</div>
+      <div class="cmd-line"># 2. Offline the failed drive in ZFS</div>
+      <div class="cmd-line">$ zpool offline zfs-ha /dev/sdg</div>
+      <div class="cmd-line"># 3. Physically hot-swap the SAS drive</div>
+      <div class="cmd-line"># 4. Locate new drive identifier and trigger resilver</div>
+      <div class="cmd-line">$ zpool replace zfs-ha /dev/sdg /dev/disk/by-id/scsi-35000c500b...</div>
+      <div class="cmd-line">$ zpool status zfs-ha   # Verify resilver progress</div>
+    </div>
+
+    <h3>Playbook D: ZFS Replication (`pvesr`) Job Sync Failures</h3>
+    <p>
+      <strong>Symptom:</strong> <code>pvesr status</code> shows <code>FailCount: 1+</code> or snapshot lock errors.
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Playbook: Clear Replication Locks & Force Incremental Sync</span><span>Node Hosting VM</span></div>
+      <div class="cmd-line"># 1. Check replication log for specific failure reason</div>
+      <div class="cmd-line">$ pvesr log --id 9002-0</div>
+      <div class="cmd-line"># 2. If locked by stale process, destroy stale snapshot lock:</div>
+      <div class="cmd-line">$ qm unlock 9002</div>
+      <div class="cmd-line"># 3. Manually trigger synchronization job</div>
+      <div class="cmd-line">$ pvesr run --id 9002-0 -v</div>
+      <div class="cmd-line">$ pvesr status   # Verify State: OK</div>
+    </div>
+
+    <h3>Playbook E: 10G Optical Link Flapping & MTU Mismatch</h3>
+    <p>
+      <strong>Symptom:</strong> Ceph OSDs randomly drop or report high heartbeat latency. Live migration stalls at 99%.
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Playbook: Verify Jumbo Frames & Optical Signal Levels</span><span>Both Nodes</span></div>
+      <div class="cmd-line"># 1. Test 9000 MTU without fragmentation (-M do)</div>
+      <div class="cmd-line">$ ping -M do -s 8972 -c 5 192.168.10.23</div>
+      <div class="cmd-line"># 2. Inspect optical transceiver optical power (SFP+ DDM)</div>
+      <div class="cmd-line">$ ethtool -m nic3 | grep -E 'Receiver signal average optical power|Tx power'</div>
+      <div class="cmd-line"># 3. Inspect interface dropped packets / CRC errors</div>
+      <div class="cmd-line">$ ip -s link show nic3</div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 7 of 8</span>
+    </div>
+  </div>
+
+  <!-- ==================== PAGE 8 ==================== -->
+  <div class="page">
+    <h2>11. Phase 8: Daily Operational Cheat Sheet & Automation Script</h2>
+
+    <p>
+      Systems administrators can perform daily health audits across all subsystems using this consolidated command reference:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem</th>
+          <th>Inspection Command</th>
+          <th>Healthy Baseline Output</th>
+          <th>Action if Non-Compliant</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Corosync Quorum</strong></td>
+          <td><span class="mono">pvecm status</span></td>
+          <td><code>Quorate: Yes</code> (All 3 or 5 votes present)</td>
+          <td>Run <code>corosync-cfgtool -s</code> to check link failure</td>
+        </tr>
+        <tr>
+          <td><strong>Ceph Distributed Pool</strong></td>
+          <td><span class="mono">ceph -s</span></td>
+          <td><code>HEALTH_OK</code>, all OSDs up &amp; in, PGs active+clean</td>
+          <td>Run <code>ceph health detail</code> to isolate degraded PGs</td>
+        </tr>
+        <tr>
+          <td><strong>Ceph OSD Tree</strong></td>
+          <td><span class="mono">ceph osd tree</span></td>
+          <td>All OSD weights = 1.0, status = UP</td>
+          <td>Restart failed daemon: <code>systemctl restart ceph-osd@ID</code></td>
+        </tr>
+        <tr>
+          <td><strong>ZFS RAIDZ2 Pools</strong></td>
+          <td><span class="mono">zpool status zfs-ha</span></td>
+          <td><code>state: ONLINE</code>, 0 errors across 7 disks</td>
+          <td>Initiate scrub: <code>zpool scrub zfs-ha</code></td>
+        </tr>
+        <tr>
+          <td><strong>HA Manager & CRM</strong></td>
+          <td><span class="mono">ha-manager status</span></td>
+          <td><code>master prox22 (active)</code>, <code>fencing armed</code></td>
+          <td>Check journal: <code>journalctl -u pve-ha-crm -n 50</code></td>
+        </tr>
+        <tr>
+          <td><strong>ZFS Replication</strong></td>
+          <td><span class="mono">pvesr status</span></td>
+          <td><code>FailCount: 0</code>, <code>State: OK</code> on all jobs</td>
+          <td>Force sync: <code>pvesr run --id &lt;JOBID&gt; -v</code></td>
+        </tr>
+        <tr>
+          <td><strong>Network MTU / Latency</strong></td>
+          <td><span class="mono">ping -c 5 -i 0.2 192.168.10.x</span></td>
+          <td>0.0% loss, avg latency &lt; 0.10 ms</td>
+          <td>Verify switch port VLAN and optic seating</td>
+        </tr>
+        <tr>
+          <td><strong>Automated Test Suite</strong></td>
+          <td><span class="mono">python3 run_tests.py --all</span></td>
+          <td><code>OVERALL RESULT: ALL TESTS PASSED</code></td>
+          <td>Review generated report in <code>reports/</code> directory</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>12. Automated Validation Suite Execution</h2>
+    <p>
+      The integrated Python testing framework in this repository performs automated validation of all the above checks in under 90 seconds. To execute before maintenance windows or after cluster expansion:
+    </p>
+    <div class="cmd-block">
+      <div class="cmd-title"><span>Execution: Automated Multi-Node Test Suite</span><span>Workstation / Node</span></div>
+      <div class="cmd-line">$ cd "/home/nishusaini/Desktop/Innspark/Proxmox cluster testing"</div>
+      <div class="cmd-line">$ python3 run_tests.py --all</div>
+      <div class="cmd-out">>>> Running: CLUSTER Test Suite...       [PASS]
+>>> Running: NETWORK Test Suite...       [PASS]
+>>> Running: CEPH Test Suite...          [PASS]
+>>> Running: ZFS Test Suite...           [PASS]
+>>> Running: HA Test Suite...            [PASS]
+>>> Running: MIGRATION Test Suite...     [PASS]
+OVERALL RESULT: ALL TESTS PASSED SUCCESSFULLY!</div>
+    </div>
+
+    <h2>13. Engineering Approval & Document Sign-Off</h2>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px;">
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; font-size: 7.8pt;">
+        <strong>Document Author:</strong><br>
+        Infrastructure Engineering<br>
+        Innspark / CISAI Infrastructure Team<br>
+        Signature: _______________________
+      </div>
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; font-size: 7.8pt;">
+        <strong>Storage Architecture Review:</strong><br>
+        Ceph 20-OSD & ZFS RAIDZ2 Certified<br>
+        10G/25G Dual-Subnet Fabric<br>
+        Signature: _______________________
+      </div>
+      <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 10px; font-size: 7.8pt;">
+        <strong>Management Authorization:</strong><br>
+        [  ] Approved for Production<br>
+        [  ] Approved for Staging<br>
+        Signature: _______________________
+      </div>
+    </div>
+
+    <div class="footer-note">
+      <span>Proxmox VE Enterprise Cluster & Dual-Storage Implementation Handbook</span>
+      <span>Page 8 of 8</span>
+    </div>
+  </div>
+
+</body>
+</html>

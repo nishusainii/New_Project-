@@ -1,0 +1,312 @@
+Name: Nishu Saini
+Date: 21/09/2026
+Login Time: 09:20 AM
+Logout Time: 07:00 PM
+
+Today’s Work Summary
+
+09:21 AM to 11:00 AM
+
+Proxmox Cluster SDN Implementation
+
+Proxmox Cluster Nodes:
+
+prox22 (10.31.1.172)
+prox23 (10.31.1.173)
+prox24 (10.31.1.174)
+
+-Analyzed Proxmox cluster management and backend network architecture.
+-Mapped inter-node communication across three Proxmox cluster nodes.
+-Validated dedicated backend network connectivity using 192.168.10.0/24.
+-Researched Proxmox SDN design and deployment methodologies.
+-Designed a VXLAN-based Software Defined Network (SDN) overlay.
+-Created VXLAN Zone (myzone) for cluster-wide networking.
+-Configured UDP port 4789 for VXLAN encapsulation traffic.
+-Tuned MTU settings to accommodate VXLAN overhead.
+-Created VNet (vnet10) with VNI 10010.
+-Configured SDN subnet 10.10.10.0/24.
+-Implemented gateway configuration for SDN workloads.
+-Enabled SNAT for outbound internet access from SDN guests.
+-Applied cluster-wide SDN configuration synchronization.
+-Executed live SDN deployment without requiring physical switch modifications.
+-Connected virtual machine workloads to SDN virtual networks.
+-Verified VXLAN overlay connectivity and inter-node VM communication across the cluster.
+
+11:00 AM to 01:30 PM
+
+Proxmox SDN Documentation, Automation & Research
+
+-Evaluated Simple, VLAN, QinQ, VXLAN, and EVPN SDN zone types.
+-Reviewed functionality and architecture of Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).
+-Standardized Proxmox operational and CLI management procedures.
+-Automated Proxmox subscription notification suppression mechanism.
+-Prepared comprehensive SDN implementation documentation.
+-Created Proxmox SDN administration CLI reference guide.
+-Developed SDN deployment automation shell scripts.
+-Documented network topology, SDN hierarchy, and deployment procedures.
+
+
+1:30 PM to 2:10 PM 
+
+Lunch break.
+
+2:10 to 5:00 PM 
+
+Squid Proxy Management Portal Security Hardening & Deployment
+
+-Implemented brute-force login protection for the proxy management portal.
+-Added IP-based lockout mechanism for failed authentication attempts.
+-Migrated administrator authentication to PBKDF2-SHA256 password hashing.
+-Implemented secure session lifecycle and cookie protection mechanisms.
+-Protected 30+ application routes using centralized authentication controls.
+-Developed secure administrator password management functionality.
+-Automated Squid NCSA user creation, update, and deletion workflows.
+-Implemented dynamic ACL membership management using tag-based controls.
+-Developed CRUD operations for Squid ACL user groups.
+-Built categorized domain policy management functionality.
+-Added wildcard and regex support for domain filtering rules.
+-Automated client IP and subnet whitelist administration.
+-Developed Squid configuration parser for multi-port routing analysis.
+-Implemented real-time socket listener and service health monitoring.
+-Built live Squid log streaming, request-per-second (RPS) analytics, and SARG reporting tools.
+-Implemented safe configuration validation using squid -k parse before deployment.
+-Performed zero-downtime service reloads using squid -k reconfigure.
+-Developed universal deployment automation scripts for rapid onboarding of new proxy servers.
+-Successfully deployed and verified the hardened Squid Management Portal across four production proxy servers.
+
+Production Fleet Verification Status
+Node Identifier	    IP Address	   Service Port	Status	    Web Access URL
+Production Node 1	10.31.1.159	  5000	Active / Running	http://10.31.1.159:5000
+Production Node 2	10.31.88.24	  5000	Active / Running	http://10.31.88.24:5000
+Production Node 3	10.31.1.24	  5000	Active / Running	http://10.31.1.24:5000
+Production Node 4	10.31.212.14  5000	Active / Running	http://10.31.212.14:5000
+
+5:00 PM To 7:00 PM 
+
+Learning & Knowledge EnhancemName: Nishu Saini
+Date: 21/09/2026
+Login Time: 09:20 AM
+Logout Time: 07:00 PM'
+
+Today’s Work Summary
+
+09:21 AM to 11:00 AM
+
+Proxmox Cluster SDN Implementation
+
+Proxmox Cluster Nodes:
+
+prox22 (10.31.1.172)
+prox23 (10.31.1.173)
+prox24 (10.31.1.174)
+
+-Analyzed Proxmox cluster management and backend network architecture.
+-Mapped inter-node communication across three Proxmox cluster nodes.
+-Validated dedicated backend network connectivity using 192.168.10.0/24.
+-Researched Proxmox SDN design and deployment methodologies.
+-Designed a VXLAN-based Software Defined Network (SDN) overlay.
+-Created VXLAN Zone (myzone) for cluster-wide networking.
+-Configured UDP port 4789 for VXLAN encapsulation traffic.
+-Tuned MTU settings to accommodate VXLAN overhead.
+-Created VNet (vnet10) with VNI 10010.
+-Configured SDN subnet 10.10.10.0/24.
+-Implemented gateway configuration for SDN workloads.
+-Enabled SNAT for outbound internet access from SDN guests.
+-Applied cluster-wide SDN configuration synchronization.
+-Executed live SDN deployment without requiring physical switch modifications.
+-Connected virtual machine workloads to SDN virtual networks.
+-Verified VXLAN overlay connectivity and inter-node VM communication across the cluster.
+
+11:00 AM to 01:30 PM
+
+Proxmox SDN Documentation, Automation & Research
+
+-Evaluated Simple, VLAN, QinQ, VXLAN, and EVPN SDN zone types.
+-Reviewed functionality and architecture of Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).
+-Standardized Proxmox operational and CLI management procedures.
+-Automated Proxmox subscription notification suppression mechanism.
+-Prepared comprehensive SDN implementation documentation.
+-Created Proxmox SDN administration CLI reference guide.
+-Developed SDN deployment automation shell scripts.
+-Documented network topology, SDN hierarchy, and deployment procedures.
+
+
+1:30 PM to 2:10 PM 
+
+Lunch break.
+
+2:10 to 5:00 PM 
+
+Squid Proxy Management Portal Security Hardening & Deployment
+
+-Implemented brute-force login protection for the proxy management portal.
+-Added IP-based lockout mechanism for failed authentication attempts.
+-Migrated administrator authentication to PBKDF2-SHA256 password hashing.
+-Implemented secure session lifecycle and cookie protection mechanisms.
+-Protected 30+ application routes using centralized authentication controls.
+-Developed secure administrator password management functionality.
+-Automated Squid NCSA user creation, update, and deletion workflows.
+-Implemented dynamic ACL membership management using tag-based controls.
+-Developed CRUD operations for Squid ACL user groups.
+-Built categorized domain policy management functionality.
+-Added wildcard and regex support for domain filtering rules.
+-Automated client IP and subnet whitelist administration.
+-Developed Squid configuration parser for multi-port routing analysis.
+-Implemented real-time socket listener and service health monitoring.
+-Built live Squid log streaming, request-per-second (RPS) analytics, and SARG reporting tools.
+-Implemented safe configuration validation using squid -k parse before deployment.
+-Performed zero-downtime service reloads using squid -k reconfigure.
+-Developed universal deployment automation scripts for rapid onboarding of new proxy servers.
+-Successfully deployed and verified the hardened Squid Management Portal across four production proxy servers.
+
+Production Fleet Verification Status
+Node Identifier	    IP Address	   Service Port	Status	    Web Access URL
+Production Node 1	10.31.1.159	  5000	Active / Running	http://10.31.1.159:5000
+Production Node 2	10.31.88.24	  5000	Active / Running	http://10.31.88.24:5000
+Production Node 3	10.31.1.24	  5000	Active / Running	http://10.31.1.24:5000
+Production Node 4	10.31.212.14  5000	Active / Running	http://10.31.212.14:5000
+
+5:00 PM To 7:00 PM 
+
+Learning & Knowledge Enhancement
+
+-Studied Proxmox VE architecture and cluster networking concepts.
+Learned differences between Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).
+-Reviewed Software Defined Networking (SDN) architecture within Proxmox VE.
+-Evaluated SDN Zone types including Simple, VLAN, QinQ, VXLAN, and EVPN.
+-Studied VXLAN overlay networking and Layer-2 extension across cluster nodes.
+-Enhanced knowledge of enterprise-scale virtualization, networking, and software-defined infrastructure technologies.
+-Explored best practices for production SDN deployment and operational management.
+Strengthened understanding of Proxmox ecosystem integration and virtual network design.
+
+
+Key Achievement Summary
+
+-Successfully designed and deployed a production-ready VXLAN SDN overlay across a 3-node Proxmox cluster without requiring physical switch modifications.
+-Completed enterprise-grade security hardening, authentication improvements, ACL automation, and monitoring enhancements for the Squid Proxy Management Portal.
+-Achieved safe zero-downtime deployment and verification across four production proxy servers.
+-Delivered comprehensive documentation, CLI references, deployment automation scripts, monitoring tools, backup mechanisms, and disaster recovery capabilities.
+-Expanded technical expertise in Proxmox SDN, VXLAN networking, PVE/PBS/PMG ecosystem components, and enterprise virtualization infrastructure
+ent
+
+-Studied Proxmox VE architecture and cluster networking concepts.
+Learned differences between Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).Name: Nishu Saini
+Date: 21/09/2026
+Login Time: 09:20 AM
+Logout Time: 07:00 PM'
+
+Today’s Work Summary
+
+09:21 AM to 11:00 AM
+
+Proxmox Cluster SDN Implementation
+
+Proxmox Cluster Nodes:
+
+prox22 (10.31.1.172)
+prox23 (10.31.1.173)
+prox24 (10.31.1.174)
+
+-Analyzed Proxmox cluster management and backend network architecture.
+-Mapped inter-node communication across three Proxmox cluster nodes.
+-Validated dedicated backend network connectivity using 192.168.10.0/24.
+-Researched Proxmox SDN design and deployment methodologies.
+-Designed a VXLAN-based Software Defined Network (SDN) overlay.
+-Created VXLAN Zone (myzone) for cluster-wide networking.
+-Configured UDP port 4789 for VXLAN encapsulation traffic.
+-Tuned MTU settings to accommodate VXLAN overhead.
+-Created VNet (vnet10) with VNI 10010.
+-Configured SDN subnet 10.10.10.0/24.
+-Implemented gateway configuration for SDN workloads.
+-Enabled SNAT for outbound internet access from SDN guests.
+-Applied cluster-wide SDN configuration synchronization.
+-Executed live SDN deployment without requiring physical switch modifications.
+-Connected virtual machine workloads to SDN virtual networks.
+-Verified VXLAN overlay connectivity and inter-node VM communication across the cluster.
+
+11:00 AM to 01:30 PM
+
+Proxmox SDN Documentation, Automation & Research
+
+-Evaluated Simple, VLAN, QinQ, VXLAN, and EVPN SDN zone types.
+-Reviewed functionality and architecture of Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).
+-Standardized Proxmox operational and CLI management procedures.
+-Automated Proxmox subscription notification suppression mechanism.
+-Prepared comprehensive SDN implementation documentation.
+-Created Proxmox SDN administration CLI reference guide.
+-Developed SDN deployment automation shell scripts.
+-Documented network topology, SDN hierarchy, and deployment procedures.
+
+
+1:30 PM to 2:10 PM 
+
+Lunch break.
+
+2:10 to 5:00 PM 
+
+Squid Proxy Management Portal Security Hardening & Deployment
+
+-Implemented brute-force login protection for the proxy management portal.
+-Added IP-based lockout mechanism for failed authentication attempts.
+-Migrated administrator authentication to PBKDF2-SHA256 password hashing.
+-Implemented secure session lifecycle and cookie protection mechanisms.
+-Protected 30+ application routes using centralized authentication controls.
+-Developed secure administrator password management functionality.
+-Automated Squid NCSA user creation, update, and deletion workflows.
+-Implemented dynamic ACL membership management using tag-based controls.
+-Developed CRUD operations for Squid ACL user groups.
+-Built categorized domain policy management functionality.
+-Added wildcard and regex support for domain filtering rules.
+-Automated client IP and subnet whitelist administration.
+-Developed Squid configuration parser for multi-port routing analysis.
+-Implemented real-time socket listener and service health monitoring.
+-Built live Squid log streaming, request-per-second (RPS) analytics, and SARG reporting tools.
+-Implemented safe configuration validation using squid -k parse before deployment.
+-Performed zero-downtime service reloads using squid -k reconfigure.
+-Developed universal deployment automation scripts for rapid onboarding of new proxy servers.
+-Successfully deployed and verified the hardened Squid Management Portal across four production proxy servers.
+
+Production Fleet Verification Status
+Node Identifier	    IP Address	   Service Port	Status	    Web Access URL
+Production Node 1	10.31.1.159	  5000	Active / Running	http://10.31.1.159:5000
+Production Node 2	10.31.88.24	  5000	Active / Running	http://10.31.88.24:5000
+Production Node 3	10.31.1.24	  5000	Active / Running	http://10.31.1.24:5000
+Production Node 4	10.31.212.14  5000	Active / Running	http://10.31.212.14:5000
+
+5:00 PM To 7:00 PM 
+
+Learning & Knowledge Enhancement
+
+-Studied Proxmox VE architecture and cluster networking concepts.
+Learned differences between Proxmox VE (PVE), Proxmox Backup Server (PBS), and Proxmox Mail Gateway (PMG).
+-Reviewed Software Defined Networking (SDN) architecture within Proxmox VE.
+-Evaluated SDN Zone types including Simple, VLAN, QinQ, VXLAN, and EVPN.
+-Studied VXLAN overlay networking and Layer-2 extension across cluster nodes.
+-Enhanced knowledge of enterprise-scale virtualization, networking, and software-defined infrastructure technologies.
+-Explored best practices for production SDN deployment and operational management.
+Strengthened understanding of Proxmox ecosystem integration and virtual network design.
+
+
+Key Achievement Summary
+
+-Successfully designed and deployed a production-ready VXLAN SDN overlay across a 3-node Proxmox cluster without requiring physical switch modifications.
+-Completed enterprise-grade security hardening, authentication improvements, ACL automation, and monitoring enhancements for the Squid Proxy Management Portal.
+-Achieved safe zero-downtime deployment and verification across four production proxy servers.
+-Delivered comprehensive documentation, CLI references, deployment automation scripts, monitoring tools, backup mechanisms, and disaster recovery capabilities.
+-Expanded technical expertise in Proxmox SDN, VXLAN networking, PVE/PBS/PMG ecosystem components, and enterprise virtualization infrastructure
+
+-Reviewed Software Defined Networking (SDN) architecture within Proxmox VE.
+-Evaluated SDN Zone types including Simple, VLAN, QinQ, VXLAN, and EVPN.
+-Studied VXLAN overlay networking and Layer-2 extension across cluster nodes.
+-Enhanced knowledge of enterprise-scale virtualization, networking, and software-defined infrastructure technologies.
+-Explored best practices for production SDN deployment and operational management.
+Strengthened understanding of Proxmox ecosystem integration and virtual network design.
+
+
+Key Achievement Summary
+
+-Successfully designed and deployed a production-ready VXLAN SDN overlay across a 3-node Proxmox cluster without requiring physical switch modifications.
+-Completed enterprise-grade security hardening, authentication improvements, ACL automation, and monitoring enhancements for the Squid Proxy Management Portal.
+-Achieved safe zero-downtime deployment and verification across four production proxy servers.
+-Delivered comprehensive documentation, CLI references, deployment automation scripts, monitoring tools, backup mechanisms, and disaster recovery capabilities.
+-Expanded technical expertise in Proxmox SDN, VXLAN networking, PVE/PBS/PMG ecosystem components, and enterprise virtualization infrastructure

@@ -1,0 +1,987 @@
+Below is a **CLI-first implementation plan** for your existing three-node Proxmox cluster. It creates **12 Ceph OSDs across the cluster**, **one local seven-disk RAIDZ2 pool per server**, and leaves **one 18.2 TiB disk per server unused as a cold spare**.
+
+Proxmox documents Ceph deployment, ZFS storage, storage management and HA in its current administration guide. [[pve.proxmox.com]](https://pve.proxmox.com/pve-docs/), [[proxmox.com]](https://www.proxmox.com/en/downloads/proxmox-virtual-environment/documentation)
+
+> **Destructive-operation warning:** `sgdisk --zap-all`, `wipefs`, `ceph-volume lvm zap`, `zpool create` and `pveceph osd create` can destroy existing data. Never use `/dev/sdX` names without verifying the serial number. Use `/dev/disk/by-id/` paths and keep the Proxmox OS disks completely excluded.
+
+# 1. Final design
+
+Use the same allocation on each node:
+
+Node prox22:  
+
+4 disks -> Ceph OSDs  
+
+7 disks -> local RAIDZ2 pool  
+
+1 disk -> unused spare  
+
+  
+
+Node prox23:  
+
+4 disks -> Ceph OSDs  
+
+7 disks -> local RAIDZ2 pool  
+
+1 disk -> unused spare  
+
+  
+
+Node prox24:  
+
+4 disks -> Ceph OSDs  
+
+7 disks -> local RAIDZ2 pool  
+
+1 disk -> unused spare
+
+Cluster result:
+
+Ceph:  
+
+12 OSDs  
+
+4 OSDs per node  
+
+218.4 TiB raw  
+
+Approximately 72.8 TiB theoretical usable with size=3  
+
+  
+
+ZFS:  
+
+3 separate RAIDZ2 pools  
+
+7 disks per pool  
+
+Approximately 91 TiB theoretical usable per node  
+
+Approximately 273 TiB total across three local pools  
+
+  
+
+Spare:  
+
+1 unused disk per node  
+
+3 spare disks total
+
+The ZFS pools are **independent local storage**. They do not form one shared 273 TiB pool. Ceph is the shared cluster storage.
+
+# 2. Record the existing cluster state
+
+Run these commands from one cluster node:
+
+pvecm status  
+
+pvecm nodes  
+
+pveversion -v  
+
+pvesm status  
+
+ha-manager status  
+
+Confirm:
+
+- All three nodes are online
+- Cluster quorum is healthy
+- No node has an unexpected status
+- Existing HA resources are healthy
+- You know which disks hold Proxmox itself
+
+Store a pre-change report:
+
+mkdir -p /root/storage-deployment-backup  
+
+  
+
+REPORT="/root/storage-deployment-backup/precheck-$(date +%F-%H%M%S).txt"  
+
+  
+
+{  
+
+echo "=== DATE ==="  
+
+date  
+
+  
+
+echo "=== PVE VERSION ==="  
+
+pveversion -v  
+
+  
+
+echo "=== CLUSTER ==="  
+
+pvecm status  
+
+pvecm nodes  
+
+  
+
+echo "=== STORAGE ==="  
+
+pvesm status  
+
+  
+
+echo "=== HA ==="  
+
+ha-manager status  
+
+  
+
+echo "=== BLOCK DEVICES ==="  
+
+lsblk -e7 -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL,WWN  
+
+  
+
+echo "=== DISK BY-ID ==="  
+
+find -L /dev/disk/by-id -maxdepth 1 -type b -printf '%f -> %l\n' | sort  
+
+  
+
+echo "=== ZFS ==="  
+
+zpool status 2>&1 || true  
+
+  
+
+echo "=== CEPH ==="  
+
+ceph -s 2>&1 || true  
+
+} | tee "$REPORT"
+
+Back up important configuration:
+
+BACKUP="/root/storage-deployment-backup/config-$(date +%F-%H%M%S)"  
+
+  
+
+mkdir -p "$BACKUP"  
+
+  
+
+cp -a /etc/pve/storage.cfg "$BACKUP/"  
+
+cp -a /etc/pve/datacenter.cfg "$BACKUP/" 2>/dev/null || true  
+
+cp -a /etc/pve/ceph.conf "$BACKUP/" 2>/dev/null || true  
+
+cp -a /etc/network/interfaces "$BACKUP/" 2>/dev/null || true  
+
+cp -a /etc/hosts "$BACKUP/" 2>/dev/null || true
+
+# 3. Identify and label every disk
+
+Run this on **each node**:
+
+hostname  
+
+lsblk -e7 -d -o NAME,SIZE,MODEL,SERIAL,WWN
+
+Display persistent disk paths:
+
+for disk in /dev/disk/by-id/wwn-*; do  
+
+[ -b "$disk" ] || continue  
+
+printf '%-70s -> %s\n' "$disk" "$(readlink -f "$disk")"  
+
+done
+
+Check filesystems and existing signatures:
+
+lsblk -e7 -o NAME,SIZE,FSTYPE,FSVER,LABEL,UUID,MOUNTPOINTS,MODEL,SERIAL  
+
+blkid
+
+Create a disk allocation record for each node, for example:
+
+NODE: prox22  
+
+  
+
+Ceph:  
+
+CEPH01=/dev/disk/by-id/wwn-...  
+
+CEPH02=/dev/disk/by-id/wwn-...  
+
+CEPH03=/dev/disk/by-id/wwn-...  
+
+CEPH04=/dev/disk/by-id/wwn-...  
+
+  
+
+ZFS:  
+
+ZFS01=/dev/disk/by-id/wwn-...  
+
+ZFS02=/dev/disk/by-id/wwn-...  
+
+ZFS03=/dev/disk/by-id/wwn-...  
+
+ZFS04=/dev/disk/by-id/wwn-...  
+
+ZFS05=/dev/disk/by-id/wwn-...  
+
+ZFS06=/dev/disk/by-id/wwn-...  
+
+ZFS07=/dev/disk/by-id/wwn-...  
+
+  
+
+SPARE:  
+
+SPARE01=/dev/disk/by-id/wwn-...  
+
+`
+
+## Critical checks
+
+Do not select any disk returned by:
+
+findmnt -no SOURCE /  
+
+findmnt -no SOURCE /boot 2>/dev/null  
+
+findmnt -no SOURCE /boot/efi 2>/dev/null  
+
+pvs  
+
+vgs  
+
+lvs  
+
+zpool status -P  
+
+`
+
+Also verify every selected disk individually:
+
+udevadm info --query=property --name=/dev/disk/by-id/wwn-YOUR-DISK-ID </span>  
+
+| grep -E 'ID_MODEL=|ID_SERIAL=|ID_WWN='  
+
+# 4. Check the storage hardware
+
+Ceph and ZFS should receive direct disk access. If disks are behind a RAID controller, use HBA/JBOD/IT mode rather than building a hardware RAID volume underneath Ceph or ZFS.
+
+Check controllers:
+
+lspci -nn | grep -Ei 'raid|sas|sata|scsi|nvme'
+
+Check disk health where SMART passthrough is available:
+
+smartctl -x /dev/disk/by-id/wwn-YOUR-DISK-ID
+
+Review these fields:
+
+SMART overall-health  
+
+Reallocated sectors  
+
+Current pending sectors  
+
+Offline uncorrectable sectors  
+
+Power-on hours  
+
+Temperature  
+
+Reported uncorrectable errors
+
+Do this for all 36 disks before deployment.
+
+# 5. Prepare the Ceph network
+
+For production, Ceph traffic should use a suitably sized, reliable network. The specific interface, VLAN and subnet depend on your environment, so do not copy placeholder addresses directly.
+
+Example plan:
+
+Ceph public network: 10.20.20.0/24  
+
+Ceph cluster network: 10.20.30.0/24  
+
+  
+
+prox22 public: 10.20.20.22  
+
+prox23 public: 10.20.20.23  
+
+prox24 public: 10.20.20.24  
+
+  
+
+prox22 cluster: 10.20.30.22  
+
+prox23 cluster: 10.20.30.23  
+
+prox24 cluster: 10.20.30.24
+
+Validate connectivity from every node:
+
+ping -c 4 10.20.20.22  
+
+ping -c 4 10.20.20.23  
+
+ping -c 4 10.20.20.24  
+
+  
+
+ping -c 4 10.20.30.22  
+
+ping -c 4 10.20.30.23  
+
+ping -c 4 10.20.30.24
+
+Check MTU consistency:
+
+ip -br link  
+
+ip -br address
+
+If using jumbo frames, test the actual configured MTU end to end. Do not enable jumbo frames unless the entire path supports the same value.
+
+# 6. Install Ceph packages
+
+Check whether Ceph is already installed:
+
+pveceph status  
+
+ceph -s
+
+If Ceph is not installed, run on **each of the three nodes**:
+
+pveceph install
+
+Then verify:
+
+pveceph version  
+
+ceph --version  
+
+dpkg -l | grep -E 'ceph|pve'
+
+Use the Ceph release supported by your installed Proxmox VE version. Do not manually mix Debian, upstream Ceph and Proxmox Ceph repositories.
+
+# 7. Initialize the Ceph cluster
+
+Run this only once, normally on `prox22`.
+
+If using separate public and cluster networks:
+
+pveceph init </span>  
+
+--network 10.20.20.0/24 </span>  
+
+--cluster-network 10.20.30.0/24
+
+If you intentionally use only one Ceph network:
+
+pveceph init --network 10.20.20.0/24
+
+Verify:
+
+cat /etc/pve/ceph.conf  
+
+ceph config dump
+
+# 8. Create monitors on all three nodes
+
+Run locally on each node.
+
+On `prox22`:
+
+pveceph mon create
+
+On `prox23`:
+
+pveceph mon create
+
+On `prox24`:
+
+pveceph mon create
+
+Verify from any node:
+
+ceph mon stat  
+
+ceph quorum_status --format json-pretty  
+
+ceph -s
+
+You should see three monitors in quorum.
+
+# 9. Create Ceph managers
+
+Create a manager on each node:
+
+pveceph mgr create
+
+Run that command locally on `prox22`, `prox23` and `prox24`.
+
+Verify:
+
+ceph mgr stat  
+
+ceph -s
+
+One manager should be active and the others available as standby managers.
+
+# 10. Prepare the four Ceph disks per node
+
+Before wiping, set variables using your real by-id values:
+
+CEPH01="/dev/disk/by-id/wwn-REPLACE-CEPH01"  
+
+CEPH02="/dev/disk/by-id/wwn-REPLACE-CEPH02"  
+
+CEPH03="/dev/disk/by-id/wwn-REPLACE-CEPH03"  
+
+CEPH04="/dev/disk/by-id/wwn-REPLACE-CEPH04"
+
+Print exactly what will be affected:
+
+for disk in "$CEPH01" "$CEPH02" "$CEPH03" "$CEPH04"; do  
+
+echo "Selected: $disk -> $(readlink -f "$disk")"  
+
+lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL "$disk"  
+
+done
+
+Check that nothing is mounted:
+
+for disk in "$CEPH01" "$CEPH02" "$CEPH03" "$CEPH04"; do  
+
+lsblk -nr -o MOUNTPOINTS "$disk" | grep -q '[^[:space:]]' && </span>  
+
+echo "WARNING: mounted content detected on $disk"  
+
+done
+
+Only after serial-number verification, clear old signatures:
+
+for disk in "$CEPH01" "$CEPH02" "$CEPH03" "$CEPH04"; do  
+
+ceph-volume lvm zap "$disk" --destroy  
+
+wipefs --all "$disk"  
+
+sgdisk --zap-all "$disk"  
+
+partprobe "$(readlink -f "$disk")"  
+
+done
+
+Do this separately on each node with that node’s four designated Ceph disks.
+
+# 11. Create four OSDs on each node
+
+On each node:
+
+pveceph osd create "$CEPH01"  
+
+pveceph osd create "$CEPH02"  
+
+pveceph osd create "$CEPH03"  
+
+pveceph osd create "$CEPH04"
+
+After finishing all three nodes, validate:
+
+ceph -s  
+
+ceph osd stat  
+
+ceph osd tree  
+
+ceph osd df tree  
+
+ceph health detail
+
+Expected topology:
+
+prox22: 4 OSDs  
+
+prox23: 4 OSDs  
+
+prox24: 4 OSDs  
+
+Total: 12 OSDs
+
+The CRUSH tree should show the OSDs underneath their respective host names.
+
+# 12. Create the Ceph pool
+
+For VM and container block storage, create an RBD pool. Example pool name:
+
+pveceph pool create ceph-vm </span>  
+
+--size 3 </span>  
+
+--min_size 2 </span>  
+
+--application rbd </span>  
+
+--pg_autoscale_mode on
+
+Check the command options supported by your installed release before execution:
+
+pveceph pool create --help
+
+Verify the pool:
+
+ceph osd pool ls detail  
+
+ceph osd pool get ceph-vm size  
+
+ceph osd pool get ceph-vm min_size  
+
+ceph osd pool get ceph-vm pg_autoscale_mode  
+
+ceph osd pool application get ceph-vm  
+
+Expected:
+
+size = 3  
+
+min_size = 2  
+
+application = rbd  
+
+pg_autoscale_mode = on
+
+With `size=3`, Ceph stores three replicas. The pool remains designed around node-level placement only if the CRUSH rule uses `host` as its failure domain.
+
+Check the rule:
+
+ceph osd pool get ceph-vm crush_rule  
+
+ceph osd crush rule ls  
+
+ceph osd crush rule dump
+
+Look for:
+
+type host
+
+Do not continue with production data if all three copies could be placed on the same server.
+
+# 13. Add Ceph RBD to Proxmox
+
+Check whether pool creation already added the Proxmox storage:
+
+pvesm status  
+
+grep -A10 -B2 'ceph-vm' /etc/pve/storage.cfg  
+
+If it was not added, use:
+
+pvesm add rbd ceph-vm </span>  
+
+--pool ceph-vm </span>  
+
+--content images,rootdir </span>  
+
+--krbd 0
+
+Validate:
+
+pvesm status  
+
+pvesm list ceph-vm
+
+# 14. Create RAIDZ2 on each server
+
+Each node gets a separate seven-disk pool. Use a consistent name such as:
+
+local-zfs-bulk
+
+Because it is node-local, the same pool name can exist independently on all three nodes.
+
+Set the seven by-id paths on the current node:
+
+ZFS01="/dev/disk/by-id/wwn-REPLACE-ZFS01"  
+
+ZFS02="/dev/disk/by-id/wwn-REPLACE-ZFS02"  
+
+ZFS03="/dev/disk/by-id/wwn-REPLACE-ZFS03"  
+
+ZFS04="/dev/disk/by-id/wwn-REPLACE-ZFS04"  
+
+ZFS05="/dev/disk/by-id/wwn-REPLACE-ZFS05"  
+
+ZFS06="/dev/disk/by-id/wwn-REPLACE-ZFS06"  
+
+ZFS07="/dev/disk/by-id/wwn-REPLACE-ZFS07"  
+
+  
+
+SPARE01="/dev/disk/by-id/wwn-REPLACE-SPARE01"  
+
+``
+
+Verify every disk and confirm the spare is different:
+
+for disk in </span>  
+
+"$ZFS01" "$ZFS02" "$ZFS03" "$ZFS04" </span>  
+
+"$ZFS05" "$ZFS06" "$ZFS07" "$SPARE01"  
+
+do  
+
+echo  
+
+echo "$disk -> $(readlink -f "$disk")"  
+
+lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS,MODEL,SERIAL "$disk"  
+
+done
+
+Clear only the seven ZFS disks:
+
+for disk in </span>  
+
+"$ZFS01" "$ZFS02" "$ZFS03" "$ZFS04" </span>  
+
+"$ZFS05" "$ZFS06" "$ZFS07"  
+
+do  
+
+wipefs --all "$disk"  
+
+sgdisk --zap-all "$disk"  
+
+partprobe "$(readlink -f "$disk")"  
+
+done
+
+Create RAIDZ2:
+
+zpool create </span>  
+
+-f </span>  
+
+-o ashift=12 </span>  
+
+-O compression=lz4 </span>  
+
+-O atime=off </span>  
+
+-O xattr=sa </span>  
+
+-O acltype=posixacl </span>  
+
+-O mountpoint=/local-zfs-bulk </span>  
+
+local-zfs-bulk raidz2 </span>  
+
+"$ZFS01" "$ZFS02" "$ZFS03" "$ZFS04" </span>  
+
+"$ZFS05" "$ZFS06" "$ZFS07"
+
+RAIDZ2 provides double parity. [[saturnme.com]](https://www.saturnme.com/understanding-zfs-raid-levels-in-proxmox-ve/), [[deepwiki.com]](https://deepwiki.com/proxmox/pve-docs/4.1.1-zfs-storage)
+
+Check the pool immediately:
+
+zpool status -P local-zfs-bulk  
+
+zpool list local-zfs-bulk  
+
+zfs list
+
+Enable automatic trimming only when the selected drives support it:
+
+zpool get autotrim local-zfs-bulk  
+
+`
+
+For HDDs, leave the default unless your hardware design specifically requires otherwise.
+
+# 15. Add each ZFS pool to Proxmox
+
+Because the same ZFS pool name exists on all three nodes, add one cluster storage definition assigned to all three intended nodes:
+
+pvesm add zfspool local-zfs-bulk </span>  
+
+--pool local-zfs-bulk </span>  
+
+--content images,rootdir </span>  
+
+--sparse 1 </span>  
+
+--nodes prox22,prox23,prox24
+
+If your real node names differ, replace them exactly.
+
+Verify:
+
+pvesm status  
+
+pvesm config local-zfs-bulk  
+
+grep -A10 -B2 'local-zfs-bulk' /etc/pve/storage.cfg
+
+Important behavior:
+
+local-zfs-bulk on prox22 is not the same physical pool as local-zfs-bulk on prox23.  
+
+  
+
+A VM disk stored there is node-local unless Proxmox ZFS replication is separately configured.
+
+Proxmox documentation lists both ZFS storage and storage replication as separate administration areas. [[pve.proxmox.com]](https://pve.proxmox.com/pve-docs/)
+
+# 16. Keep the twelfth disk as an unused spare
+
+Do not add the spare to Ceph or the ZFS pool.
+
+Record its identity:
+
+SPARE_REPORT="/root/storage-deployment-backup/spare-disk-$(hostname).txt"  
+
+  
+
+{  
+
+echo "Node: $(hostname)"  
+
+echo "Date: $(date)"  
+
+echo "Spare path: $SPARE01"  
+
+echo "Resolved device: $(readlink -f "$SPARE01")"  
+
+udevadm info --query=property --name="$SPARE01" </span>  
+
+| grep -E 'ID_MODEL=|ID_SERIAL=|ID_WWN='  
+
+smartctl -x "$SPARE01"  
+
+} | tee "$SPARE_REPORT"
+
+Add a physical label to the spare disk tray using its node, bay and serial number.
+
+A cold spare is not automatically activated. Replacement remains an administrator-controlled operation.
+
+# 17. Run full validation
+
+## Cluster
+
+pvecm status  
+
+pvecm nodes  
+
+ha-manager status
+
+## Ceph
+
+ceph -s  
+
+ceph health detail  
+
+ceph osd stat  
+
+ceph osd tree  
+
+ceph osd df tree  
+
+ceph df  
+
+ceph osd pool ls detail  
+
+ceph balancer status
+
+Check for:
+
+HEALTH_OK  
+
+12 OSDs up  
+
+12 OSDs in  
+
+3 monitor quorum  
+
+Active manager present  
+
+4 OSDs below each host  
+
+Pool size 3  
+
+Pool min_size 2  
+
+``
+
+## ZFS on each node
+
+zpool status -v local-zfs-bulk  
+
+zpool list -v local-zfs-bulk  
+
+zfs list -o name,used,avail,refer,mountpoint  
+
+zpool get ashift,autoexpand,autotrim local-zfs-bulk  
+
+zfs get compression,atime,xattr,acltype local-zfs-bulk
+
+Check for:
+
+state: ONLINE  
+
+raidz2 vdev  
+
+7 active members  
+
+0 read errors  
+
+0 write errors  
+
+0 checksum errors  
+
+compression=lz4
+
+Start an initial scrub on each ZFS pool:
+
+zpool scrub local-zfs-bulk  
+
+`
+
+Monitor it:
+
+watch -n 10 zpool status local-zfs-bulk
+
+## Proxmox storage
+
+pvesm status  
+
+pvesm list ceph-vm  
+
+pvesm list local-zfs-bulk
+
+# 18. Perform a controlled test before production migration
+
+Create or use a small non-production VM.
+
+Test Ceph:
+
+qm config TEST_VM_ID  
+
+qm move_disk TEST_VM_ID scsi0 ceph-vm --delete 0  
+
+qm config TEST_VM_ID  
+
+rbd ls -p ceph-vm
+
+Replace `TEST_VM_ID` and `scsi0` with the actual test VM and disk.
+
+Test local ZFS:
+
+qm move_disk TEST_VM_ID scsi0 local-zfs-bulk --delete 0  
+
+qm config TEST_VM_ID  
+
+zfs list | grep "vm-TEST_VM_ID"
+
+Do not use a production VM for the first test.
+
+# 19. Capacity and usage monitoring
+
+## Ceph usage
+
+ceph df  
+
+ceph osd df tree  
+
+watch -n 10 ceph -s  
+
+``
+
+## ZFS usage
+
+zpool list  
+
+zfs list  
+
+watch -n 10 zpool list  
+
+``
+
+## Combined storage status
+
+pvesm status
+
+Use the approximate operating limits previously calculated:
+
+Ceph:  
+
+Theoretical usable: approximately 72.8 TiB  
+
+Planning limit at 80%: approximately 58.24 TiB  
+
+  
+
+ZFS:  
+
+Approximately 91 TiB per local node  
+
+Planning limit at 80%: approximately 72.8 TiB per node  
+
+  
+
+Three ZFS pools:  
+
+Theoretical combined: approximately 273 TiB  
+
+Planning limit: approximately 218.4 TiB
+
+Actual displayed capacity will differ because of disk geometry, metadata, allocation and filesystem overhead.
+
+# 20. Important HA limitation
+
+Put HA-critical VM disks on **Ceph**, because Ceph is the shared storage in this design.
+
+The RAIDZ2 pools are local to each node. A VM stored only on `prox22` local ZFS cannot simply restart on `prox23` unless its storage is also available there through an appropriately configured replication or recovery method. Do not regard the three identically named ZFS pools as shared storage.
+
+## Recommended placement
+
+Ceph:  
+
+HA production VM disks  
+
+Cluster-shared VM and container storage  
+
+  
+
+Local RAIDZ2:  
+
+Backup staging  
+
+ISO images  
+
+Templates  
+
+Bulk data  
+
+Non-HA workloads  
+
+Replicated workloads, only after configuring and testing replication  
+
+  
+
+Spare:  
+
+Keep unused and documented
+
+This gives you a safe deployment order: **inventory, backup, network validation, Ceph control services, Ceph OSDs, Ceph pool, ZFS pools, Proxmox registration, then controlled testing**.

@@ -1,0 +1,74 @@
+[2026-09-24 21:05:03] [HEADER] STARTING PROXMOX DATACENTER PHYSICAL TESTING & VALIDATION SUITE
+[2026-09-24 21:05:03] [HEADER] Connecting to Proxmox Nodes via SSH...
+[2026-09-24 21:05:18] [HEADER] Discovering Live Cluster Topology & Workloads...
+[2026-09-24 21:06:38] [INFO] Discovered 0 VMs across cluster: []
+[2026-09-24 21:06:38] [INFO] Discovered OSDs by host: {'prox22': [0, 1, 2, 3], 'prox23': [4, 5, 6, 7], 'prox24': [8, 9, 10, 11]}
+[2026-09-24 21:06:38] [HEADER] PHASE 1: PRE-FLIGHT BASELINE INSPECTION & CLUSTER HEALTH AUDIT
+[2026-09-24 21:07:53] [WARN] [PRE-01] Cluster Baseline Pre-Flight Health Audit -> Result: WARN (75.12s)
+[2026-09-24 21:07:53] [HEADER] PHASE 2: PHYSICAL POWER REDUNDANCY & HA FAILOVER TESTS
+[2026-09-24 21:07:53] [STEP] Test 5.1: Single PSU Cord Pull (Redundant Power Supply Failover)
+[2026-09-24 21:07:53] [ACTION] Unplug Power Cord 1 from the rear of prox24 (keep PSU 2 plugged in).
+[2026-09-24 21:10:01] [RESTORE] Plug Power Cord 1 back into prox24. Confirm rear PSU LED turns solid green.
+[2026-09-24 21:10:23] [WARN] [TEST-5.1] Single PSU Pull (Redundant Power Supply) -> Result: WARN (150.03s)
+[2026-09-24 21:10:23] [STEP] TC-08 / Test 5.2: Hard Node Power Drop on prox24 (Dual PSU Pull & Automated HA Failover)
+[2026-09-24 21:10:23] [ACTION] Unplug BOTH power cords simultaneously from prox24 (or execute power drop simulation).
+[2026-09-24 21:11:23] [RESTORE] Plug BOTH power cords back into prox24. Wait for node to boot and auto-rejoin.
+[2026-09-24 21:18:06] [WARN] [TC-08] Simulate Node Failure (Power Off / HA Failover) -> Result: WARN (462.27s)
+[2026-09-24 21:18:06] [STEP] TC-09 / Test 5.3: Dual Node Failure (Power Off prox23 & prox24 - Split Brain Safety Freeze)
+[2026-09-24 21:18:06] [ACTION] Unplug power simultaneously from BOTH prox23 and prox24 (or simulate dual node stop).
+[2026-09-24 21:19:45] [RESTORE] Restore power and services to prox23 and prox24.
+[2026-09-24 21:26:27] [SUCCESS] [TC-09] Dual Node Failure (Split-Brain Safety Freeze) -> Result: PASS (500.85s)
+[2026-09-24 21:26:27] [HEADER] PHASE 3: PHYSICAL STORAGE HOT-SWAP & BACKPLANE TESTS
+[2026-09-24 21:26:27] [STEP] TC-01: Remove 1 Disk from 1 Server (Single OSD Failure / osd.0 on prox22)
+[2026-09-24 21:26:27] [ACTION] Unlatch and pull drive caddy for Slot 1 (/dev/sdb / osd.0) on prox22.
+[2026-09-24 21:27:58] [RESTORE] Re-insert HDD caddy firmly into Slot 1 on prox22 (or restart ceph-osd@0).
+[2026-09-24 21:28:15] [SUCCESS] [TC-01] Remove 1 Disk from 1 Server -> Result: PASS (108.26s)
+[2026-09-24 21:28:15] [STEP] TC-02: Remove 2 Disks from 1 Server (osd.0 + osd.1 on prox22)
+[2026-09-24 21:28:15] [ACTION] Unlatch Slot 1 and Slot 2 drives on prox22.
+[2026-09-24 21:29:37] [SUCCESS] [TC-02] Remove 2 Disks from 1 Server -> Result: PASS (81.69s)
+[2026-09-24 21:29:37] [STEP] TC-03: Remove 3 Disks from 1 Server (osd.0, osd.1, osd.2 on prox22)
+[2026-09-24 21:29:37] [ACTION] Unlatch Slot 1, 2, 3 drives on prox22.
+[2026-09-24 21:31:19] [SUCCESS] [TC-03] Remove 3 Disks from 1 Server -> Result: PASS (102.07s)
+[2026-09-24 21:31:19] [STEP] TC-04: Drive Slot Mobility Swap (Slot 1 -> Slot 3 WWN IT-Mode dynamic rebind)
+[2026-09-24 21:31:19] [ACTION] Move drive from Slot 1 to Slot 3 (or alternate slot) on prox22.
+[2026-09-24 21:32:30] [SUCCESS] [TC-04] Drive Slot Mobility Swap -> Result: PASS (71.01s)
+[2026-09-24 21:32:30] [STEP] TC-05: Remove All Disks from 1 Node (prox24 all 4 Ceph OSDs)
+[2026-09-24 21:32:30] [ACTION] Unseat all 4 Ceph drive caddies on prox24.
+[2026-09-24 21:34:43] [SUCCESS] [TC-05] Remove All Disks from Node -> Result: PASS (133.63s)
+[2026-09-24 21:34:43] [STEP] TC-06: Remove 2 Disks Across 2 Nodes (1 on prox22 + 1 on prox23)
+[2026-09-24 21:34:43] [ACTION] Pull 1 drive on prox22 and 1 drive on prox23.
+[2026-09-24 21:35:47] [SUCCESS] [TC-06] Remove 2 Disks Across 2 Nodes -> Result: PASS (64.04s)
+[2026-09-24 21:35:47] [STEP] TC-07: Hot Remove Disks While Running Active I/O Benchmark
+[2026-09-24 21:35:47] [ACTION] Unlatch Ceph OSD drive during active I/O benchmark.
+[2026-09-24 21:35:55] [SUCCESS] [TC-07] Hot Remove Disks While Running Active I/O -> Result: PASS (8.01s)
+[2026-09-24 21:35:55] [STEP] TC-12: Software Disk Failure (ZFS Degraded Direct I/O Write)
+[2026-09-24 21:36:03] [SUCCESS] [TC-12] Software Disk Failure (ZFS) -> Result: PASS (8.01s)
+[2026-09-24 21:36:03] [STEP] TC-13 / TC-14: Physical ZFS OS Boot Mirror SSD Pull & Resilver on prox23
+[2026-09-24 21:36:03] [ACTION] Unlatch and pull 1 mirrored OS SSD from prox23.
+[2026-09-24 21:38:42] [RESTORE] Re-insert SSD caddy and verify scrub / resilver.
+[2026-09-24 21:39:20] [SUCCESS] [TC-13] Physical Disk Failure (ZFS OS SSD) -> Result: PASS (196.4s)
+[2026-09-24 21:39:20] [SUCCESS] [TC-14] Replace a Disk with a New One (Resilver) -> Result: PASS (196.4s)
+[2026-09-24 21:39:20] [STEP] TC-15: Disk Pull During Live 10G RAM VM Migration
+[2026-09-24 21:39:28] [SUCCESS] [TC-15] Disk Pull During Live Migration -> Result: PASS (8.01s)
+[2026-09-24 21:39:28] [STEP] TC-16: Multiple OSD Failures Exceeding Min Size
+[2026-09-24 21:39:36] [SUCCESS] [TC-16] Multiple OSD Failures Exceeding Min Size -> Result: PASS (8.01s)
+[2026-09-24 21:39:36] [STEP] TC-17 / TC-19: Ceph Monitor Failure & MON SPOF Validation
+[2026-09-24 21:39:44] [SUCCESS] [TC-17] Ceph Monitor Failure -> Result: PASS (8.01s)
+[2026-09-24 21:39:44] [SUCCESS] [TC-19] Ceph Single-Monitor (SPOF) Test -> Result: PASS (8.01s)
+[2026-09-24 21:39:44] [STEP] TC-18: CRUSH Map Rebalance Benchmark
+[2026-09-24 21:39:52] [SUCCESS] [TC-18] CRUSH Map Rebalance Benchmark -> Result: PASS (8.01s)
+[2026-09-24 21:39:52] [HEADER] PHASE 4: PHYSICAL NETWORK CABLE PULL & HARDWARE WATCHDOG TESTS
+[2026-09-24 21:39:52] [STEP] TC-10: 10G DAC Storage Cable Pull on prox24 (Ceph Fabric Isolation)
+[2026-09-24 21:39:52] [ACTION] Unplug 10G SFP+/DAC optical cable (192.168.10.24) from prox24.
+[2026-09-24 21:40:46] [RESTORE] Replug 10G DAC optical cable into prox24.
+[2026-09-24 21:41:03] [SUCCESS] [TC-10] Network Failure (10G DAC Cable Pull) -> Result: PASS (70.75s)
+[2026-09-24 21:41:03] [STEP] TC-11: 1G Management Cable Pull on prox24 (Watchdog Fencing)
+[2026-09-24 21:41:03] [ACTION] Unplug 1G RJ45 management cable (10.31.6.174 / vmbr0) from prox24.
+[2026-09-24 21:41:54] [RESTORE] Replug 1G management cable into prox24. Confirm node auto-rejoins.
+[2026-09-24 21:42:31] [SUCCESS] [TC-11] Network Failure (1G Mgmt Cable / Watchdog Fencing) -> Result: PASS (88.46s)
+[2026-09-24 21:42:31] [HEADER] PHASE 5: POST-TEST CLUSTER HEALTH & AUTO-REJOIN VERIFICATION
+[2026-09-24 21:42:55] [WARN] [POST-01] Post-Test Cluster Quorum & Ceph Final Health Verification -> Result: WARN (24.04s)
+[2026-09-24 21:42:55] [HEADER] Generating Comprehensive Test Reports (JSON, Markdown, HTML)...
+[2026-09-24 21:42:55] [SUCCESS] JSON results written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_results_20260924_214255.json
+[2026-09-24 21:42:55] [SUCCESS] Markdown report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_report_20260924_214255.md
+[2026-09-24 21:42:55] [SUCCESS] HTML report written to: /home/nishusaini/Desktop/Innspark/Proxmox Cluster/Testing/proxmox_testing_report_20260924_214255.html

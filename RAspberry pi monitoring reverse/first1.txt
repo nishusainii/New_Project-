@@ -1,0 +1,385 @@
+
+Below is the complete summary of the changes implemented on your Raspberry Pi Grafan-Pi. 
+The goal was to place an Nginx reverse proxy between Prometheus and Blackbox Exporter without changing the existing Grafana setup.
+
+1. Original setup
+
+The following containers were already running:
+
+grafana
+prometheus
+blackbox-exporter
+openwa-docker-proxy
+
+
+Original Blackbox monitoring path:
+
+Prometheus
+   ↓ 127.0.0.1:9115
+Blackbox Exporter
+   ↓
+Website SSL and availability checks
+
+
+The Blackbox jobs in /home/ubuntu/prometheus.yml were configured with:
+
+replacement: 127.0.0.1:9115
+
+2. Final setup
+
+A new Nginx container named blackbox-nginx-proxy was added.
+
+Final architecture:
+
+Grafana
+   ↓
+Prometheus, running in host network mode
+   ↓ 127.0.0.1:9117
+Nginx reverse proxy container
+   ↓ blackbox-exporter:9115
+Blackbox Exporter
+   ↓
+Configured websites
+
+
+The existing custom_site_exporter remained on port 9116, so Nginx was configured on port 9117.
+
+3. Verified the existing Docker network
+
+The monitoring-net Docker bridge network already existed:
+
+docker network ls
+
+
+Blackbox Exporter was already connected:
+
+docker network inspect monitoring-net \
+  --format '{{range $id, $container := .Containers}}{{println $container.Name $container.IPv4Address}}{{end}}'
+
+
+Output included:
+
+blackbox-exporter 172.18.0.2/16
+
+
+We did not use this IP directly because container IP addresses can change. Nginx uses the Docker DNS name:
+
+blackbox-exporter:9115
+
+4. Confirmed Prometheus networking mode
+
+Prometheus could not be connected to monitoring-net because it uses host networking:
+
+docker inspect prometheus \
+  --format 'NetworkMode={{.HostConfig.NetworkMode}}'
+
+
+Output:
+
+NetworkMode=host
+
+
+Therefore, Prometheus accesses Nginx through the Raspberry Pi loopback address:
+
+127.0.0.1:9117
+
+
+Nginx accesses Blackbox Exporter through monitoring-net:
+
+blackbox-exporter:9115
+
+5. Created Nginx configuration
+
+Created the directory:
+
+sudo mkdir -p /opt/blackbox-nginx
+
+
+Created the configuration file:
+
+sudo nano /opt/blackbox-nginx/nginx.conf
+
+
+Configuration used:
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log warn;
+
+    upstream blackbox_backend {
+        server blackbox-exporter:9115;
+        keepalive 16;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+
+        location = /proxy-health {
+            access_log off;
+            default_type text/plain;
+            return 200 "Nginx reverse proxy is healthy\n";
+        }
+
+        location = /probe {
+            proxy_pass http://blackbox_backend;
+            proxy_http_version 1.1;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Connection "";
+
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 30s;
+            proxy_read_timeout 30s;
+        }
+
+        location = /metrics {
+            proxy_pass http://blackbox_backend;
+            proxy_http_version 1.1;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Connection "";
+        }
+
+        location / {
+            return 404;
+        }
+    }
+}
+
+6. Validated Nginx configuration
+
+The temporary validation container had to be connected to monitoring-net so it could resolve blackbox-exporter.
+
+docker run --rm \
+  --network monitoring-net \
+  -v /opt/blackbox-nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  nginx:1.28-alpine \
+  nginx -t
+
+
+Validation result:
+
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+
+7. Started the Nginx reverse-proxy container
+
+Port 9116 was already occupied by custom_site_exporter, so the failed Nginx container was removed:
+
+docker rm -f blackbox-nginx-proxy
+
+
+Nginx was then started on port 9117:
+
+docker run -d \
+  --name blackbox-nginx-proxy \
+  --restart unless-stopped \
+  --network monitoring-net \
+  -p 127.0.0.1:9117:8080 \
+  -v /opt/blackbox-nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  nginx:1.28-alpine
+
+
+Meaning:
+
+Raspberry Pi 127.0.0.1:9117
+        ↓
+Nginx container port 8080
+        ↓
+Blackbox Exporter port 9115
+
+
+Binding to 127.0.0.1 prevents the Nginx proxy port from being exposed on every Raspberry Pi network interface.
+
+8. Tested the reverse proxy
+
+Nginx health endpoint:
+
+curl http://127.0.0.1:9117/proxy-health
+
+
+Expected output:
+
+Nginx reverse proxy is healthy
+
+
+Blackbox probe through Nginx:
+
+curl -sG \
+  --data-urlencode "target=https://innspark.in" \
+  --data-urlencode "module=http_2xx" \
+  http://127.0.0.1:9117/probe \
+  | grep -E '^probe_success|^probe_ssl_earliest_cert_expiry'
+
+
+Successful output:
+
+probe_ssl_earliest_cert_expiry 1.789706786e+09
+probe_success 1
+
+
+This confirmed that Nginx successfully forwarded the request to Blackbox Exporter and returned SSL certificate metrics.
+
+9. Updated Prometheus configuration
+
+The Prometheus configuration mount was identified:
+
+/home/ubuntu/prometheus.yml -> /etc/prometheus/prometheus.yml
+
+
+The data volume remained mounted at:
+
+/prometheus
+
+
+A configuration backup was created:
+
+sudo cp /home/ubuntu/prometheus.yml \
+  /home/ubuntu/prometheus.yml.backup-$(date +%F-%H%M%S)
+
+
+Both Blackbox jobs were changed.
+
+Original:
+
+replacement: 127.0.0.1:9115
+
+
+Updated:
+
+replacement: 127.0.0.1:9117
+
+
+The changed jobs were:
+
+blackbox-domains-pi
+blackbox-domains-pi-proxy
+
+
+The custom_site_exporter was intentionally left unchanged:
+
+- job_name: 'custom_site_exporter'
+  static_configs:
+    - targets:
+        - '127.0.0.1:9116'
+
+10. Recreated Prometheus
+
+The original bind mount was read-only, and the running container remained attached to the older file inode. Therefore, editing inside the container failed with:
+
+Read-only file system
+
+
+The Prometheus runtime configuration was confirmed as:
+
+Image=prom/prometheus:latest
+Command=["--config.file=/etc/prometheus/prometheus.yml","--web.enable-lifecycle"]
+Restart=unless-stopped
+Network=host
+
+
+The old container was stopped and preserved for rollback:
+
+docker stop prometheus
+docker rename prometheus prometheus-old
+
+
+A new container was created with the updated config file and the existing Prometheus data volume:
+
+docker run -d \
+  --name prometheus \
+  --restart unless-stopped \
+  --network host \
+  -v /home/ubuntu/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
+  -v 1e01a06dcce144460e7124c1ce25532d469aebea32d6182847526b1c32350660:/prometheus \
+  prom/prometheus:latest \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --web.enable-lifecycle
+
+
+This preserved historical Prometheus metrics.
+
+11. Validated the new Prometheus container
+
+Prometheus configuration validation:
+
+docker exec prometheus \
+  promtool check config /etc/prometheus/prometheus.yml
+
+
+Result:
+
+SUCCESS
+
+
+Readiness check:
+
+curl -fsS http://127.0.0.1:9090/-/ready
+
+
+Result:
+
+Prometheus Server is Ready.
+
+
+The active targets were inspected through the Prometheus API.
+
+Validation confirmed:
+
+scrape URL = http://127.0.0.1:9117/probe
+health = up
+error = empty
+
+
+Both modules remained correct:
+
+blackbox-domains-pi       → module=http_2xx
+blackbox-domains-pi-proxy → module=http_2xx_proxy_jio1
+
+
+All displayed targets were healthy.
+
+12. Final result
+
+The reverse-proxy integration is operational:
+
+Prometheus
+   ↓ 127.0.0.1:9117
+Nginx Reverse Proxy
+   ↓ blackbox-exporter:9115
+Blackbox Exporter
+   ↓
+Direct and Jio-proxy website checks
+   ↓
+Prometheus metrics
+   ↓
+Grafana dashboard
+
+
+Final status:
+
+Nginx configuration is valid.
+Nginx reverse-proxy container is running.
+Prometheus is running in host network mode.
+Prometheus is ready and healthy.
+Both Blackbox jobs use port 9117.
+All displayed target scrapes show health=up.
+Existing Blackbox modules remain unchanged.
+Existing Prometheus historical data was preserved.
+Grafana continues using Prometheus as its data source.
+custom_site_exporter remains unchanged on port 9116.
+
+After confirming Grafana dashboards are displaying current data, the preserved rollback container can be removed:
+
+docker rm prometheus-old
+

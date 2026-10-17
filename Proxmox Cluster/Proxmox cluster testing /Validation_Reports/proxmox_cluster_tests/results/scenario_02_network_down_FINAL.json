@@ -1,0 +1,58 @@
+{
+  "scenario": "02_single_node_network_isolation",
+  "cluster": "cisai-pve",
+  "cluster_ip": "10.31.6.172",
+  "target_node": "prox24 (10.31.6.174)",
+  "timestamp_start": "2026-09-19T05:13:49Z",
+  "pre_state": {
+    "ceph_health": "HEALTH_OK",
+    "osds_up": 12,
+    "vms_running": 3,
+    "vm_distribution": {
+      "vm_9001": "prox22",
+      "vm_9002": "prox24",
+      "vm_9003": "prox24"
+    },
+    "quorum_votes": 3
+  },
+  "fault_phase_timings": {
+    "t0_isolation_issued": "10:43:49",
+    "t_node_unreachable_sec": 11,
+    "t_quorum_preserved": "YES (2/3 votes maintained by prox22 + prox23)",
+    "t_ceph_osd_down_sec": 49,
+    "t_ceph_degraded_pgs": 33,
+    "t_ha_fencing_triggered_sec": 53,
+    "t_vm_failover_starting_sec": 132,
+    "t_vm_failover_running_sec": 146,
+    "failover_destinations": {
+      "vm_9002": "prox24 \u2192 prox23 (RUNNING)",
+      "vm_9003": "prox24 \u2192 prox22 (RUNNING)",
+      "vm_9001": "prox22 (UNINTERRUPTED)"
+    }
+  },
+  "ha_behavior": {
+    "fencing_action": "Watchdog fence tripped on isolated node prox24",
+    "split_brain_prevented": true,
+    "data_loss": "ZERO \u2014 Ceph 3-way replication preserved all data",
+    "vm_uptime": "VM 9001 zero downtime; VMs 9002 & 9003 restored in 146 seconds"
+  },
+  "observations": [
+    "When prox24 network dropped, Corosync lost heartbeats within 11s",
+    "Cluster retained Quorum (2/3 votes on prox22 + prox23) \u2014 cluster operations uninterrupted",
+    "HA CRM fencing triggered at T+53s for both hosted VMs (9002 & 9003)",
+    "Ceph marked prox24 OSDs down at T+49s, surviving 8 OSDs served all I/O in degraded mode",
+    "At T+132s, HA CRM automatically launched VM 9002 on prox23 and VM 9003 on prox22",
+    "By T+146s (2m26s), all 3 VMs across the cluster were confirmed RUNNING",
+    "Zero split-brain, zero data corruption",
+    "prox24 successfully rejoined cluster, restoring 3/3 votes",
+    "Ceph cluster fully converged to HEALTH_OK"
+  ],
+  "result": "PASS",
+  "recovery_phase": "COMPLETE",
+  "recovery_phase_timings": {
+    "t_prox24_online_sec": 29,
+    "t_quorum_3of3_restored_sec": 29,
+    "t_ceph_healthy_sec": 91,
+    "t_total_recovery_sec": 92
+  }
+}

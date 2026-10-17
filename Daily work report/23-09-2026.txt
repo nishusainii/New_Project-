@@ -1,0 +1,70 @@
+Name: Nishu Saini
+Date: 23/09/2026
+Login Time: 09:20 AM
+Logout Time: 07:20 PM
+
+Today’s Work Summary
+
+09:20 AM to 11:30 AM
+
+GNS3 Virtual Palo Alto Lab Verification & Mirror Research
+
+- Verified active Palo Alto firewall virtual instance (PA-VM-KVM-10.2.3) in GNS3 / QEMU environment.
+- Validated VM resource allocation (7 GB RAM, 2 vCPUs) and network adapter mappings.
+- Confirmed serial console connectivity on Telnet port 5000 and management network accessibility on 172.17.0.50.
+- Verified Web GUI accessibility and template configuration for virtual lab testing.
+- Researched and verified firmware images and download accessibility on mirror repository (mirror.cloudpropeller.com).
+- Analyzed compatibility between x86_64 VM-Series (.qcow2 / .ova) and physical MIPS64 hardware architecture.
+
+11:30 AM to 01:30 PM
+
+Physical Palo Alto PA-500 Hardware Diagnostics & Bootloader Troubleshooting
+
+- Investigated boot failure on physical Palo Alto PA-500 firewall appliance (Serial: 0006C114241).
+- Connected serial console cable and monitored real-time U-Boot bootloader sequence.
+- Captured and analyzed kernel panic: "Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(8,3)".
+- Intercepted U-Boot prompt (Octeon >) and attempted alternate boot targets (sysroot0 / sysroot1).
+- Booted into Maintenance Recovery Tool (MRT) and diagnosed memory corruption crash in /usr/local/bin/sysf (glibc invalid pointer error).
+
+02:00 PM to 03:45 PM
+
+Hardware Disassembly, Disk Forensics & Safe Configuration Backup
+
+- Opened PA-500 hardware chassis and extracted internal 2.5-inch 250 GB SATA hard drive.
+- Connected drive to Linux workstation via SATA-to-USB adapter and mapped all underlying partitions (sysroot0, sysroot1, maint, pancfg, panrepo, panlogs).
+- Safely extracted and backed up all existing security policies, NAT rules, and XML configuration snapshots (running-config.xml, latest_backup.xml, autosave files) to local storage.
+- Performed deep inspection of partition structures and discovered critical corruption in sysroot1/etc/fstab (missing root mount LABEL=sysroot1 / ext3 and swap partition definitions).
+- Reconstructed and patched the correct /etc/fstab configuration on sysroot1.
+- Executed e2fsck -f -y filesystem integrity checks and repaired bad journal blocks across OS partitions (/dev/sda2 and /dev/sda3).
+
+03:45 PM to 05:15 PM
+
+Firmware Reinstallation via Maintenance Recovery Tool (MRT)
+
+- Reinstalled the hard drive into the PA-500 chassis and connected power and console cables.
+- Booted cleanly into the Maintenance Recovery Tool without memory crashes.
+- Unlocked advanced maintenance options using the recovery authorization key (MA1NT).
+- Selected internal software repository and executed a clean Factory Reset to deploy PAN-OS 8.0.10.
+- Monitored partition formatting, package installation, and bootstrap sequence until 100% completion.
+
+05:15 PM to 06:30 PM
+
+PAN-OS 8.0.10 Boot Verification, Resource Optimization & Management Web GUI Access
+
+- Monitored post-install boot sequence through Linux runlevel 3.
+- Allowed management server (mgmtsrvr) and background autocommit processes to initialize schemas and certificates.
+- Successfully authenticated on console and obtained active CLI prompt (admin@PA-500>).
+- Verified system information, software version (8.0.10), and chassis readiness (show chassis-ready).
+- Configured management network interface (192.168.1.1/24) and verified ICMP ping responsiveness.
+- Confirmed full access to the Palo Alto Networks Web GUI Dashboard at https://192.168.1.1.
+- Monitored CPU and memory resource utilization (show system resources) and verified system load stabilization.
+
+06:30 PM to 07:20 PM
+
+Graceful Shutdown Testing, Cold Boot Validation & Daily Documentation
+
+- Executed graceful system shutdown (request shutdown system) to ensure clean disk synchronization.
+- Performed cold power cycle test to validate reliable reboot sequence and hardware stability.
+- Compiled comprehensive recovery documentation, disk repair procedures, and daily work report in Obsidian Vault.
+
+Status: All tasks successfully completed; physical PA-500 hardware fully restored and 100% operational.

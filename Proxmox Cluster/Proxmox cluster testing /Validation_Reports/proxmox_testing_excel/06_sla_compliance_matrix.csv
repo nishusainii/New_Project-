@@ -1,0 +1,10 @@
+Test Scenario,Evaluated Metric,Enterprise SLA Target,Measured Value,SLA Margin,Verdict
+1. Dual Node Shutdown,Quorum Loss Detection,Detected < 180s,140s (2m 20s),+40s buffer,PASS
+1. Dual Node Shutdown,HA Split-Brain Prevention,Zero unquorate writes,100% Enforced,Strict Lockdown,PASS
+1. Dual Node Shutdown,Cold Boot VM Restoration,< 5 minutes (300s),2m 41s (161s),+139s faster,PASS
+1. Dual Node Shutdown,Cluster Full Re-Peering,< 10 minutes (600s),5m 05s (305s),+295s faster,PASS
+2. Single Node Network Drop,Hardware Watchdog Fence,< 90 seconds,53 seconds,+37s faster,PASS
+2. Single Node Network Drop,VM Workload Failover Time,< 3 minutes (180s),2m 26s (146s),+34s faster,PASS
+2. Single Node Network Drop,Host Cluster Re-join Time,< 5 minutes after link,29 seconds,+271s faster,PASS
+3. Ceph Storage Mesh Drop,All 12 OSDs Rejoined,< 5 minutes (300s),21 seconds,+279s faster,PASS
+3. Ceph Storage Mesh Drop,Ceph Return to HEALTH_OK,< 10 minutes (600s),28 seconds,+572s faster,PASS

@@ -1,0 +1,175 @@
+Based on your requirement:
+
+✅ Only these clients:
+
+10.31.0.87
+10.31.0.140
+10.31.1.59
+10.31.1.124
+10.31.1.183
+
+
+✅ Route only FortiClient traffic to:
+
+182.19.154.189:4433
+
+
+✅ Through Squid server:
+
+10.31.212.14
+
+
+✅ Do NOT become Internet gateway for all traffic
+
+Here is the updated production-safe script:
+
+#!/bin/bash
+
+set -e
+
+echo "===== Backup Existing nftables ====="
+nft list ruleset > /root/nft-backup-$(date +%F-%H%M%S).conf
+
+echo "===== Enable IP Forwarding ====="
+
+cat >/etc/sysctl.d/99-fortivpn.conf <<EOF
+net.ipv4.ip_forward=1
+EOF
+
+sysctl --system
+
+echo "===== Creating nftables Configuration ====="
+
+cat >/etc/nftables.conf <<'EOF'
+flush ruleset
+
+table inet filter {
+
+    chain input {
+        type filter hook input priority filter;
+        policy drop;
+
+        iifname "lo" accept
+
+        ct state established,related accept
+
+        # SSH Access
+        ip saddr { 10.31.0.140, 10.31.1.59 } tcp dport 22 accept
+
+        # Squid Proxy
+        iifname "ens18" tcp dport 3128 accept
+
+        # Admin Port
+        ip saddr {
+            10.31.0.87,
+            10.31.0.140,
+            10.31.1.59,
+            10.31.1.124,
+            10.31.1.183
+        } tcp dport 8085 accept
+
+        # ICMP
+        ip protocol icmp accept
+    }
+
+    chain forward {
+        type filter hook forward priority filter;
+        policy drop;
+
+        ct state established,related accept
+
+        # FortiClient VPN Traffic Only
+        ip saddr {
+            10.31.0.87,
+            10.31.0.140,
+            10.31.1.59,
+            10.31.1.124,
+            10.31.1.183
+        } \
+        ip daddr 182.19.154.189 \
+        tcp dport 4433 accept
+    }
+
+    chain output {
+        type filter hook output priority filter;
+        policy accept;
+    }
+}
+
+table ip nat {
+
+    chain postrouting {
+        type nat hook postrouting priority srcnat;
+        policy accept;
+
+        # NAT FortiClient VPN Traffic
+        oifname "ens18" \
+        ip saddr {
+            10.31.0.87,
+            10.31.0.140,
+            10.31.1.59,
+            10.31.1.124,
+            10.31.1.183
+        } \
+        ip daddr 182.19.154.189 \
+        tcp dport 4433 masquerade
+    }
+}
+EOF
+
+echo "===== Loading nftables ====="
+
+nft -f /etc/nftables.conf
+
+systemctl enable nftables
+systemctl restart nftables
+
+echo ""
+echo "===== STATUS ====="
+
+echo "IP Forwarding:"
+cat /proc/sys/net/ipv4/ip_forward
+
+echo ""
+echo "Forward Rules:"
+nft list chain inet filter forward
+
+echo ""
+echo "NAT Rules:"
+nft list chain ip nat postrouting
+
+echo ""
+echo "Configuration Applied Successfully"
+
+Client-side route
+
+For each FortiClient machine:
+
+sudo ip route add 182.19.154.189 via 10.31.212.14
+
+
+Verify:
+
+ip route get 182.19.154.189
+
+
+Expected:
+
+182.19.154.189 via 10.31.212.14
+
+Verification on Squid Server
+tcpdump -ni ens18 host 182.19.154.189 and port 4433
+
+
+Then start FortiClient from:
+
+10.31.0.87
+10.31.0.140
+10.31.1.59
+10.31.1.124
+10.31.1.183
+
+
+You should see the VPN traffic flowing and NATed through 10.31.212.14.
+
+Important: This script only handles FortiClient VPN traffic to 182.19.154.189:4433. Normal Internet browsing and other traffic will continue to use each client's existing gateway.

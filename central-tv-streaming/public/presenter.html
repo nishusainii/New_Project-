@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central TV Streaming - Presenter Studio</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div style="background: #ffffff; padding: 4px 10px; border-radius: 8px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+          <img src="/logo.png" alt="CiSAI" style="height: 30px; display: block;">
+        </div>
+        <div>
+          <h1>CiSAI Live Broadcast Studio</h1>
+          <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+            Stream your Laptop Screen, Camera, or Video directly to TVs across LAN & Site-to-Site VPN
+          </div>
+        </div>
+      </div>
+      <div class="nav-links">
+        <span id="user-badge" class="badge badge-blue" style="font-size: 12px; padding: 5px 12px; display: none;"></span>
+        <a href="/admin.html" id="nav-admin" class="nav-btn">Admin Dashboard</a>
+        <a href="/presenter.html" class="nav-btn active">Presenter Studio</a>
+        <a href="/player.html" target="_blank" class="nav-btn">Open TV Player</a>
+        <button onclick="handleLogout()" class="nav-btn" style="cursor: pointer; color: #f87171; border-color: rgba(239, 68, 68, 0.3);">
+          Sign Out
+        </button>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+      <!-- Left Column: Video Monitor & Controls -->
+      <div>
+        <div class="card" style="padding: 0; overflow: hidden; background: #000; border-radius: 12px; border: 1px solid var(--border-color);">
+          <div style="position: relative; width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;">
+            <video id="preview-video" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: contain;"></video>
+            
+            <div id="no-signal-placeholder" style="position: absolute; text-align: center; color: var(--text-muted);">
+              <div style="width: 48px; height: 48px; margin: 0 auto 12px; border: 2px dashed rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 1px;">VIDEO</div>
+              <div style="font-size: 16px; font-weight: 600;">No Active Stream Source</div>
+              <div style="font-size: 13px; margin-top: 4px;">Select "Screen Share" or "Camera" below to begin</div>
+            </div>
+
+            <!-- Live On-Air Badge -->
+            <div id="on-air-badge" class="badge badge-red badge-pulse" style="position: absolute; top: 16px; left: 16px; display: none; font-size: 13px; padding: 6px 14px;">
+              LIVE - BROADCASTING TO TVS
+            </div>
+          </div>
+
+          <div style="padding: 16px; background: rgba(17, 24, 39, 0.95); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; gap: 10px;">
+              <button id="btn-screenshare" class="btn btn-secondary" onclick="startScreenCapture()">
+                Share Laptop Screen
+              </button>
+              <button id="btn-camera" class="btn btn-secondary" onclick="startCameraCapture()">
+                Camera & Mic
+              </button>
+            </div>
+            <div>
+              <button id="btn-broadcast" class="btn btn-primary" onclick="toggleBroadcast()" disabled>
+                Start Live Broadcast
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Broadcast Target & Settings -->
+      <div>
+        <div class="card">
+          <h3 style="margin-bottom: 14px;">Broadcast Destination</h3>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+            Choose which office sites or TV displays will automatically take over this stream.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer;">
+              <input type="radio" name="broadcast-target" value="all" checked onchange="updateTargetSelection()">
+              <strong>All Sites (Headquarters + Remote)</strong>
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer;">
+              <input type="radio" name="broadcast-target" value="HQ" onchange="updateTargetSelection()">
+              Headquarters Only
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer;">
+              <input type="radio" name="broadcast-target" value="Remote" onchange="updateTargetSelection()">
+              Remote Site Only
+            </label>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+            <h4 style="font-size: 14px; margin-bottom: 10px;">Stream Metrics</h4>
+            <div style="font-size: 13px; display: flex; flex-direction: column; gap: 6px; color: var(--text-muted);">
+              <div>Protocol: <strong style="color: var(--text-main);">WebRTC (WHIP)</strong></div>
+              <div>Latency: <strong style="color: var(--accent-green);">&lt; 250ms (Ultra-Low Latency)</strong></div>
+              <div>Status: <span id="stream-status-text" style="color: var(--accent-orange);">Idle</span></div>
+              <div>Connected TVs Receiving: <strong id="tvs-receiving-count" style="color: var(--accent-blue);">0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2);">
+          <h4 style="font-size: 14px; margin-bottom: 8px; color: var(--accent-cyan);">Automatic Screen Switch Policy</h4>
+          <p style="font-size: 12px; line-height: 1.5; color: var(--text-muted);">
+            When you click <strong>Start Live Broadcast</strong>, all TVs at your selected sites will instantly interrupt whatever they are showing and tune into your stream in under 1 second. When you stop, they will seamlessly return to normal signage.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Media Library & Video Upload Studio (Role-Accessible for Streamers & Admins) -->
+    <div class="card" style="margin-top: 24px; border-color: rgba(6, 182, 212, 0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 style="font-size: 17px; font-weight: 700; color: #ffffff; margin: 0;">Signage Video Loop & Media Upload</h3>
+            <span id="playlist-badge" class="badge badge-blue">0 Videos in Loop</span>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;">
+            Upload new corporate videos to the signage loop or manually synchronize all office screens.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="syncAllTvsToVideo(0)" title="Force all screens to start Video 1 together">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            Sync All to Video 1
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="revertAllToSignage()" title="Ensure all screens are showing signage playlist">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Force Signage Loop
+          </button>
+        </div>
+      </div>
+
+      <!-- Upload Bar -->
+      <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; background: rgba(10, 14, 23, 0.6); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-color);">
+        <input type="file" id="media-upload-input" multiple accept="video/mp4,video/webm,video/mkv,video/quicktime" class="input" style="padding: 7px 12px; flex: 1; min-width: 240px;">
+        <button id="btn-upload-media" class="btn btn-primary btn-sm" onclick="uploadMediaFiles()" style="white-space: nowrap; padding: 9px 18px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          Upload Videos to Loop
+        </button>
+        <span id="upload-status" style="font-size: 13px; color: var(--accent-cyan); display: none;"></span>
+      </div>
+
+      <!-- Playlist Video Items -->
+      <div id="media-files-list" style="max-height: 280px; overflow-y: auto; background: rgba(5, 8, 15, 0.6); border-radius: 8px; border: 1px solid var(--border-subtle); padding: 8px;">
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">Loading video playlist...</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/presenter.js?v=4.0"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+[2026-09-24 22:05:05] [HEADER] STARTING 10G CABLE PULLOUT & 1-MINUTE RESILIENCE TEST SUITE
+[2026-09-24 22:05:05] [HEADER] PHASE 1: PRE-FLIGHT 10G FABRIC BASELINE CHECK
+[2026-09-24 22:05:05] [STEP] Testing 10G DAC interconnect ping matrix between all nodes...
+[2026-09-24 22:05:13] [INFO] 10G Ping: prox24 (192.168.10.24) -> prox23 (192.168.10.23): ERROR: timed out
+[2026-09-24 22:05:21] [INFO] 10G Ping: prox24 (192.168.10.24) -> prox22 (192.168.10.22): ERROR: timed out
+[2026-09-24 22:05:29] [INFO] 10G Ping: prox23 (192.168.10.23) -> prox24 (192.168.10.24): ERROR: timed out
+[2026-09-24 22:05:37] [INFO] 10G Ping: prox23 (192.168.10.23) -> prox22 (192.168.10.22): ERROR: timed out
+[2026-09-24 22:05:45] [INFO] 10G Ping: prox22 (192.168.10.22) -> prox24 (192.168.10.24): ERROR: timed out
+[2026-09-24 22:05:53] [INFO] 10G Ping: prox22 (192.168.10.22) -> prox23 (192.168.10.23): ERROR: timed out
+[2026-09-24 22:06:09] [INFO] Ceph Baseline Health:
+ERROR: timed out
+[2026-09-24 22:06:09] [INFO] Quorum Baseline (3/3 votes):
+ERROR: timed out
+[2026-09-24 22:06:09] [HEADER] PHASE 2: TESTING 10G CABLE PULLOUT ON prox24 (192.168.10.24)
+[2026-09-24 22:06:09] [INFO] Target: prox24 | Role: Member Node | 10G IP: 192.168.10.24 | NIC: nic3
+[2026-09-24 22:06:09] [ACTION] Unplug 10G SFP+/DAC optical cable (192.168.10.24 / nic3) from rear of prox24.

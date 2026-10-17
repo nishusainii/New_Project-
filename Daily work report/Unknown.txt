@@ -1,0 +1,173 @@
+
+---
+
+### 🔐 Security & Access Control
+* **Brute-Force Attack Mitigation**: Implemented an IP-based rate limiter enforcing a 5-minute lockout after 5 consecutive failed login attempts to safeguard administrative endpoints.
+* **Cryptographic Credential Storage**: Upgraded admin authentication to use `PBKDF2:SHA256` salted password hashing with secure in-memory comparison.
+* **Session Security Hardening**: Configured server-side session management with a strict 24-hour expiration lifetime and `HTTPOnly` / `SameSite` cookie flags to prevent session hijacking and XSS leaks.
+* **Role & Route Protection**: Wrapped all 30+ REST API endpoints and portal views behind a custom `@login_required` security decorator.
+* **In-Portal Admin Credential Management**: Built an admin password reset utility within the settings interface with input sanitation and password strength checks.
+
+---
+
+### 👥 Proxy User & ACL Group Management
+* **NCSA Htpasswd Integration**: Built an end-to-end user management module enabling programmatic user creation, instant password updates, and account deletion directly modifying `/etc/squid/password`.
+* **Dynamic Tag-Based Group Membership**: Developed visual tag/chip-based group assignment allowing administrators to bind users to specific ACLs without manually touching text files.
+* **ACL Group Hierarchy Management**: Implemented full CRUD capabilities for Squid user ACL groups stored under `/etc/squid/acl/users/` with real-time membership sync.
+
+---
+
+### 🌐 Domain Policy & IP Whitelisting
+* **Categorized Domain Policy Engine**: Created dedicated management controls for target domain rule files (e.g., AI tools, GitHub, WhatsApp, social platforms) located in `/etc/squid/acl/domains/`.
+* **Wildcard & Subdomain Rules**: Added support for regex/wildcard domain definitions to effortlessly block or permit top-level domains and sub-resources.
+* **Client IP & CIDR Whitelisting**: Automated the management of `/etc/squid/allowed_ips.txt`, allowing network administrators to add, inspect, and remove single host IPs or entire subnets (`/24`, `/16`).
+
+---
+
+### 🔀 Multi-Port Routing & Outbound IP Mapping
+* **Dynamic `squid.conf` Parsing**: Engineered an automated parser that dynamically detects configured `http_port` bindings and their linked `tcp_outgoing_address` egress rules across 7 isolated proxy ports.
+* **Active Port Status & Verification**: Added real-time socket inspection to verify whether each proxy port (e.g., 3128, 8858–8898) is actively listening or dormant.
+* **Network Egress Verification**: Built interactive ping/probe diagnostic tools enabling admins to test route latency and TCP connectivity per port directly from the browser.
+
+---
+
+### 📜 Traffic Auditing, Live Logs & SARG Analytics
+* **Real-Time Log Streamer**: Built an asynchronous log tailing engine for `/var/log/squid/access.log` with instant client-side keyword filtering and regex search.
+* **Color-Coded HTTP Status Badging**: Automated categorization of Squid status codes (`TCP_TUNNEL`, `TCP_MISS`, `TCP_HIT`, `TCP_DENIED`) for quick anomaly detection.
+* **Traffic Velocity Calculation**: Implemented algorithm to compute live requests-per-second (RPS) and peak traffic slots across dynamic time intervals (`1m`, `5m`, `15m`, `1h`, `24h`).
+* **SARG Report Automation**: Built an API trigger (`/api/sarg/generate`) and embedded iframe viewer to generate and inspect historical SARG access reports on demand.
+
+---
+
+### 🛡️ Safe File Editor & Zero-Downtime Operations
+* **In-Browser Configuration Editor**: Designed a web-based code editor with line numbers and syntax formatting for critical Squid configuration files.
+* **Strict Path Traversal Protection**: Enforced strict path whitelisting to block arbitrary file reads or writes outside designated `/etc/squid/` directories.
+* **Pre-Flight Syntax Validation**: Integrated automated `squid -k parse` dry-run checks prior to saving edits, preventing syntax errors from reaching production.
+* **Zero-Downtime Reload**: Standardized configuration reloads using `squid -k reconfigure` instead of hard service restarts, ensuring uninterrupted proxy sessions for connected clients.
+* **Automated Pre-Edit Safety Backups**: Programmed the file editor to automatically snapshot any configuration file to the backup directory before writing changes.
+
+---
+
+### 💾 Backup, Rotation & Disaster Recovery
+* **Snapshot Backup Engine**: Created a one-click configuration snapshot tool that packages all ACLs, user files, domain lists, and `squid.conf`.
+* **Automated 5-Snapshot Retention**: Built an automatic rotation algorithm keeping the 5 most recent snapshots active while archiving older records into compressed `.tar.gz` archives.
+* **One-Click Disaster Recovery**: Implemented an automated restore pipeline to revert to any historical snapshot state with instantaneous syntax re-validation.
+
+---
+
+### 🚢 Universal Deployment, Packaging & Fleet Operations
+* **Multi-Distro Compatibility**: Validated deploy scripts and dependency provisioning across Ubuntu/Debian, CentOS, AlmaLinux, and Rocky Linux.
+* **Port Isolation Strategy**: Confined the portal web service strictly to port `5000`, guaranteeing zero port collisions with existing Apache (`80`), Squid (`3128`, `8858–8898`), or Webmin (`10443`) services.
+* **Systemd Service Integration**: Structured and deployed `innspark-squid-portal.service` with automatic restart-on-failure policies and journal logging.
+* **Fleet Rollout**: Successfully verified active operations across the 4 core proxy nodes:
+  - `10.31.1.159:5000` (Node 1)
+  - `10.31.88.24:5000` (Node 2)
+  - `10.31.1.24:5000` (Node 3)
+  - `10.31.212.14:5000` (Node 4)
+* **Release Artifacts**: Generated and distributed clean, production-ready build packages (`cisai-squid-portal-deploy.zip` and `squid-portal-update.zip`).
+
+
+Ran command: `python3 -c '
+import os, time
+
+app_dir = "/home/nishusaini/Desktop/Innspark/Squid/Proxy UI Management App"
+print("Files in Proxy UI Management App with modified times today:")
+for root, dirs, files in os.walk(app_dir):
+    for f in files:
+        p = os.path.join(root, f)
+        mtime = os.path.getmtime(p)
+        timestr = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(mtime))
+        if timestr.startswith("2026-09-21"):
+            print(f"  {timestr} | {os.path.getsize(p):>6} B | {os.path.relpath(p, app_dir)}")
+'`
+Ran command: `python3 -c '
+import os, glob
+
+brain_dir = "/home/nishusaini/.gemini/antigravity-ide/brain"
+reports = glob.glob(f"{brain_dir}/*/*.md")
+for r in reports:
+    print(r)
+'`
+Viewed project_summary.md:1-199
+
+# 📋 Daily Work Report — Proxy UI Management Portal
+**Date:** September 21, 2026  
+**Project:** CiSai / Innspark Squid Proxy Management Portal  
+**Target Architecture:** Multi-Node Production Squid Proxy Infrastructure (`10.31.1.159`, `10.31.88.24`, `10.31.1.24`, `10.31.212.14`)  
+**Core Directory:** [`Proxy UI Management App/`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App)
+
+---
+
+## 🎯 Executive Summary
+Today's development focused on architecting, expanding, testing, and hardening the **Innspark Squid Proxy Management Web Portal**, followed by repository deduplication and infrastructure deployment automation. The portal is now running as a managed production service across 4 proxy nodes with zero-downtime reconfiguration and real-time telemetry.
+
+---
+
+## 🛠️ Key Accomplishments & Deliverables
+
+### 1. Full-Stack Web Portal Architecture (`~8,500+ Lines`)
+Developed and refined a modular full-stack application with a Flask REST backend and a modern Single-Page Application (SPA) frontend:
+* **Backend Engine ([`squid_manager.py`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/squid_manager.py) — 76 KB / 1,340+ lines):**
+  - Integrated 35+ core functions for Squid management (PID, uptime, memory, CPU, port listeners).
+  - Integrated dynamic `access.log` analysis (top users, client domains, HTTP status codes, bandwidth, hourly traffic distributions).
+  - Built atomic user management (`htpasswd` NCSA auth) and ACL group associations (`/etc/squid/acl/users/`).
+  - Implemented domain category policy controls (AI models, GitHub, WhatsApp, etc.) and IP/CIDR client whitelisting.
+* **REST API Layer ([`app.py`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/app.py) — 22 KB / 510+ lines):**
+  - Exposed 30+ secured endpoints covering telemetry, users, groups, domain lists, direct file editing, backup/restore, and SARG reports.
+* **Frontend SPA ([`templates/index.html`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/templates/index.html) — 96 KB, [`app.js`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/static/js/app.js) — 111 KB, [`style.css`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/static/css/style.css) — 52 KB):**
+  - Real-time live log tailing stream with color-coded HTTP status badges and keyword filtering.
+  - Multi-port egress visualizer mapping 7 distinct listening ports to their dedicated outgoing interface IPs.
+  - In-browser Squid file editor with pre-flight syntax validation (`squid -k parse`).
+
+---
+
+### 2. Security & Zero-Downtime Reliability
+* **Brute-Force Protection & Auth ([`auth.py`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/auth.py)):**
+  - IP-based rate limiting (5 failed attempts locks out for 5 minutes).
+  - PBKDF2:SHA256 password hashing for administrative credentials.
+  - HTTPOnly session cookies with 24-hour lifetime.
+* **Zero Downtime Reloads:** All config updates utilize non-disruptive `squid -k reconfigure` rather than service restarts.
+* **Automated Safety Backups:** Pre-save snapshots generated on every configuration change with 5-slot rotation and `.tar.gz` archival.
+
+---
+
+### 3. Automated Multi-Server Deployment Tooling
+* **Universal Remote Deployer ([`deploy_to_any_server.py`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/deploy_to_any_server.py)):**
+  - Python-based automated deployment supporting both interactive prompts and CLI flags (`--ip`, `--user`, `--pass`, `--update`).
+  - Automated dependency verification (`python3`, `flask`, `requests`, `apache2-utils`).
+  - Automated systemd service registration, pre-update backup snapshotting, and health-check verification.
+* **Local Deployment Installer ([`install_local_portal.sh`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/install_local_portal.sh)):**
+  - Single-command local provisioning script for standalone installation.
+* **Standardized Systemd Service ([`innspark-squid-portal.service`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/innspark-squid-portal.service)):**
+  - Configured with `Restart=always` and `RestartSec=5s` on port `5000`.
+
+---
+
+### 4. Codebase Deduplication & Repository Hygiene
+* Performed deep SHA-256 content and checksum analysis across the entire Squid repository.
+* **Eliminated Redundant Snapshots:**
+  - Removed obsolete snapshot directory `10.31.1.159/` and empty placeholder `squid web/10.31.1.159/`.
+  - Removed duplicate deployment archives (`10.31.1.159/squid-portal-deployment.zip`, `squid-portal-update.zip`).
+  - Removed redundant `@2x` duplicate images.
+* **Single Source of Truth:** Updated [`deploy_to_server.py`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App/deploy_to_server.py) to dynamically reference [`Proxy UI Management App`](file:///home/nishusaini/Desktop/Innspark/Squid/Proxy%20UI%20Management%20App), centralizing all future development.
+
+---
+
+## 🌐 Production Status Overview
+
+The portal has been deployed and verified active across all 4 production nodes:
+
+| # | Target Server | Service Port | Status | Primary Interface |
+|---|---------------|:------------:|:------:|-------------------|
+| 1 | `10.31.1.159` | `5000` | **Active / Running** | `http://10.31.1.159:5000` |
+| 2 | `10.31.88.24` | `5000` | **Active / Running** | `http://10.31.88.24:5000` |
+| 3 | `10.31.1.24` | `5000` | **Active / Running** | `http://10.31.1.24:5000` |
+| 4 | `10.31.212.14` | `5000` | **Active / Running** | `http://10.31.212.14:5000` |
+
+---
+
+## 📊 Summary Statistics
+- **Total Codebase:** ~8,500 lines across 11 core files.
+- **REST Endpoints:** 30+ endpoints.
+- **Production Nodes Managed:** 4 Squid servers.
+- **Deployment Status:** Production Ready & Operational.

@@ -1,0 +1,384 @@
+Below is a production-oriented WireGuard VPN server and client installation process for Ubuntu 22.04/24.04, using nftables for firewall and NAT. I found no matching internal documents or discussions, so this procedure is based on WireGuard’s official installation and Quick Start documentation.
+
+1. Example network design
+
+Replace these values according to your environment:
+
+WireGuard interface: wg0
+VPN network:         10.80.0.0/24
+VPN server:          10.80.0.1
+VPN client:          10.80.0.2
+UDP port:            51820
+Public interface:    eth0
+Server public IP:    203.0.113.10
+Internal LAN:        10.31.0.0/16
+
+
+Identify the actual public interface:
+
+ip route get 1.1.1.1
+ip -br address
+
+
+Do not assume it is eth0. It may be ens18, enp1s0, or another interface.
+
+2. Install WireGuard on the server
+
+Ubuntu provides WireGuard through its package repositories.
+
+sudo apt update
+sudo apt install -y wireguard
+
+
+Verify installation:
+
+wg --version
+modinfo wireguard | head
+
+
+Create the configuration directory safely:
+
+sudo install -d -m 700 /etc/wireguard
+
+3. Generate server keys
+
+WireGuard uses private and public key pairs. The public key is derived from the private key using wg pubkey.
+
+sudo bash -c '
+umask 077
+wg genkey > /etc/wireguard/server_private.key
+wg pubkey < /etc/wireguard/server_private.key > /etc/wireguard/server_public.key
+'
+
+
+Verify permissions:
+
+sudo ls -l /etc/wireguard/server_*.key
+
+
+Expected permissions should prevent other users from reading the private key.
+
+Display only the public key:
+
+sudo cat /etc/wireguard/server_public.key
+
+
+Never share:
+
+/etc/wireguard/server_private.key
+
+4. Enable IPv4 forwarding
+
+Back up the current sysctl configuration:
+
+sudo cp -a /etc/sysctl.d /etc/sysctl.d.backup-$(date +%F-%H%M%S)
+
+
+Create a dedicated WireGuard forwarding configuration:
+
+sudo tee /etc/sysctl.d/99-wireguard-forwarding.conf > /dev/null <<'EOF'
+net.ipv4.ip_forward = 1
+EOF
+
+
+Validate and apply:
+
+sudo sysctl --system
+sysctl net.ipv4.ip_forward
+
+
+Expected:
+
+net.ipv4.ip_forward = 1
+
+5. Create the server configuration
+
+Read the server private key into a shell variable without printing it:
+
+SERVER_PRIVATE_KEY="$(sudo cat /etc/wireguard/server_private.key)"
+
+
+Create /etc/wireguard/wg0.conf:
+
+sudo tee /etc/wireguard/wg0.conf > /dev/null <<EOF
+[Interface]
+Address = 10.80.0.1/24
+ListenPort = 51820
+PrivateKey = ${SERVER_PRIVATE_KEY}
+EOF
+
+
+Protect the configuration:
+
+sudo chmod 600 /etc/wireguard/wg0.conf
+sudo chown root:root /etc/wireguard/wg0.conf
+
+
+Validate configuration parsing without starting the interface:
+
+sudo wg-quick strip wg0 > /dev/null
+
+6. Configure nftables firewall and NAT
+
+First back up the existing firewall configuration:
+
+sudo cp -a /etc/nftables.conf \
+  /etc/nftables.conf.backup-$(date +%F-%H%M%S)
+
+
+Inspect the existing rules before adding anything:
+
+sudo nft list ruleset
+
+
+The following approach creates a dedicated table so WireGuard rules do not overwrite operator-managed rules.
+
+Replace eth0 with the actual external interface.
+
+sudo tee /etc/nftables/wireguard.nft > /dev/null <<'EOF'
+table inet wireguard_filter {
+    chain input {
+        type filter hook input priority filter; policy accept;
+
+        udp dport 51820 accept comment "Allow WireGuard"
+    }
+
+    chain forward {
+        type filter hook forward priority filter; policy accept;
+
+        iifname "wg0" oifname "eth0" accept comment "WireGuard to Internet"
+        iifname "eth0" oifname "wg0" ct state established,related accept comment "Internet return to WireGuard"
+
+        iifname "wg0" ip daddr 10.31.0.0/16 accept comment "WireGuard to internal LAN"
+        ip saddr 10.31.0.0/16 oifname "wg0" ct state established,related accept comment "LAN return to WireGuard"
+    }
+}
+
+table ip wireguard_nat {
+    chain postrouting {
+        type nat hook postrouting priority srcnat; policy accept;
+
+        ip saddr 10.80.0.0/24 oifname "eth0" masquerade comment "WireGuard NAT"
+    }
+}
+EOF
+
+
+If /etc/nftables does not exist:
+
+sudo install -d -m 755 /etc/nftables
+
+
+Make sure /etc/nftables.conf includes the dedicated file:
+
+grep -F 'include "/etc/nftables/wireguard.nft"' /etc/nftables.conf ||
+echo 'include "/etc/nftables/wireguard.nft"' |
+sudo tee -a /etc/nftables.conf
+
+Validate before applying
+sudo nft -c -f /etc/nftables.conf
+
+
+Only apply if the validation returns no error:
+
+sudo systemctl reload nftables
+
+
+Verify:
+
+sudo nft list table inet wireguard_filter
+sudo nft list table ip wireguard_nat
+
+
+If the server is behind an upstream router, configure UDP port forwarding:
+
+UDP 51820 → WireGuard server LAN IP
+
+
+If this is a Proxmox VM, also allow UDP 51820 in the Proxmox VM firewall.
+
+7. Start the WireGuard server
+sudo systemctl enable --now wg-quick@wg0
+
+
+Validate:
+
+sudo systemctl status wg-quick@wg0 --no-pager
+sudo wg show
+ip -br address show wg0
+sudo ss -lunp | grep 51820
+
+
+WireGuard’s official Quick Start documents both manual interface configuration and automated interface management through wg-quick.
+
+8. Generate client keys
+
+Run this on the client device when possible so its private key never leaves the client:
+
+umask 077
+wg genkey > client_private.key
+wg pubkey < client_private.key > client_public.key
+
+
+Display the client public key:
+
+cat client_public.key
+
+
+Do not send the client private key to the server.
+
+9. Add the client to the server
+
+On the server, back up the configuration:
+
+sudo cp -a /etc/wireguard/wg0.conf \
+  /etc/wireguard/wg0.conf.backup-$(date +%F-%H%M%S)
+
+
+Append the peer:
+
+sudo tee -a /etc/wireguard/wg0.conf > /dev/null <<'EOF'
+
+[Peer]
+PublicKey = CLIENT_PUBLIC_KEY
+AllowedIPs = 10.80.0.2/32
+EOF
+
+
+Replace:
+
+CLIENT_PUBLIC_KEY
+
+
+with the actual client public key.
+
+Validate:
+
+sudo wg-quick strip wg0 > /dev/null
+
+
+Apply without unnecessarily stopping the interface:
+
+sudo wg syncconf wg0 <(sudo wg-quick strip wg0)
+
+
+If the shell does not support process substitution, restart during an approved change window:
+
+sudo systemctl restart wg-quick@wg0
+
+
+Verify:
+
+sudo wg show
+
+
+Every client must have:
+
+A unique key pair
+A unique VPN IP
+A matching /32 AllowedIPs entry on the server
+10. Create the client configuration
+Split tunnel
+
+Use this when the client should access only the VPN subnet and internal network:
+
+[Interface]
+Address = 10.80.0.2/32
+PrivateKey = CLIENT_PRIVATE_KEY
+DNS = 10.31.0.10
+
+[Peer]
+PublicKey = SERVER_PUBLIC_KEY
+Endpoint = 203.0.113.10:51820
+AllowedIPs = 10.80.0.0/24, 10.31.0.0/16
+PersistentKeepalive = 25
+
+Full tunnel
+
+Use this when all client IPv4 traffic should go through the VPN:
+
+[Interface]
+Address = 10.80.0.2/32
+PrivateKey = CLIENT_PRIVATE_KEY
+DNS = 1.1.1.1
+
+[Peer]
+PublicKey = SERVER_PUBLIC_KEY
+Endpoint = 203.0.113.10:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+
+
+PersistentKeepalive can maintain NAT or stateful firewall mappings for a peer behind NAT.
+
+Replace:
+
+CLIENT_PRIVATE_KEY
+SERVER_PUBLIC_KEY
+203.0.113.10
+DNS and internal network values
+
+Protect the client configuration:
+
+chmod 600 wg0-client.conf
+
+11. Connect and test
+
+On a Linux client:
+
+sudo wg-quick up ./wg0-client.conf
+
+
+Check:
+
+sudo wg show
+ip route
+ping -c 4 10.80.0.1
+ping -c 4 10.31.0.1
+
+
+On the server:
+
+sudo wg show
+
+
+Look for:
+
+latest handshake
+transfer
+endpoint
+
+
+For packet-level troubleshooting:
+
+sudo tcpdump -ni any udp port 51820
+sudo tcpdump -ni wg0
+
+
+Check logs:
+
+sudo journalctl -u wg-quick@wg0 -n 100 --no-pager
+
+
+A working UDP packet flow but no handshake usually indicates a key, peer, endpoint, or configuration mismatch. A working handshake but no LAN or internet access usually points to routing, forwarding, firewall, NAT, or AllowedIPs.
+
+12. Safe rollback
+
+Stop WireGuard:
+
+sudo systemctl disable --now wg-quick@wg0
+
+
+Remove only the dedicated WireGuard nftables tables:
+
+sudo nft delete table inet wireguard_filter
+sudo nft delete table ip wireguard_nat
+
+
+Restore the backed-up files if required, then validate:
+
+sudo nft -c -f /etc/nftables.conf
+sudo systemctl reload nftables
+
+
+Official references: WireGuard installation instructions and WireGuard Quick Start.

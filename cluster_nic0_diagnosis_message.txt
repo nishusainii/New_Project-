@@ -1,0 +1,57 @@
+Subject: Proxmox cluster (cisai-pve) — node-to-node communication down on nic0 / 10.31.6.x
+
+Hi [Senior Name],
+
+I've completed a full diagnosis of the internal communication issue on the
+Proxmox cluster (cisai-pve: prox022 / prox023 / prox024).
+
+SYMPTOM
+- SSH and web GUI access to all three nodes work fine from outside.
+- Nodes CANNOT reach each other on the primary network (10.31.6.x / nic0 / vmbr0):
+  ping, SSH, and ARP all fail between the three nodes.
+- External hosts can reach each node, and each node can reach external hosts,
+  but node-to-node traffic on 10.31.6.x is completely dead.
+
+WHAT IS WORKING
+- Cluster is still quorate, but ONLY via the redundant link:
+    corosync LINK ID 0 (10.31.6.x / nic0)  -> disconnected on all peers
+    corosync LINK ID 1 (192.168.10.x / nic3) -> connected
+- nic3 (192.168.10.x) is fully functional between all nodes (ping OK, quorum OK).
+- This is NOT a Proxmox-side failure. Host firewalls are all ACCEPT, no
+  nft/ebtables rules, no bridge VLAN filtering, no STP issues, no MAC pinning.
+  Physical links are UP at 1Gb full duplex on all nodes.
+
+ROOT CAUSE (confirmed via packet capture)
+- The ARP requests between the three nodes GO OUT and ARE SEEN on the
+  destination node's nic0, but the destination never replies.
+  Both directions. Only the three cluster nodes are affected; every other
+  host on the network (gateway 10.31.4.1, other servers) exchanges ARP fine
+  with the nodes.
+
+=> The fault is in the switch L2 layer on the Aruba Instant On 1930
+   (TW51KPH00V, mgmt 10.31.4.103) that the three nodes connect to.
+   The switch is silently blocking node-to-node traffic on that segment.
+
+RECOMMENDED ACTIONS
+1. Access the Aruba Instant On 1930 (10.31.4.103) and check:
+   - Port isolation / protected-port / private-VLAN settings between the
+     three node ports and the uplink (the switch is blocking ARP between
+     the nodes and their gateway, but NOT between the nodes and other hosts
+     — this pattern matches switch-level port isolation).
+   - VLAN membership of the three ports (make sure all three are in the
+     same untagged VLAN as the rest of 10.31.4.0/22).
+   - Any MAC pinning / static MAC entries for the three node MACs.
+2. If the switch config looks clean, test by moving ONE node to a different
+   switch port (or different switch) — this isolates host vs switch fault.
+   (You have SSH access to the nodes, so this is quick.)
+
+Note: The cluster is currently running with only ONE corosync link.
+If the nic3 link (192.168.10.x, switchdb3299) is lost, the cluster will lose
+quorum and HA resources will stop. Recommend fixing the switch L2 issue
+so the primary link (10.31.6.x) comes back before any maintenance.
+
+I can help with the switch config check if I get access to the Aruba 1930
+(10.31.4.103), or walk through the fix remotely.
+
+Best regards,
+Nishu
